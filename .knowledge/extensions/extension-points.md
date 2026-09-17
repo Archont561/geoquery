@@ -1,12 +1,15 @@
 ---
-id: extensions/extension-points
-title: Extension Points — All 14 Layers
-category: extensions
+type: Extension Specification
+title: "Extension Points — All 14 Layers"
+description: "All 14 extension layers — adapters, storage, auth, ranking, embeddings, geocoders, transforms, MCP tools, events."
 tags: [extensions, traits, plugins, adapters, storage, auth, ranking, embeddings, geocoders, transforms, events, MCP]
-refs: [project/architecture, project/data-model, adapters/adapter-architecture, query/planner, infrastructure/storage]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: extensions/extension-points
+category: extensions
+refs: [project/architecture, project/data-model, adapters/adapter-architecture, query/planner, infrastructure/storage]
 ---
 
 # Extension Points — All 14 Layers

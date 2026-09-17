@@ -1,12 +1,15 @@
 ---
-id: interfaces/mcp
+type: Interface Specification
 title: MCP Server for AI Agents
-category: interfaces
+description: "geo_query, geo_resource, geo_resolve tools; rmcp 3.x; 2026 spec."
 tags: [MCP, AI, agents, rmcp, tools, resources, 2026-spec, Streamable-HTTP]
-refs: [query/query-model, project/architecture, project/data-model, query/semantic, extensions/extension-points]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: interfaces/mcp
+category: interfaces
+refs: [query/query-model, project/architecture, project/data-model, query/semantic, extensions/extension-points]
 ---
 
 # MCP Server for AI Agents

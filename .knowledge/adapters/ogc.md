@@ -1,12 +1,15 @@
 ---
-id: adapters/ogc
-title: OGC API Adapter — Features & Records
-category: adapters
+type: Adapter Specification
+title: "OGC API Adapter — Features & Records"
+description: "OGC API Features + Records, landing page, queryables, filtering."
 tags: [OGC, OGC-API, Features, Records, CQL2, queryables, conformance]
-refs: [adapters/adapter-architecture, project/standards, query/filters, query/planner]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: adapters/ogc
+category: adapters
+refs: [adapters/adapter-architecture, project/standards, query/filters, query/planner]
 ---
 
 # OGC API Adapter — Features & Records

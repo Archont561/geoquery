@@ -1,12 +1,15 @@
 ---
-id: interfaces/tui
-title: TUI — Interactive Terminal Interface
-category: interfaces
+type: Interface Specification
+title: "TUI — Interactive Terminal Interface"
+description: "ratatui TUI — result browser, source dashboard, ASCII map."
 tags: [TUI, ratatui, crossterm, interactive, terminal, dashboard]
-refs: [interfaces/cli, query/planner, project/architecture, extensions/extension-points]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: interfaces/tui
+category: interfaces
+refs: [interfaces/cli, query/planner, project/architecture, extensions/extension-points]
 ---
 
 # TUI — Interactive Terminal Interface

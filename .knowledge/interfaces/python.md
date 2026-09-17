@@ -1,12 +1,15 @@
 ---
-id: interfaces/python
-title: Python SDK — geoquery
-category: interfaces
+type: Interface Specification
+title: "Python SDK — geoquery"
+description: "geoquery Python SDK, GeoPandas integration, PyO3 path."
 tags: [Python, SDK, GeoPandas, PyO3, httpx, Pydantic, GeoArrow]
-refs: [interfaces/http, query/query-model, project/data-model, infrastructure/xtask]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: interfaces/python
+category: interfaces
+refs: [interfaces/http, query/query-model, project/data-model, infrastructure/xtask]
 ---
 
 # Python SDK — `geoquery`

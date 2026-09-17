@@ -1,12 +1,15 @@
 ---
-id: project/architecture
+type: Architecture
 title: Internal Architecture
-category: project
+description: Internal architecture diagram and component responsibilities.
 tags: [architecture, layers, engine, components, diagram]
-refs: [project/overview, project/data-model, query/planner, adapters/adapter-architecture, infrastructure/storage]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: project/architecture
+category: project
+refs: [project/overview, project/data-model, query/planner, adapters/adapter-architecture, infrastructure/storage]
 ---
 
 # Internal Architecture

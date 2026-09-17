@@ -1,12 +1,15 @@
 ---
-id: project/overview
-title: Geoquery — Project Overview
-category: project
+type: Project Overview
+title: "Geoquery — Project Overview"
+description: "Mission, what Geoquery is and is not, and the four core abstractions."
 tags: [mission, concept, federation, abstraction, query-plane]
-refs: [project/architecture, project/standards, project/data-model, query/planner]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: project/overview
+category: project
+refs: [project/architecture, project/standards, project/data-model, query/planner]
 ---
 
 # Geoquery — Project Overview

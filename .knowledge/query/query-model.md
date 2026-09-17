@@ -1,12 +1,15 @@
 ---
-id: query/query-model
-title: GeoQuery AST — The Canonical Query Model
-category: query
+type: Query Specification
+title: "GeoQuery AST — The Canonical Query Model"
+description: "The GeoQuery AST — scope, spatial, temporal, semantic, filters, execution."
 tags: [AST, query, canonical, API, scope, execution]
-refs: [query/spatial, query/temporal, query/filters, query/semantic, query/planner, project/data-model, interfaces/mcp]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: query/query-model
+category: query
+refs: [query/spatial, query/temporal, query/filters, query/semantic, query/planner, project/data-model, interfaces/mcp]
 ---
 
 # GeoQuery AST — The Canonical Query Model

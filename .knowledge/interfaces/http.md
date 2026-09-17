@@ -1,12 +1,15 @@
 ---
-id: interfaces/http
+type: Interface Specification
 title: HTTP API
-category: interfaces
+description: "POST /query, resource CRUD, SSE streaming, OpenAPI spec."
 tags: [HTTP, REST, Axum, SSE, streaming, OpenAPI, API]
-refs: [query/query-model, project/architecture, project/data-model, interfaces/typescript, interfaces/python]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: interfaces/http
+category: interfaces
+refs: [query/query-model, project/architecture, project/data-model, interfaces/typescript, interfaces/python]
 ---
 
 # HTTP API

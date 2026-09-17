@@ -1,12 +1,15 @@
 ---
-id: adapters/native
-title: Geoquery Native Resources — YAML & Markdown
-category: adapters
+type: Adapter Specification
+title: "Geoquery Native Resources — YAML & Markdown"
+description: Geoquery Resource Manifest (resource.yaml) and Markdown context sidecar.
 tags: [native, YAML, Markdown, resource-manifest, context, sidecar]
-refs: [adapters/adapter-architecture, project/data-model, query/semantic, extensions/extension-points]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: adapters/native
+category: adapters
+refs: [adapters/adapter-architecture, project/data-model, query/semantic, extensions/extension-points]
 ---
 
 # Geoquery Native Resources — YAML & Markdown
