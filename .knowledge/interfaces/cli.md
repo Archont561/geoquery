@@ -1,12 +1,15 @@
 ---
-id: interfaces/cli
+type: Interface Specification
 title: CLI Interface
-category: interfaces
+description: "geoquery add, query, sources, explore — command-line UX."
 tags: [CLI, clap, command-line, UX, add, query, sources]
-refs: [query/query-model, project/architecture, adapters/adapter-architecture, infrastructure/monorepo]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: interfaces/cli
+category: interfaces
+refs: [query/query-model, project/architecture, adapters/adapter-architecture, infrastructure/monorepo]
 ---
 
 # CLI Interface

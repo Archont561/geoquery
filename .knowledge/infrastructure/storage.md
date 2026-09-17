@@ -1,12 +1,15 @@
 ---
-id: infrastructure/storage
+type: Infrastructure Specification
 title: Storage Tiers
-category: infrastructure
+description: "Storage tiers 0–3: stateless → SQLite → DuckDB/GeoParquet → PostGIS."
 tags: [storage, SQLite, DuckDB, GeoParquet, PostGIS, GeoArrow, rstar, tantivy, tiers]
-refs: [project/architecture, project/data-model, query/planner, extensions/extension-points]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: infrastructure/storage
+category: infrastructure
+refs: [project/architecture, project/data-model, query/planner, extensions/extension-points]
 ---
 
 # Storage Tiers

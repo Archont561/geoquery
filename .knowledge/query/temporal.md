@@ -1,12 +1,15 @@
 ---
-id: query/temporal
+type: Query Specification
 title: Temporal Query Language
-category: query
+description: "Temporal predicates (during, intersects, open-ended intervals)."
 tags: [temporal, predicates, interval, datetime, ISO-8601]
-refs: [query/query-model, query/planner, project/data-model]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: query/temporal
+category: query
+refs: [query/query-model, query/planner, project/data-model]
 ---
 
 # Temporal Query Language

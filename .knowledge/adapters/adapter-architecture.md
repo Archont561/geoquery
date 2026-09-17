@@ -1,12 +1,15 @@
 ---
-id: adapters/adapter-architecture
-title: Adapter Architecture — ServiceAdapter Trait
-category: adapters
+type: Adapter Specification
+title: "Adapter Architecture — ServiceAdapter Trait"
+description: "ServiceAdapter trait, detection, capability discovery, plugin model."
 tags: [adapter, trait, plugin, detection, capability, ServiceAdapter]
-refs: [project/architecture, project/data-model, query/planner, query/query-model, extensions/extension-points]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: adapters/adapter-architecture
+category: adapters
+refs: [project/architecture, project/data-model, query/planner, query/query-model, extensions/extension-points]
 ---
 
 # Adapter Architecture — ServiceAdapter Trait

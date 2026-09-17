@@ -1,12 +1,15 @@
 ---
-id: infrastructure/deployment
+type: Infrastructure Specification
 title: Deployment Targets
-category: infrastructure
+description: "Edge (Cloudflare/Deno), Docker, WASM, native binary."
 tags: [deployment, edge, Docker, WASM, Cloudflare, Deno, serverless, binary]
-refs: [project/architecture, infrastructure/storage, infrastructure/monorepo, interfaces/http]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: infrastructure/deployment
+category: infrastructure
+refs: [project/architecture, infrastructure/storage, infrastructure/monorepo, interfaces/http]
 ---
 
 # Deployment Targets

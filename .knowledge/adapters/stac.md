@@ -1,12 +1,15 @@
 ---
-id: adapters/stac
+type: Adapter Specification
 title: STAC API Adapter
-category: adapters
+description: "STAC API /search, collection discovery, CQL2-JSON, conformance."
 tags: [STAC, stac-api, search, collections, CQL2, conformance]
-refs: [adapters/adapter-architecture, project/standards, query/filters, query/planner]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: adapters/stac
+category: adapters
+refs: [adapters/adapter-architecture, project/standards, query/filters, query/planner]
 ---
 
 # STAC API Adapter

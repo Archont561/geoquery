@@ -1,12 +1,15 @@
 ---
-id: query/filters
-title: Attribute Filtering — CQL2 Compilation
-category: query
+type: Query Specification
+title: "Attribute Filtering — CQL2 Compilation"
+description: "CQL2 attribute filtering, expression trees, compilation to backends."
 tags: [CQL2, filters, expressions, queryables, compilation, SQL, ArcGIS]
-refs: [query/query-model, query/planner, project/standards, adapters/stac, adapters/ogc]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: query/filters
+category: query
+refs: [query/query-model, query/planner, project/standards, adapters/stac, adapters/ogc]
 ---
 
 # Attribute Filtering — CQL2 Compilation

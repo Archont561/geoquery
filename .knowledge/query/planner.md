@@ -1,12 +1,15 @@
 ---
-id: query/planner
+type: Query Specification
 title: Query Planner & Federation
-category: query
+description: "Query planner, federation, capability matching, degradation, ranking."
 tags: [planner, federation, capability, degradation, ranking, deduplication, IP]
-refs: [query/query-model, query/filters, query/semantic, adapters/adapter-architecture, project/data-model, project/architecture]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: query/planner
+category: query
+refs: [query/query-model, query/filters, query/semantic, adapters/adapter-architecture, project/data-model, project/architecture]
 ---
 
 # Query Planner & Federation

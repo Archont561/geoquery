@@ -1,12 +1,15 @@
 ---
-id: project/data-model
+type: Data Model
 title: Core Data Model
-category: project
+description: "ResourceDescriptor, ServiceDescriptor, CapabilitySet, and open enums."
 tags: [ResourceDescriptor, ServiceDescriptor, CapabilitySet, GeoResult, types, model]
-refs: [project/overview, project/architecture, adapters/adapter-architecture, query/query-model, extensions/extension-points]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: project/data-model
+category: project
+refs: [project/overview, project/architecture, adapters/adapter-architecture, query/query-model, extensions/extension-points]
 ---
 
 # Core Data Model

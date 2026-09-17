@@ -1,12 +1,15 @@
 ---
-id: project/standards
+type: Standards
 title: Standards Position
-category: project
+description: "OGC API, STAC, CQL2, DCAT, GeoJSON, MCP — the standards reuse policy."
 tags: [OGC, STAC, CQL2, DCAT, GeoDCAT, GeoJSON, MCP, OpenAPI, standards]
-refs: [project/overview, adapters/stac, adapters/ogc, query/filters, interfaces/mcp]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: project/standards
+category: project
+refs: [project/overview, adapters/stac, adapters/ogc, query/filters, interfaces/mcp]
 ---
 
 # Standards Position

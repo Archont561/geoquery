@@ -1,12 +1,15 @@
 ---
-id: research/typescript-sdks
+type: Research Findings
 title: TypeScript / JavaScript SDK Research & Findings
-category: research
+description: "Findings for @modelcontextprotocol/server v2, Honua, Turf, DuckDB-WASM."
 tags: [TypeScript, SDK, MCP, Honua, Turf, rbush, DuckDB-WASM, GeoArrow, npm]
-refs: [interfaces/typescript, interfaces/mcp, project/standards, adapters/adapter-architecture]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: research/typescript-sdks
+category: research
+refs: [interfaces/typescript, interfaces/mcp, project/standards, adapters/adapter-architecture]
 ---
 
 # TypeScript / JavaScript SDK Research & Findings

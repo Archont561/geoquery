@@ -1,12 +1,15 @@
 ---
-id: query/spatial
+type: Query Specification
 title: Spatial Query Language
-category: query
+description: "Spatial predicates (intersects, dwithin, bbox, and more) and CRS rules."
 tags: [spatial, predicates, geometry, GeoJSON, CRS, dwithin]
-refs: [query/query-model, query/planner, project/data-model, project/standards]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: query/spatial
+category: query
+refs: [query/query-model, query/planner, project/data-model, project/standards]
 ---
 
 # Spatial Query Language

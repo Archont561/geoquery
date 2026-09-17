@@ -1,12 +1,15 @@
 ---
-id: query/semantic
+type: Query Specification
 title: Semantic Search & Structured Context
-category: query
+description: "Semantic search, embeddings, structured constraints, safety rules."
 tags: [semantic, embeddings, constraints, context, markdown, AI-safety]
-refs: [query/query-model, query/planner, adapters/native, project/data-model, extensions/extension-points]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: query/semantic
+category: query
+refs: [query/query-model, query/planner, adapters/native, project/data-model, extensions/extension-points]
 ---
 
 # Semantic Search & Structured Context

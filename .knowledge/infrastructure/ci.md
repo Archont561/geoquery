@@ -1,12 +1,15 @@
 ---
-id: infrastructure/ci
-title: CI Pipeline — GitHub Actions
-category: infrastructure
+type: Infrastructure Specification
+title: "CI Pipeline — GitHub Actions"
+description: "GitHub Actions, cargo-deny, cargo-nextest, caching."
 tags: [CI, GitHub-Actions, nextest, deny, clippy, caching, rust-cache]
-refs: [infrastructure/monorepo, infrastructure/xtask]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: infrastructure/ci
+category: infrastructure
+refs: [infrastructure/monorepo, infrastructure/xtask]
 ---
 
 # CI Pipeline — GitHub Actions

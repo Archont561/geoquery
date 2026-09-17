@@ -1,12 +1,15 @@
 ---
-id: infrastructure/monorepo
-title: Rust Monorepo — Workspace & Tooling
-category: infrastructure
+type: Infrastructure Specification
+title: "Rust Monorepo — Workspace & Tooling"
+description: "Workspace layout, Cargo.toml inheritance, tooling hierarchy."
 tags: [monorepo, workspace, Cargo, tooling, dependencies, lints, resolver]
-refs: [infrastructure/xtask, infrastructure/ci, project/architecture, extensions/extension-points]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: infrastructure/monorepo
+category: infrastructure
+refs: [infrastructure/xtask, infrastructure/ci, project/architecture, extensions/extension-points]
 ---
 
 # Rust Monorepo — Workspace & Tooling

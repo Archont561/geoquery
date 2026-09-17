@@ -1,12 +1,15 @@
 ---
-id: roadmap/roadmap
-title: Geoquery Roadmap — 7 Phases
-category: roadmap
+type: Roadmap
+title: "Geoquery Roadmap — 7 Phases"
+description: "7 phases, exit demos, critical path, cut list."
 tags: [roadmap, phases, milestones, MVP, critical-path, timeline]
-refs: [project/overview, project/architecture, query/planner, interfaces/mcp, infrastructure/storage, extensions/extension-points]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: roadmap/roadmap
+category: roadmap
+refs: [project/overview, project/architecture, query/planner, interfaces/mcp, infrastructure/storage, extensions/extension-points]
 ---
 
 # Geoquery Roadmap — 7 Phases

@@ -1,12 +1,15 @@
 ---
-id: research/rust-crates
+type: Research Findings
 title: Rust Crate Research & Findings
-category: research
+description: "Findings for geo, rstar, geoarrow, rmcp 3.x, tantivy, duckdb, axum."
 tags: [Rust, crates, geo, rstar, geoarrow, rmcp, tantivy, duckdb, axum, reqwest, tokio]
-refs: [project/architecture, adapters/adapter-architecture, infrastructure/storage, infrastructure/monorepo, interfaces/mcp]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: research/rust-crates
+category: research
+refs: [project/architecture, adapters/adapter-architecture, infrastructure/storage, infrastructure/monorepo, interfaces/mcp]
 ---
 
 # Rust Crate Research & Findings

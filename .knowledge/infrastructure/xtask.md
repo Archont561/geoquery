@@ -1,12 +1,15 @@
 ---
-id: infrastructure/xtask
-title: xtask — Task Runner & Code Generation
-category: infrastructure
+type: Infrastructure Specification
+title: "xtask — Task Runner & Code Generation"
+description: "cargo xtask setup, codegen, fixtures, schema generation."
 tags: [xtask, codegen, ts-rs, schemars, fixtures, automation, xshell]
-refs: [infrastructure/monorepo, infrastructure/ci, interfaces/mcp, interfaces/typescript, project/data-model]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: infrastructure/xtask
+category: infrastructure
+refs: [infrastructure/monorepo, infrastructure/ci, interfaces/mcp, interfaces/typescript, project/data-model]
 ---
 
 # xtask — Task Runner & Code Generation

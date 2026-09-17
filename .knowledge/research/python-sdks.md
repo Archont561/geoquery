@@ -1,12 +1,15 @@
 ---
-id: research/python-sdks
+type: Research Findings
 title: Python SDK Research & Findings
-category: research
+description: "Findings for pystac-client, OWSLib, FastMCP, GeoPandas, DuckDB."
 tags: [Python, pystac, OWSLib, Shapely, GeoPandas, DuckDB, FastMCP, httpx, PyO3]
-refs: [interfaces/python, interfaces/mcp, project/standards, infrastructure/storage]
 status: draft
-created: 2025-07-11
-updated: 2025-07-11
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: research/python-sdks
+category: research
+refs: [interfaces/python, interfaces/mcp, project/standards, infrastructure/storage]
 ---
 
 # Python SDK Research & Findings

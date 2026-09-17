@@ -1,16 +1,18 @@
 ---
-id: context
-title: Geoquery — Full Project Context Briefing
-category: meta
+type: Context Briefing
+title: "Geoquery — Full Project Context Briefing"
+description: Single-file briefing that gives any reader the complete working mental model of Geoquery.
 tags: [context, briefing, LLM, onboarding, summary, mental-model]
-refs: [INDEX, project/overview, project/architecture, query/planner, roadmap/roadmap]
-status: active
-created: 2025-07-11
-updated: 2025-07-11
+status: stable
+generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
+created: 2025-07-11T00:00:00Z
+updated: 2026-09-17T00:00:00Z
+id: context
+category: meta
+refs: [project/overview, project/architecture, query/planner, roadmap/roadmap]
 audience: [LLMs, AI agents, new contributors, decision makers]
 purpose: single-file project briefing for context loading
 ---
-
 # Geoquery — Full Project Context Briefing
 
 > **Purpose of this file:** A single, self-contained briefing that
@@ -18,7 +20,7 @@ purpose: single-file project briefing for context loading
 > of Geoquery in one read. Use this when loading context into an
 > LLM, onboarding a contributor, or making architectural decisions.
 >
-> For navigation, see [INDEX](./INDEX.md). For deep dives, follow
+> For navigation, see [Index](/index.md). For deep dives, follow
 > the linked files.
 
 ---
@@ -525,7 +527,7 @@ Depending on what you need to do:
 | See the delivery plan | [roadmap/roadmap](./roadmap/roadmap.md) |
 | Look at crate choices | [research/rust-crates](./research/rust-crates.md) |
 
-For full navigation, see [INDEX](./INDEX.md).
+For full navigation, see [Index](/index.md).
 
 ---
 
@@ -554,4 +556,4 @@ frame:
 
 *This file is the single-source briefing. For any specific topic,
 follow the wiki-links to the detailed file. For the full graph,
-see [INDEX](./INDEX.md).*
+see [Index](/index.md).*
