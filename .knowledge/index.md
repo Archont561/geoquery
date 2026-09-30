@@ -77,11 +77,9 @@ All 15 extension points where Geoquery can be customized without forking core co
 
 * [Extension Points — All 15 Layers](extensions/extension-points.md) - All 15 extension layers — adapters, storage, auth, ranking, embeddings, geocoders, transforms, MCP tools, events, generator backends.
 
-# Roadmap
+# Work tracking
 
-Phased delivery plan from foundation to ecosystem.
-
-* [Geoquery Roadmap — 7 Phases](roadmap/roadmap.md) - 7 phases, exit demos, critical path, cut list.
+Milestones, priorities, dependencies, implementation tasks, and acceptance criteria live in [`backlog/`](../backlog/). They are intentionally not duplicated in this knowledge base.
 
 # Research
 
@@ -104,6 +102,12 @@ Browse by topic; every tag lives in concept `tags` frontmatter.
 * Infrastructure: monorepo, xtask, ci, docker, edge, cloudflare
 * Storage and analytics: GeoParquet, GeoArrow, DuckDB, PostGIS, SQLite, rstar, tantivy
 * AI and agents: mcp, rmcp, embeddings, semantic, geocoding, natural-language
+
+# Content Ownership
+
+- **`backlog/` owns work:** planned deliverables, sequencing, milestones, priorities, dependencies, task status, and acceptance criteria.
+- **`.knowledge/` owns durable context:** architectural decisions, contracts, invariants, standards interpretation, research, and rationale needed to perform that work.
+- Knowledge pages may explain *how* or *why* a backlog item should be implemented, but must not maintain a second task list or delivery schedule.
 
 # How to Use
 
