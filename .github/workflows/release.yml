@@ -1,0 +1,91 @@
+name: release
+
+# A release is an explicit, immutable version tag—not an effect of merging to main.
+# prefix.dev authorises this exact workflow through GitHub OIDC, so there is no long-lived
+# publishing token in the repository. Configure Repository Access for:
+#   Archont561/geoquery · release.yml · read/write
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+# Publishing the same tag twice would race both the channel and the GitHub Release.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+# Default every step to read-only. The release job receives only the two additional
+# capabilities it needs: an OIDC token for prefix.dev and GitHub Release creation.
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: publish ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
+        with:
+          cache: true
+          environments: default
+
+      - name: Install the locked environment
+        run: pixi install --locked
+
+      # The tag, workspace and every package manifest must describe one release. The
+      # existing version checker validates all published surfaces; this comparison adds
+      # the tag itself to that invariant before anything is uploaded.
+      - name: Verify release version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(pixi run version)"
+          test "${GITHUB_REF_NAME}" = "v${version}" || {
+            echo "tag ${GITHUB_REF_NAME} does not match workspace version ${version}" >&2
+            exit 1
+          }
+          pixi run version-check
+
+      # Re-run the release gates on the tagged commit. A tag can otherwise be created from
+      # a commit that never passed the branch-protection run associated with main.
+      - name: Run release gates
+        run: pixi run gates
+
+      # Build once, retain the exact files uploaded to prefix.dev, and make replacement of
+      # an existing filename a hard failure. Published package files are immutable.
+      - name: Build Conda packages
+        run: pixi publish --target-dir dist --clean
+
+      - name: Write checksums
+        shell: bash
+        run: sha256sum dist/*.conda > dist/SHA256SUMS
+
+      # pixi exchanges GitHub's short-lived OIDC identity for channel access automatically.
+      # The scoped channel name must match the Repository Access grant on prefix.dev.
+      - name: Publish to prefix.dev
+        run: |
+          pixi upload prefix \
+            --channel '@archont561/geoquery' \
+            --generate-attestation \
+            dist/*.conda
+
+      # The GitHub Release is created last: users never see a successful release whose
+      # canonical Conda packages failed to reach the channel.
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --verify-tag \
+            --generate-notes \
+            --title "geoquery ${GITHUB_REF_NAME#v}" \
+            dist/*.conda dist/SHA256SUMS
