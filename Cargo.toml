@@ -40,29 +40,24 @@
 # immediately.
 
 [workspace]
-# Listed, not `crates/*`. A glob was tried and is a trap: cargo does not filter glob
-# matches on manifest existence, so it picks up `crates/cli` (this package's sources, not a
-# crate) and any other directory that happens to sit under `crates/`, then fails with
-# "failed to load manifest for workspace member" — an error about a directory the reader
-# did not think was a workspace input. Every exception is another entry in `exclude`, and the
-# set of directories that are not crates is not knowable here. Naming the members is the
-# boring option, and boring is right for the list Cargo reads before doing anything else.
+# A glob and one exception, rather than a list. The glob on its own is a trap — cargo does
+# not filter glob matches on manifest existence, so `crates/cli` (this package's sources,
+# not a crate) is matched and the workspace fails to load with "failed to load manifest for
+# workspace member", an error about a directory the reader did not think was a workspace
+# input. `exclude` is the answer cargo provides for exactly that, and there is precisely one
+# directory to name because there is precisely one reason for a directory under `crates/`
+# not to be a crate: the constraint at the top of this file, which the exclude line points
+# back at.
 #
-# Adding a crate is therefore two edits, and the second is this one. It is also the edit
-# that fails visibly if it is forgotten: a crate with a manifest that is not a member here
-# is not in the graph `cargo build --workspace` compiles, not in `Cargo.lock`, and not in
-# the licence report `pixi run deny` produces.
-members = [
-  "crates/core",
-  "crates/types",
-  "crates/adapter-stac",
-  "crates/adapter-ogc",
-  "crates/adapter-native",
-  "crates/http",
-  "crates/mcp",
-  "crates/tui",
-  "crates/xtask",
-]
+# The list this replaces was correct and cost an edit per crate — an edit whose omission is
+# not a compile error but a silent absence: a crate that is not a member is not compiled by
+# `cargo build --workspace`, not in `Cargo.lock`, and not in the licence report `pixi run
+# deny` produces. Adding a crate is now one edit, in the crate's own directory, and the
+# workspace notices it without being told.
+members = ["crates/*"]
+# The only directory under `crates/` that is not a crate. Its sources are this package's
+# binary, reached through `[[bin]] path` below, and its manifest is this file.
+exclude = ["crates/cli"]
 
 # ── Shared package metadata ──────────────────────────────────────────────────
 # Every member inherits from here rather than restating it. The version is the
