@@ -96,7 +96,10 @@ authors = ["Archont561 <142521648+Archont561@users.noreply.github.com>"]
 [workspace.dependencies]
 # Internal crates. Declared here so a member says `geoquery-types.workspace = true`
 # without inventing a path, and so the graph has one place to read.
-geoquery-core = { path = "crates/core" }
+# `geoquery-cli` is published to crates.io and depends on the separately published core.
+# Cargo removes this path while packaging the CLI, then resolves the exact release version
+# from crates.io. `scripts/version.ts` keeps the literal in step with workspace.version.
+geoquery-core = { path = "crates/core", version = "0.1.0" }
 geoquery-types = { path = "crates/types" }
 geoquery-adapter-stac = { path = "crates/adapter-stac" }
 geoquery-adapter-ogc = { path = "crates/adapter-ogc" }
@@ -182,7 +185,7 @@ ratatui = ">=0.30,<0.31"
 crossterm = ">=0.29,<0.30"
 
 # Types across the language boundary. ts-rs derives the TypeScript definitions for
-# @geoquery/client from the same Rust types the engine uses, so the SDK cannot describe a
+# @archont561/geoquery-client from the same Rust types the engine uses, so the SDK cannot describe a
 # query shape the engine would reject.
 ts-rs = { version = ">=12.0,<13", features = [
   "serde-json-impl",
@@ -245,10 +248,10 @@ description = "Command-line client for geoquery: one protocol-independent query 
 readme = "crates/README.md"
 keywords = ["geospatial", "stac", "ogc", "query", "cli"]
 categories = ["command-line-utilities"]
-# Published as the conda package built by the root pixi.toml, not as a crate on crates.io:
-# `pixi publish` is the release path, and a crates.io release would be a second channel
-# with its own yank policy to keep in step.
-publish = false
+# The CLI is available both as the canonical Conda package and through crates.io. Cargo
+# publishes only this package's Rust surface; the Conda package remains the route that
+# installs the `geoquery` executable on supported platforms.
+publish = ["crates-io"]
 
 [lints]
 workspace = true

@@ -54,7 +54,7 @@ be pushed down, what must run locally, and how results retain their provenance.
 | --- | --- | --- |
 | CLI | `geoquery-cli` | Canonical Rust command line; future TUI ships as `geoquery tui` |
 | Python | `geoquery` | Typed, HTTP-first Python SDK |
-| TypeScript | `@geoquery/client` | Fetch-based browser and server SDK |
+| TypeScript | `@archont561/geoquery-client` | Fetch-based browser and server SDK |
 | Core | `geoquery-core` | Protocol-independent query model and execution contracts |
 
 The SDKs do not bundle or reimplement the Rust executable. Shared schemas and conformance
@@ -89,8 +89,9 @@ geoquery-cli = ">=0.1,<0.2"
 
 > [!NOTE]
 > Until the first tagged release appears in the channel, build packages from a checkout with
-> `pixi run publish-dist`. GitHub Releases retain the exact `.conda` files and checksums that
-> the release workflow uploads to prefix.dev.
+> `pixi run publish-dist`. GitHub Releases retain the exact `.conda` files and checksums built
+> from the tag. If prefix.dev is temporarily unavailable, the GitHub Release still ships those
+> verified assets and the channel upload can be retried from that tagged commit.
 
 ## ⚡ CLI quick start
 
@@ -183,7 +184,7 @@ pixi run test -- --filter=@geoquery/rust
 | `crates/http/`, `crates/mcp/`, `crates/tui/` | User-facing Rust interfaces |
 | `crates/cli/src/main.rs` | Canonical `geoquery` executable |
 | `python/geoquery/` | Python SDK and Conda package |
-| `packages/client/` | `@geoquery/client` TypeScript SDK |
+| `packages/client/` | `@archont561/geoquery-client` TypeScript SDK |
 | `apps/docs/` | Astro + Starlight documentation |
 | `pixi.toml` | Environment, task graph, and `geoquery-cli` package |
 | `scripts/version.ts` | Shared-version reader, validator, and updater |
@@ -202,9 +203,14 @@ The release process has two deliberately separate workflows:
 1. **Prepare release** is manually dispatched. Convco derives the next SemVer from
    conventional commits, regenerates `CHANGELOG.md`, updates every manifest, commits to
    `main`, and creates an annotated `vX.Y.Z` tag.
-2. **Release** is triggered by that tag. It reruns the gates, builds immutable Conda
-   packages, publishes to prefix.dev through GitHub OIDC, generates Sigstore attestations,
-   and creates the GitHub Release with SHA-256 checksums.
+2. **Release** is triggered by that tag. It reruns the gates and builds immutable Conda,
+   Python, and TypeScript artifacts. It then attempts each external distribution independently:
+   prefix.dev through GitHub OIDC with attestations, PyPI through Trusted Publishing, npmjs
+   through npm Trusted Publishing, GitHub Packages for the TypeScript client, and crates.io
+   for the public Rust core and CLI. The GitHub Release is required and is created last with
+   every built artifact and a SHA-256 manifest, even if an optional registry upload failed.
+   The Actions summary records every external publication result so a failed upload can be
+   retried from the immutable tag.
 
 Use [Conventional Commits](https://www.conventionalcommits.org/) because commit history is the
 release input:
@@ -215,8 +221,11 @@ feat: add STAC item search adapter                 # minor
 feat!: replace the v1 query envelope               # major
 ```
 
-No long-lived prefix.dev token is stored in GitHub. Repository Access grants `release.yml`
-read/write access only to `@archont561/geoquery`.
+No long-lived prefix.dev, PyPI, or npm publishing token is stored in GitHub. Repository
+Access grants `release.yml` read/write access only to `@archont561/geoquery`; PyPI and npmjs
+trust that workflow's GitHub OIDC identity. The protected `release` environment needs only a
+`CRATES_IO_TOKEN` environment secret for the crates.io upload. GitHub Packages uses the
+workflow's short-lived `GITHUB_TOKEN` with `packages: write`.
 
 ## 🔒 Offline development
 

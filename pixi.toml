@@ -318,14 +318,15 @@ advisories = { cmd = "bun run all:advisories", depends-on = [
 ], description = "Check the Rust dependencies against the advisory database (network)" }
 
 # ── versions ───────────────────────────────────────────────────────────────────
-# Two published surfaces, one number. `version-check` is in `gates`, so forgetting to bump
-# the npm or PyPI manifest fails before a commit lands rather than after a release.
+# Every publishable surface shares one number. `version-check` is in `gates`, so forgetting
+# to bump an npm, PyPI, Cargo, or Conda manifest fails before a commit lands rather than after
+# a release.
 version = { cmd = "bun \"$PIXI_PROJECT_ROOT/scripts/version.ts\"", depends-on = [
   "bun-install",
 ], description = "Print the workspace version from the manifest that owns it" }
 version-check = { cmd = "bun \"$PIXI_PROJECT_ROOT/scripts/version.ts\" --check", depends-on = [
   "bun-install",
-], description = "Assert the npm and Python manifests agree with the workspace version" }
+], description = "Assert every release manifest agrees with the workspace version" }
 version-set = { cmd = "bun \"$PIXI_PROJECT_ROOT/scripts/version.ts\" --set", depends-on = [
   "bun-install",
 ], description = "Set the release version in every manifest that owns a literal" }
@@ -346,12 +347,21 @@ lint-actions = { cmd = "actionlint", description = "Lint the GitHub Actions work
 # as its own step.
 lint-sandbox-plan = { cmd = "pixi-sandbox plan --config .pixi-sandbox.toml", description = "Validate the reviewed sandbox publish plan" }
 
-# ── publishing (conda packages) ────────────────────────────────────────────────
+# ── release artifacts ──────────────────────────────────────────────────────────
 # `pixi publish` builds every package with `publish = true` — geoquery-cli (this manifest)
 # and the Python SDK. `--dry-run` still resolves the full publish set, which is why it is a
 # gate: it fails on a package whose build dependencies do not solve, before anything uploads.
 publish-plan = { cmd = "pixi publish --dry-run", description = "Resolve and print the publish set without building or uploading" }
 publish-dist = { cmd = "pixi publish --target-dir dist", description = "Build the publishable packages into dist/" }
+# The Python task makes native package artifacts with the locked Hatchling backend. The
+# TypeScript task compiles the client with Bun; npm packs that prepared directory only in the
+# release job because npm is required there for its OIDC Trusted Publishing implementation.
+py-dist = { cmd = "bun run dist", cwd = "python/geoquery", depends-on = [
+  "bun-install",
+], description = "Build the Python sdist and wheel into dist/pypi" }
+client-dist = { cmd = "bun run build", cwd = "packages/client", depends-on = [
+  "bun-install",
+], description = "Build the TypeScript client distribution directory" }
 
 # ── documentation site (astro + starlight) ─────────────────────────────────────
 # `apps/docs` is built by `turbo run build` along with everything else; these tasks exist

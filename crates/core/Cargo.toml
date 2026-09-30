@@ -13,7 +13,11 @@ repository.workspace = true
 homepage.workspace = true
 authors.workspace = true
 description = "The geoquery query language: documents, and the rules that make them valid"
-publish = false
+keywords = ["geospatial", "stac", "ogc", "query", "gis"]
+categories = ["science::geo"]
+# `geoquery-cli` is published to crates.io, so this dependency must be available there
+# first. Other workspace crates stay internal until they have a stable public contract.
+publish = ["crates-io"]
 
 [dependencies]
 # serde_json brings serde with it; nothing here names serde directly, so nothing here

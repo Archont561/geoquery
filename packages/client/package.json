@@ -1,17 +1,31 @@
 {
-  "name": "@geoquery/client",
+  "name": "@archont561/geoquery-client",
   "version": "0.1.0",
   "license": "MIT OR Apache-2.0",
   "description": "TypeScript client for geoquery",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Archont561/geoquery.git",
+    "directory": "packages/client"
+  },
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   },
   "files": [
-    "src"
+    "dist",
+    "README.md",
+    "LICENSE-APACHE",
+    "LICENSE-MIT"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "test": "bun test",
