@@ -288,7 +288,8 @@ function setTomlVersion(manifestPath: string, table: string, version: string): v
   const manifest = readFileSync(manifestPath, "utf8");
   const tablePattern = table.replaceAll(".", "\\.");
   const pattern = new RegExp(`(^\\[${tablePattern}\\]$[\\s\\S]*?^version\\s*=\\s*)"[^"]+"`, "m");
-  if (!pattern.test(manifest)) throw new Error(`no literal version in [${table}] of ${manifestPath}`);
+  if (!pattern.test(manifest))
+    throw new Error(`no literal version in [${table}] of ${manifestPath}`);
   writeFileSync(manifestPath, manifest.replace(pattern, `$1"${version}"`));
 }
 
@@ -302,7 +303,11 @@ function setVersion(version: string, startDir: string = process.cwd()): void {
   setTomlVersion(join(root, "Cargo.toml"), "workspace.package", version);
   setTomlVersion(join(root, "python/geoquery/pyproject.toml"), "project", version);
   setTomlVersion(join(root, "python/geoquery/pixi.toml"), "package", version);
-  for (const relativePath of ["package.json", "packages/client/package.json", "apps/docs/package.json"]) {
+  for (const relativePath of [
+    "package.json",
+    "packages/client/package.json",
+    "apps/docs/package.json"
+  ]) {
     const path = join(root, relativePath);
     const json = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
     json.version = version;
