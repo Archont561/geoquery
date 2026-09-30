@@ -9,7 +9,7 @@ created: 2025-07-11T00:00:00Z
 updated: 2026-09-17T00:00:00Z
 id: project/data-model
 category: project
-refs: [project/overview, project/architecture, adapters/adapter-architecture, query/query-model, extensions/extension-points]
+refs: [codegen/service-snapshot, project/overview, project/architecture, adapters/adapter-architecture, query/query-model, extensions/extension-points]
 ---
 
 # Core Data Model
@@ -180,6 +180,39 @@ interface CapabilitySet {
 }
 ```
 
+### Payload Semantics
+
+Deciding *whether* an operation can be pushed down is not the same as knowing
+*what a valid request looks like*. The planner needs the first; a snapshot
+consumer — the offline planner, the TUI, a client generator — needs the second.
+Both live in the same descriptor:
+
+```typescript
+interface CapabilitySet {
+  // …operation support as above…
+
+  crs?: CrsDescriptor[]               // advertised CRSs, with axis order
+  bboxes?: BoundingBox[]              // advertised extents
+  formats?: string[]                  // output formats
+  styles?: string[]                   // named styles, where the protocol has them
+  dimensions?: DimensionDescriptor[]  // time, elevation, custom
+  paging?: PagingDescriptor           // style, default and max page size
+  scaleRange?: [number, number]       // min/max scale denominator
+}
+
+interface CrsDescriptor {
+  code: string                        // "EPSG:4326"
+  axisOrder: "lat-lon" | "lon-lat"    // what this service actually expects
+}
+```
+
+**Axis order is recorded, never assumed.** `EPSG:4326` is lat/lon in some
+protocol versions and lon/lat in others; guessing is the single most common
+source of silently wrong geospatial results.
+
+Values here are always **what the service advertised**, never what its protocol
+permits. An empty list means "not advertised", not "none".
+
 ### Spatial Operations
 
 | Operation | Description |
@@ -235,6 +268,19 @@ interface CapabilitySet {
   "nearest": true
 }
 ```
+
+---
+
+## Snapshots
+
+A `ServiceDescriptor` plus the `ResourceDescriptor`s discovered under it
+serializes to a **service snapshot**: a deterministic, committable artifact that
+lets the planner work offline, makes service drift a reviewable diff, and acts
+as the compile input for client generation.
+
+Serialization rules (stable ordering, no timestamps in the hashed body, explicit
+unknowns) are part of the data model's contract, not an afterthought.
+→ See [codegen/service-snapshot](../codegen/service-snapshot.md)
 
 ---
 

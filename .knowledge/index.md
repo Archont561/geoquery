@@ -43,11 +43,18 @@ Protocol-specific adapters that translate the canonical query into source-native
 * [OGC API Adapter — Features & Records](adapters/ogc.md) - OGC API Features + Records, landing page, queryables, filtering.
 * [Geoquery Native Resources — YAML & Markdown](adapters/native.md) - Geoquery Resource Manifest (resource.yaml) and Markdown context sidecar.
 
+# Code Generation
+
+Persisting what discovery found, and compiling it into typed clients.
+
+* [Service Snapshots — Describe Once, Commit, Diff](codegen/service-snapshot.md) - The serialized ServiceDescriptor snapshot, its lockfile, determinism rules, and drift detection.
+* [Client Generation — Typed SDKs from a Service Snapshot](codegen/client-generation.md) - geoquery generate: compiling a described service into a typed client in TypeScript, Python, Rust and beyond.
+
 # Interfaces
 
 Every way a user, application, or AI agent interacts with the engine.
 
-* [CLI Interface](interfaces/cli.md) - geoquery add, query, sources, explore — command-line UX.
+* [CLI Interface](interfaces/cli.md) - geoquery add, describe, query, generate, check — command-line UX.
 * [HTTP API](interfaces/http.md) - POST /query, resource CRUD, SSE streaming, OpenAPI spec.
 * [MCP Server for AI Agents](interfaces/mcp.md) - geo_query, geo_resource, geo_resolve tools; rmcp 3.x; 2026 spec.
 * [TUI — Interactive Terminal Interface](interfaces/tui.md) - ratatui TUI — result browser, source dashboard, ASCII map.
@@ -66,9 +73,9 @@ Monorepo tooling, CI, storage tiers, and deployment targets.
 
 # Extension System
 
-All 14 extension points where Geoquery can be customized without forking core code.
+All 15 extension points where Geoquery can be customized without forking core code.
 
-* [Extension Points — All 14 Layers](extensions/extension-points.md) - All 14 extension layers — adapters, storage, auth, ranking, embeddings, geocoders, transforms, MCP tools, events.
+* [Extension Points — All 15 Layers](extensions/extension-points.md) - All 15 extension layers — adapters, storage, auth, ranking, embeddings, geocoders, transforms, MCP tools, events, generator backends.
 
 # Roadmap
 
@@ -93,6 +100,7 @@ Browse by topic; every tag lives in concept `tags` frontmatter.
 * Query engine: planner, spatial, temporal, semantic, filter, ranking, degradation
 * Protocols and adapters: stac-api, ogc-features, ogc-records, wfs, arcgis, cmr, ckan
 * Interfaces: cli, http, mcp, tui, typescript, python, wasm
+* Code generation: snapshot, lockfile, drift, codegen, typed-client, determinism
 * Infrastructure: monorepo, xtask, ci, docker, edge, cloudflare
 * Storage and analytics: GeoParquet, GeoArrow, DuckDB, PostGIS, SQLite, rstar, tantivy
 * AI and agents: mcp, rmcp, embeddings, semantic, geocoding, natural-language

@@ -1,7 +1,7 @@
 ---
 type: Extension Specification
-title: "Extension Points — All 14 Layers"
-description: "All 14 extension layers — adapters, storage, auth, ranking, embeddings, geocoders, transforms, MCP tools, events."
+title: "Extension Points — All 15 Layers"
+description: "All 15 extension layers — adapters, storage, auth, ranking, embeddings, geocoders, transforms, MCP tools, events, generator backends."
 tags: [extensions, traits, plugins, adapters, storage, auth, ranking, embeddings, geocoders, transforms, events, MCP]
 status: draft
 generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
@@ -12,7 +12,7 @@ category: extensions
 refs: [project/architecture, project/data-model, adapters/adapter-architecture, query/planner, infrastructure/storage]
 ---
 
-# Extension Points — All 14 Layers
+# Extension Points — All 15 Layers
 
 ## The Golden Rule
 
@@ -472,6 +472,32 @@ tool. The agent interacts with the Geoquery abstraction.
 
 ---
 
+## Layer 15: Generator Backends
+
+**What:** Emitting a typed client (or an OpenAPI document, or docs) for one
+described service, in a new target language.
+**Mechanism:** `GeneratorBackend` trait, registered like an adapter.
+**MVP:** Phase 3. **Difficulty:** Medium.
+
+```rust
+pub trait GeneratorBackend: Send + Sync {
+    fn target(&self) -> &str;                 // "typescript", "python", "go"…
+    fn generate(&self, model: &GenerationModel) -> Result<Vec<GeneratedFile>>;
+}
+```
+
+A backend consumes the protocol-neutral `GenerationModel` lowered from a service
+snapshot, so a backend author writes no STAC, OGC or WFS code. Backends depend
+on `geoquery-types` only — never on `geoquery-core`, never on an adapter crate.
+
+**Built-in:** `typescript`, `python`, `openapi`, `docs`; `rust` in preview.
+**Rules:** output must be deterministic and dependency-light; generation never
+performs I/O beyond writing files.
+
+→ See [codegen/client-generation](../codegen/client-generation.md)
+
+---
+
 ## Summary Matrix
 
 | # | Extension Point | Mechanism | MVP? | Difficulty |
@@ -490,6 +516,7 @@ tool. The agent interacts with the Geoquery abstraction.
 | 12 | Metadata Extensions | `extensions` / `properties` maps | ✅ | Trivial |
 | 13 | Event/Hook System | `QueryEventListener` trait | Phase 2 | Medium |
 | 14 | MCP Tools | Tool registry on MCP server | Phase 2 | Easy |
+| 15 | Generator Backends | `GeneratorBackend` trait | Phase 3 | Medium |
 
 ---
 

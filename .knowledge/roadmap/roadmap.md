@@ -99,6 +99,8 @@ results with provenance.
   - `geoquery query --bbox ... --time ... --limit N`
   - JSON output with provenance
 - [ ] Local registry (Tier 0: in-memory, with YAML file persistence)
+- [ ] Service snapshots: deterministic `ServiceDescriptor` serialization,
+      `~/.geoquery/sources/*.json` + `geoquery.lock`, `geoquery describe`
 - [ ] Integration test against Planetary Computer STAC API
 
 ### Exit Demo
@@ -179,6 +181,19 @@ Deduplication accuracy and partial failure UX.
 
 ---
 
+## Phase 2.5 — Service Contracts (folded into Phase 2)
+
+- [ ] Payload semantics in `CapabilitySet`: CRS with axis order, extents,
+      formats, styles, dimensions, property schemas
+- [ ] Conditional refetch (`ETag` / `If-None-Match`) + on-disk describe cache
+- [ ] `geoquery diff <source>` — snapshot vs live service
+- [ ] `geoquery check [--breaking-only]` — CI gate, exit 1 on drift
+- [ ] Offline planning from snapshots (`--offline`)
+
+→ See [codegen/service-snapshot](../codegen/service-snapshot.md)
+
+---
+
 ## Phase 3 — API Layer (Weeks 15–20)
 
 **Goal:** The engine is accessible via HTTP, TypeScript, and Python —
@@ -206,6 +221,11 @@ not just the CLI.
   - `.to_arrow()` converter (GeoArrow)
 - [ ] Docker Compose for local development
 - [ ] OpenAPI spec auto-generated from Axum routes
+- [ ] `geoquery-codegen` crate: snapshot → `GenerationModel`, `GeneratorBackend`
+      registry, deterministic emit, `geoquery targets`
+- [ ] `geoquery generate <source> --target typescript --out <dir>` — typed,
+      dependency-light client for one described service; `--check` CI gate
+- [ ] `python` backend; `openapi` and `docs` backends over the same model
 
 ### Exit Demo
 
@@ -229,7 +249,9 @@ gdf.plot()
 
 ### Key Risk
 
-SDK maintenance burden across three languages.
+SDK maintenance burden across three languages. For generation, the risk is
+scope: backends must stay thin consumers of `GenerationModel`, or every new
+target re-learns every protocol.
 
 → See [interfaces/http](../interfaces/http.md), [interfaces/typescript](../interfaces/typescript.md), [interfaces/python](../interfaces/python.md)
 
@@ -429,7 +451,7 @@ build plugins.
 | **0. Foundation** | 3 weeks | Types compile, schemas generate | AST design churn |
 | **1. Single Source** | 5 weeks | CLI queries real STAC API | STAC API inconsistencies |
 | **2. Federation** | 6 weeks | Multi-source parallel query | Dedup accuracy, partial failures |
-| **3. API Layer** | 6 weeks | TS + Python SDKs work | SDK maintenance burden |
+| **3. API Layer** | 6 weeks | TS + Python SDKs work; `geoquery generate` emits a compiling client | SDK maintenance burden, codegen scope |
 | **4. AI / MCP** | 6 weeks | Agent queries via MCP | Semantic search quality |
 | **5. Experience** | 8 weeks | TUI + streaming | Scope creep |
 | **6. Scale** | 10 weeks | Edge + WASM + PyO3 | WASM compatibility |
@@ -447,6 +469,8 @@ build plugins.
 | Semantic search | Defer embeddings, keep full-text | `tantivy` alone covers 80% of discovery |
 | OGC Records server mode | Defer to Phase 7 | Being a *client* is MVP; *server* is ecosystem |
 | Plugin system | Defer to Phase 7 | Trait-based extension is sufficient until external contributors |
+| Client generation beyond TypeScript | Yes, one target proves it | `python`/`rust` backends are mechanical once the model is right |
+| Service snapshots | **No** | Offline planning, drift detection and generation all depend on them |
 
 ---
 
@@ -456,7 +480,7 @@ build plugins.
 |-------|------|-----|
 | **1** | Rust core + STAC adapter + CLI | Proves the engine works |
 | **2** | OGC adapter + federation | Proves the value proposition |
-| **3** | HTTP server + TS client + Python client | Opens the API to applications |
+| **3** | HTTP server + TS client + Python client + `geoquery generate` | Opens the API to applications |
 | **4** | MCP server | Opens the API to AI agents |
 | **5** | TUI | Interactive exploration demo |
 | **6** | WASM + PyO3 | Performance / edge deployment |
