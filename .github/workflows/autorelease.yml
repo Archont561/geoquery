@@ -1,0 +1,86 @@
+name: prepare release
+
+# A maintainer starts this workflow manually. Convco derives the next stable SemVer from
+# conventional commits since the latest v* tag, regenerates CHANGELOG.md from the same
+# history, commits the release metadata to main, and creates the tag consumed by release.yml.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    name: derive version, changelog, and tag
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      # Always release the current main branch, even if the dispatch UI was opened while
+      # viewing another branch. Full history and tags are inputs to convco's calculation.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
+        with:
+          cache: true
+          environments: default
+
+      - name: Install the locked environment
+        run: pixi install --locked
+
+      - name: Derive the next version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          next="$(convco version --bump)"
+          current="$(pixi run version)"
+          test -n "$next"
+          if git rev-parse --verify --quiet "refs/tags/v${next}"; then
+            echo "v${next} already exists; there are no releasable commits" >&2
+            exit 1
+          fi
+          echo "current=${current}" >> "$GITHUB_OUTPUT"
+          echo "next=${next}" >> "$GITHUB_OUTPUT"
+          echo "Convco selected v${next} from the conventional commit history."
+
+      - name: Update versions and changelog
+        env:
+          NEXT_VERSION: ${{ steps.version.outputs.next }}
+        run: |
+          pixi run version-set "$NEXT_VERSION"
+          convco changelog --unreleased "$NEXT_VERSION" --output CHANGELOG.md
+
+          # Refresh ecosystem lockfiles after their workspace/package versions changed.
+          bun install --lockfile-only
+          cargo metadata --locked --format-version 1 >/dev/null || cargo metadata --format-version 1 >/dev/null
+          pixi lock
+          pixi run version-check
+
+      - name: Commit and tag the release
+        env:
+          NEXT_VERSION: ${{ steps.version.outputs.next }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md Cargo.lock bun.lock pixi.lock \
+            Cargo.toml pixi.toml package.json \
+            apps/docs/package.json packages/client/package.json \
+            python/geoquery/pixi.toml python/geoquery/pyproject.toml
+          git commit -m "chore(release): v${NEXT_VERSION}"
+          git tag -a "v${NEXT_VERSION}" -m "geoquery v${NEXT_VERSION}"
+
+          # Push the commit first. Only a release commit accepted by main may acquire the
+          # tag that triggers publication; a branch-protection rejection therefore cannot
+          # leave a publishable tag pointing at an unmerged commit.
+          git push origin HEAD:main
+          git push origin "v${NEXT_VERSION}"
