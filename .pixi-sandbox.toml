@@ -1,13 +1,19 @@
 schema = 1
 branch_prefix = "sandbox"
-# There is no Cargo.toml at the repository root: the Cargo workspace root is `crates/`,
-# because the directory a conda package is built from has to be the root of a workspace
-# that is itself a package (cargo install cannot install from a virtual manifest — see
-# crates/Cargo.toml). pixi-sandbox looks for a manifest at the repository root, so
-# vendoring crates into the transport is off until that agrees. It costs an airgapped
-# machine a `cargo fetch` it cannot do; it does not cost it the toolchain, which is a
-# conda dependency and is packed whole.
-cargo_vendor = false
+# `true`, and the reason it could be `false` is the point: pixi-sandbox looks for a Cargo
+# manifest at the repository root, and for a long time there was none — the workspace root
+# was `crates/`, because the directory a conda package is built from has to be the root of
+# a workspace that is itself a package (cargo install cannot install from a virtual
+# manifest). The manifest now lives at the repository root and the two constraints are
+# satisfied by one file, so the crate sources travel in the transport.
+#
+# That is what makes this transport worth its size. With vendoring off, an airgapped machine
+# could restore the toolchain and then discover it had no way to obtain the 435 crates in
+# Cargo.lock — the environment solved, the build impossible. Vendored, it runs
+# `cargo build --offline` and compiles the workspace the project will actually be built
+# from, which is the entire purpose of restoring an environment on a machine with no
+# network. The cost is a large transport, paid once per dependency change.
+cargo_vendor = true
 
 [[bundle]]
 name = "developer"

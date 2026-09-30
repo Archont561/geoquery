@@ -1,0 +1,265 @@
+# Cargo.toml — the workspace root, and the package `pixi publish` builds.
+#
+# Both roles are here because of one hard constraint: `pixi-build-rust` builds a package by
+# running `cargo install --locked --path <source>`, and `cargo install` cannot install from
+# a *virtual* manifest — it has no `-p`, so a member cannot be selected out of one. The
+# directory a conda package is built from therefore has to be a package that is also the
+# root of the workspace that contains it.
+#
+# This file is that: a real `[package]` (geoquery-cli) that also declares the `[workspace]`
+# every library below it belongs to. The two facts are not in tension — `cargo install
+# --path .` here builds this package and the subgraph it reaches, which is `geoquery-core`
+# and clap, and nothing else.
+#
+# Consequences, stated once so they are not rediscovered later:
+#   - `crates/cli/` has no Cargo.toml. The binary's sources live there because that is
+#     where a reader looks for a crate's code; its manifest is this file, reached through
+#     `[[bin]] path`.
+#   - The Cargo workspace root is the repository root, so `cargo_vendor` in
+#     `.pixi-sandbox.toml` can be true: an airgapped machine can vendor and build the whole
+#     workspace, not just restore the toolchain. That was impossible while the manifest
+#     lived under `crates/`, and it is the reason this layout is the one that was chosen
+#     over keeping the manifest beside the sources.
+#   - `deny.toml` is here for the same reason: cargo-deny reads it from the workspace root.
+#   - The version of the project is owned by the root pixi.toml. It reaches Cargo through
+#     `[workspace.package]` below, and `pixi run version-check` asserts the two agree, so
+#     the authority stays single and the hop is checked rather than assumed.
+#
+# The workspace is the *whole* crate list from `.knowledge/roadmap/roadmap.md`, not just
+# the crates that exist. Every one of them is declared as a member with the dependencies
+# it will need, so `Cargo.lock` and `pixi.lock` describe the environment the project is
+# going to be built in rather than the one it happened to be started in. That matters
+# most for the offline sandbox: a lockfile that grows in Phase 2 is a sandbox that has to
+# be repacked, and a machine with no network cannot repack one. The cost is a cold
+# `cargo build` that compiles a few hundred crates nobody has imported yet, which is
+# exactly the cost that buys a lockfile and a licence policy that hold all the way to
+# Phase 6.
+#
+# A member with no source is a statement about the dependency graph, not a placeholder for
+# future work. Deleting a member is a deletion, and `publish-plan` / `deny` will say so
+# immediately.
+
+[workspace]
+# Listed, not `crates/*`. A glob was tried and is a trap: cargo does not filter glob
+# matches on manifest existence, so it picks up `crates/cli` (this package's sources, not a
+# crate) and any other directory that happens to sit under `crates/`, then fails with
+# "failed to load manifest for workspace member" — an error about a directory the reader
+# did not think was a workspace input. Every exception is another entry in `exclude`, and the
+# set of directories that are not crates is not knowable here. Naming the members is the
+# boring option, and boring is right for the list Cargo reads before doing anything else.
+#
+# Adding a crate is therefore two edits, and the second is this one. It is also the edit
+# that fails visibly if it is forgotten: a crate with a manifest that is not a member here
+# is not in the graph `cargo build --workspace` compiles, not in `Cargo.lock`, and not in
+# the licence report `pixi run deny` produces.
+members = [
+  "crates/core",
+  "crates/types",
+  "crates/adapter-stac",
+  "crates/adapter-ogc",
+  "crates/adapter-native",
+  "crates/http",
+  "crates/mcp",
+  "crates/tui",
+  "crates/xtask",
+]
+
+# ── Shared package metadata ──────────────────────────────────────────────────
+# Every member inherits from here rather than restating it. The version is the
+# interesting one: it is pixi.toml's number, copied, and `version-check` fails if the two
+# ever differ. A member that hardcoded `version = "0.1.0"` would be a ninth place to
+# forget to bump, and the gate would no longer be O(1) in the number of crates.
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Archont561/geoquery"
+homepage = "https://github.com/Archont561/geoquery"
+authors = ["Archont561 <142521648+Archont561@users.noreply.github.com>"]
+
+# ── Shared dependencies ──────────────────────────────────────────────────────
+# One declaration per crate, so a version bump is one diff and two crates cannot pin
+# different versions of the same thing. Bounds are `>=x.y,<x+1` rather than `^x.y` for the
+# same reason the Pixi manifest uses that form: the minor series is the thing a release
+# is validated against, and a bound that moves with the next minor is a bound nobody
+# tested. Divergences from the versions in .knowledge/ are noted at each entry.
+[workspace.dependencies]
+# Internal crates. Declared here so a member says `geoquery-types.workspace = true`
+# without inventing a path, and so the graph has one place to read.
+geoquery-core = { path = "crates/core" }
+geoquery-types = { path = "crates/types" }
+geoquery-adapter-stac = { path = "crates/adapter-stac" }
+geoquery-adapter-ogc = { path = "crates/adapter-ogc" }
+geoquery-adapter-native = { path = "crates/adapter-native" }
+geoquery-http = { path = "crates/http" }
+geoquery-mcp = { path = "crates/mcp" }
+geoquery-tui = { path = "crates/tui" }
+
+# Geospatial. .knowledge/research/rust-crates.md pins geo 0.29, geojson 0.24 and
+# rstar 0.12; the current releases are geo 0.33, geojson 1.0 and rstar 0.13. The corpus is
+# a design document and its versions were current when it was written; the lockfile is
+# what gets built, so the lockfile's versions are the ones that are real.
+geo-types = ">=0.7.20,<0.8" # 0.7 is the only 0.7.x; `Geometry<f64>` is the canonical type.
+geo = ">=0.33,<0.34"
+geojson = { version = ">=1.0,<2", features = [
+  "geo-types",
+] } # `geo-types` is the feature that makes the geojson <-> geo_types conversion exist at all.
+rstar = ">=0.13,<0.14"
+
+# Serialization. `serde_norway` rather than the `serde_yaml` the corpus names: serde_yaml
+# is deprecated (0.9.34+deprecated) and its `serde_yml` successor is deprecated in turn,
+# while serde_norway is the maintained fork of the same 0.9 line with a drop-in API. It
+# is here for resource.yaml manifests, which is one input format; if YAML is dropped the
+# crate goes and the lockfile loses a parser.
+serde = { version = ">=1.0.229,<2", features = [
+  "derive",
+] }
+serde_json = ">=1.0.151,<2"
+serde_norway = ">=0.9.42,<0.10"
+chrono = { version = ">=0.4.45,<0.5", features = [
+  "serde",
+] }
+
+# Async and transport. `reqwest` takes rustls rather than the platform TLS stack, because
+# the binary that reaches a service must not depend on the OpenSSL a user's distro
+# happens to ship, and because rustls is what the conda package can be built against
+# without a system library. `gzip` because OGC API Features requires GZIP in Accept-
+# Encoding and a client that cannot ask for it gets paged results.
+#
+# `webpki-roots` rather than `rustls-native-certs`: the roots are compiled in, so a
+# released package verifies a service the same way on a machine with no CA bundle in the
+# usual place. The cost is a national service behind a corporate CA is unreachable until
+# its CA is added, which is the trade a reproducible package makes on purpose.
+tokio = { version = ">=1.53,<2", features = [
+  "full",
+] }
+reqwest = { version = ">=0.13,<0.14", default-features = false, features = [
+  "json",
+  "rustls",
+  "webpki-roots",
+  "gzip",
+] }
+async-trait = ">=0.1.92,<0.2"
+async-stream = ">=0.3.6,<0.4"
+futures = ">=0.3.34,<0.4"
+url = ">=2.5.8,<3"
+# OGC API Features servers negotiate GZIP per request; flate2 is what the adapter decodes
+# with when a server sends it unasked.
+flate2 = ">=1.1.10,<2"
+
+# Server-side HTTP. axum 0.8 and tower-http 0.7 are what geoquery-http is written
+# against; utoipa generates the OpenAPI document from the route definitions so the spec
+# cannot drift from the router. `utoipa-swagger-ui` is deliberately absent: it vendors a
+# multi-megabyte zip of static assets, and the spec is the artefact that matters.
+axum = ">=0.8.9,<0.9"
+tower = { version = ">=0.5.3,<0.6", features = [
+  "util",
+] }
+tower-http = { version = ">=0.7.1,<0.8", features = [
+  "cors",
+  "trace",
+] }
+utoipa = { version = ">=6.0,<7", features = [
+  "axum_extras",
+] }
+
+# MCP, for the agent-facing tools (Phase 4).
+rmcp = ">=3.5.0,<4" # 3.x implements the stable 2026-07-28 spec; the corpus names 3.2.0.
+
+# Terminal UI (ratatui 0.30 / crossterm 0.29; the corpus names 0.29 / 0.28).
+ratatui = ">=0.30,<0.31"
+crossterm = ">=0.29,<0.30"
+
+# Types across the language boundary. ts-rs derives the TypeScript definitions for
+# @geoquery/client from the same Rust types the engine uses, so the SDK cannot describe a
+# query shape the engine would reject.
+ts-rs = { version = ">=12.0,<13", features = [
+  "serde-json-impl",
+] }
+
+# Errors and logs. thiserror where the error is part of a type's contract, anyhow where it
+# is not (xtask, and the binary's top level).
+thiserror = ">=2.0.21,<3"
+anyhow = ">=1.0.104,<2"
+tracing = ">=0.1.44,<0.2"
+tracing-subscriber = { version = ">=0.3.23,<0.4", features = [
+  "env-filter",
+] }
+
+# CLI.
+clap = { version = ">=4.5,<5", features = [
+  "derive",
+] }
+
+# Test-only. Declared as dev-dependencies by the members that need them, and listed here
+# so the bound is the same everywhere.
+pretty_assertions = ">=1.4.1,<2"
+wiremock = ">=0.6.5,<0.7" # a fake OGC/STAC endpoint, so adapter tests never touch a network
+insta = ">=1.48,<2" # snapshot tests for the query AST's JSON shape
+tempfile = ">=3.27,<4"
+toml = ">=1.1.6,<2"
+
+[workspace.lints.rust]
+# A published binary and a library it publishes: panics and `unwrap`s are user-visible
+# output, not internal state.
+unsafe_code = "forbid"
+# Every public item is part of the query language's surface, and the surface is the API
+# the other five interfaces are generated from. A doc comment is the cheapest place to
+# say what a type means, and the corpus treats these as interfaces, not internals.
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+# Deliberately not `nursery`, though .knowledge/infrastructure/monorepo.md asks for it.
+# Nursery lints are explicitly unstable: a patch bump of the pinned toolchain can start
+# reporting a new one, which turns a toolchain upgrade into a lint failure. pedantic is
+# the level that has been stable long enough to gate on.
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+
+[package]
+name = "geoquery-cli"
+# Inherited rather than restated, for the same reason the members inherit it.
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+description = "Command-line client for geoquery: one protocol-independent query language for geospatial resources and services"
+readme = "crates/README.md"
+keywords = ["geospatial", "stac", "ogc", "query", "cli"]
+categories = ["command-line-utilities"]
+# Published as the conda package built by the root pixi.toml, not as a crate on crates.io:
+# `pixi publish` is the release path, and a crates.io release would be a second channel
+# with its own yank policy to keep in step.
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+clap = { workspace = true }
+# The language, not the transport. The CLI's job is to phrase what core says; a rule that
+# lived here would be a rule the service would have to write again. Neither adapter nor
+# server crate appears here, and that is deliberate: `cargo install --path .` builds
+# this package and the subgraph it reaches, so anything listed above would be compiled
+# into the released binary for no reason a user could observe.
+geoquery-core = { workspace = true }
+
+[[bin]]
+# The binary is `geoquery` and the conda package is `geoquery-cli`: a user who installs
+# one package gets one command named after the project, not the crate.
+name = "geoquery"
+path = "crates/cli/src/main.rs"
+
+[profile.release]
+# A distributed binary: the user waits for it to download before they can use it.
+lto = "thin"
+codegen-units = 1
+strip = true

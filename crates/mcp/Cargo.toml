@@ -1,0 +1,29 @@
+[package]
+name = "geoquery-mcp"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+description = "MCP server: geo_query, geo_resource and geo_resolve tools for AI agents"
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+geoquery-types = { workspace = true }
+geoquery-core = { workspace = true }
+rmcp = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }

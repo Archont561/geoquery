@@ -1,0 +1,24 @@
+name: docs
+
+# The knowledge base lives in .knowledge/, and the README points to it. This is the only
+# workflow that would deploy it if it ever became a site, and for now it is a no-op that
+# would validate a build rather than publishing anything. The Phase 0 scaffold does not
+# build the docs site, so the job is a placeholder and is cheap to keep.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Intentionally no-op for Phase 0
+        run: >-
+          echo "docs: no build yet; the knowledge base is static markdown in
+          .knowledge/ and the README is the only rendered page"

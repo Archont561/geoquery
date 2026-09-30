@@ -1,0 +1,102 @@
+# The dependency policy, checked by `pixi run deny` and therefore by CI.
+#
+# `cargo deny` reads this from the Cargo workspace root, which is this directory (see
+# the `[workspace]` table in Cargo.toml), so a policy checked out anywhere else would be
+# silently ignored.
+
+[graph]
+# Every optional dependency is in the graph, not just the ones this build happens to
+# turn on. An advisory in a feature nobody uses today is an advisory waiting for the
+# feature that turns it on.
+all-features = true
+
+[advisories]
+version = 2
+# A yanked advisory is an advisory with a known fix available. Ignoring yanked versions
+# is how a RUSTSEC lands in a binary after the ecosystem has already moved on.
+yanked = "deny"
+# Tell cargo-deny to fetch the advisory database at all; the default (`true`) is spelled
+# out so turning it off is a visible, deliberate edit rather than an inherited surprise.
+ignore = []
+
+[licenses]
+# The project's own licence is MIT OR Apache-2.0, and this list is what the whole
+# workspace's dependency graph actually turns out to carry: 14 distinct licences across
+# ~430 crates, re-derived with `cargo deny --workspace list` and not from a template.
+#
+# The list is the *observed* set, deliberately. An allowance for a licence no dependency
+# carries is a licence decision nobody made, and cargo-deny reports each of those as
+# `license-not-encountered` — so a tight list turns those warnings back into real signals
+# and a dependency arriving under a new licence has to be an edit here that a reviewer
+# can see. `pixi run deny` must print no `license-not-encountered` warnings: that is the
+# check that the policy and the graph still agree.
+#
+# Per-licence reasoning, because "it is permissive" is not the same answer for all of
+# them:
+#
+#   MIT, MIT-0, Apache-2.0, 0BSD, BSL-1.0, ISC, Zlib, Unlicense
+#       Permissive, and either the project's own licence or a recognised equivalent.
+#       Unlicense and 0BSD additionally place no attribution obligation at all.
+#   Apache-2.0 WITH LLVM-exception
+#       Permissive with an explicit exception grant. rustix and linux-raw-sys only.
+#   BSD-3-Clause
+#       Permissive, no advertising clause. aws-lc-sys, matchit, subtle.
+#   Unicode-3.0
+#       The ICU data licence, required by the `idna`/`url` chain. Permissive with an
+#       attribution requirement; the licence text travels in the crate.
+#   CC0-1.0
+#       Public domain dedication. dunce, which is `CC0-1.0 OR MIT-0 OR Apache-2.0` and
+#       is taken under the MIT-0 arm.
+#   CDLA-Permissive-2.0
+#       webpki-roots, and it is the one entry here that is not an OSI-approved licence
+#       and not one of the project's own. Mozilla's Certificate Data Licence: it grants
+#       use, modification and redistribution, requires only that the licence text travel
+#       with the roots, and forbids selling the roots as a trust store. That is
+#       compatible with shipping the binary, and it is here because `reqwest` needs a
+#       root store that does not depend on the host having a CA bundle. Dropping it means
+#       `rustls-native-certs` instead, which trades a reproducible package for whatever
+#       the user's machine happens to trust — the opposite of what a conda package
+#       should do.
+#
+# LGPL-2.1-or-later appears in the graph through r-efi and is deliberately NOT allowed.
+# r-efi is `MIT OR Apache-2.0 OR LGPL-2.1-or-later` and is taken under the MIT arm, so
+# nothing copyleft is linked. Allowing the LGPL arm as well would pass a crate that is
+# *only* LGPL, which is precisely the decision this list exists to force.
+allow = [
+  "0BSD",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "CC0-1.0",
+  "CDLA-Permissive-2.0",
+  "ISC",
+  "MIT",
+  "MIT-0",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib",
+]
+# Above this, cargo-deny stops matching a licence expression and reports the crate as
+# unlicensed. 0.93 is above cargo-deny's own default of 0.8: a rarer expression is more
+# likely to be a licence expression the SPDX data got wrong, and a false positive here
+# blocks a release for something nobody can fix from inside this file.
+confidence-threshold = 0.93
+
+[bans]
+# Two majors of the same crate is normal and cheap; three is usually two dependencies
+# that could be one. `warn` keeps the report in CI without blocking a release on it —
+# the graph is two dependencies deep today, so there is nothing to report yet.
+multiple-versions = "warn"
+wildcards = "deny"
+# The toolchain crates that legitimately float (`*`) are allowlisted by name, not by
+# path, so a new wildcard elsewhere still fails.
+allow-wildcard-paths = true
+
+[sources]
+# The build reads crates.io and nothing else. A dependency pointing anywhere else is a
+# supply-chain decision, and `cargo deny` is where it should be noticed.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

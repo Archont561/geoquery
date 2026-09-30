@@ -20,8 +20,8 @@
  *     did not survive. A build started outside pixi still shows the real number; only a
  *     build that can reach neither throws.
  */
-import { existsSync, readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { dirname, join, relative, resolve } from "node:path";
 
 /**
  * Find the workspace manifest by walking up from `startDir`.
@@ -80,6 +80,72 @@ function versionInTable(manifestPath: string, table: string, key = "version"): s
   return value;
 }
 
+/**
+ * Read a pixi `[package] version`, following `version = { workspace = true }`.
+ *
+ * The root pixi.toml is both the workspace and the `geoquery-cli` package, and the package
+ * inherits the version rather than restating it — the same rule the Cargo manifests follow,
+ * expressed in the only way pixi spells it. Both forms are accepted here so a manifest that
+ * goes back to a literal is still read correctly and reported as drift by `check` rather
+ * than throwing on the way to being reported.
+ */
+function pixiPackageVersion(manifestPath: string): string {
+  const manifest = readFileSync(manifestPath, "utf8");
+  const body = manifest.match(/^\[package\]$([\s\S]*?)^\[/m)?.[1] ?? "";
+  if (/^version\s*=\s*\{\s*workspace\s*=\s*true\s*\}\s*$/m.test(body)) {
+    return versionInTable(manifestPath, "workspace");
+  }
+  return versionInTable(manifestPath, "package");
+}
+
+/**
+ * Read a Cargo `version`, following `version.workspace = true`.
+ *
+ * A member crate inherits its version from `[workspace.package]` instead of restating it,
+ * so that adding a crate is not a ninth place to forget a bump. That inheritance means
+ * there is no literal to read in most Cargo manifests, and a checker that insisted on one
+ * would be checking a convention the workspace has deliberately abandoned.
+ *
+ * The inherited value is resolved from the *publishing* workspace's own
+ * `[workspace.package]`, not from each member's manifest: a member that hardcodes a
+ * version while also claiming `version.workspace = true` is a cargo error, and a member
+ * that hardcodes it *instead* is caught by the sweep below, which requires every Cargo
+ * manifest under the workspace to inherit rather than restate.
+ */
+function cargoVersionResolving(manifestPath: string): string {
+  const manifest = readFileSync(manifestPath, "utf8");
+  const packageBody = manifest.match(/^\[package\]$([\s\S]*?)^\[/m)?.[1] ?? "";
+  if (!/^version\.workspace\s*=\s*true\s*$/m.test(packageBody)) {
+    // A literal. Readable so the check reports a value rather than throwing, but the
+    // `hardcodedCargoVersions` invariant is what actually fails the gate on it.
+    return versionInTable(manifestPath, "package");
+  }
+  return versionInTable(join(cargoWorkspaceRoot(manifestPath), "Cargo.toml"), "workspace.package");
+}
+
+/**
+ * The Cargo workspace a manifest belongs to: the nearest ancestor directory whose own
+ * Cargo.toml declares a `[workspace]` table.
+ *
+ * Walking up rather than assuming the parent, because the root manifest is its own
+ * ancestor: `crates/Cargo.toml` is both the workspace root and a member, so for that one
+ * file the workspace root is its own directory, not the directory above it.
+ */
+function cargoWorkspaceRoot(manifestPath: string): string {
+  let dir = dirname(manifestPath);
+  for (;;) {
+    const candidate = join(dir, "Cargo.toml");
+    if (existsSync(candidate) && /^\[workspace\]$/m.test(readFileSync(candidate, "utf8"))) {
+      return dir;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) {
+      throw new Error(`no [workspace] table above ${manifestPath}`);
+    }
+    dir = parent;
+  }
+}
+
 /** Read `[workspace] version` out of the workspace manifest. */
 export function workspaceVersion(startDir: string = process.cwd()): string {
   return versionInTable(workspaceManifestPath(startDir), "workspace");
@@ -104,9 +170,53 @@ export function pythonVersion(pyprojectPath: string): string {
   return versionInTable(pyprojectPath, "project");
 }
 
-/** `version` out of the `[package]` table of a Cargo.toml. */
+/** `version` out of the `[package]` table of a Cargo.toml, following inheritance. */
 export function cargoVersion(cargoTomlPath: string): string {
-  return versionInTable(cargoTomlPath, "package");
+  return cargoVersionResolving(cargoTomlPath);
+}
+
+/**
+ * Every Cargo manifest in the repository, root first, so the sweep is deterministic.
+ *
+ * The walk starts at `crates/` rather than the repository root and adds the root manifest
+ * explicitly. A whole-root walk is the more general answer and the wrong one: `.pixi/` is a
+ * solved environment with manifests in it, and walking it on every version check turns a
+ * millisecond task into a directory traversal of a few hundred thousand files.
+ */
+function cargoManifests(root: string): string[] {
+  const found: string[] = [join(root, "Cargo.toml")];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    )) {
+      // `target/` is build output and holds no manifests worth checking.
+      if (entry.name === "target") continue;
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name === "Cargo.toml") found.push(full);
+    }
+  };
+  walk(join(root, "crates"));
+  return found;
+}
+
+/**
+ * Cargo manifests that state a literal version instead of inheriting it.
+ *
+ * The invariant, not a version comparison: every member under `crates/` must say
+ * `version.workspace = true`. A hardcoded `version = "0.1.0"` in one member is a copy
+ * that the version check below would still have to notice, and the whole point of
+ * `[workspace.package]` is that there is nothing to notice.
+ */
+export function hardcodedCargoVersions(startDir: string = process.cwd()): string[] {
+  const root = repoRoot(startDir);
+  return cargoManifests(root).filter((manifest) => {
+    // The root is the workspace *and* a package, and it is the one manifest allowed to
+    // hold the value every other manifest inherits.
+    if (manifest === join(root, "Cargo.toml")) return false;
+    const body = readFileSync(manifest, "utf8").match(/^\[package\]$([\s\S]*?)^\[/m)?.[1] ?? "";
+    return !/^version\.workspace\s*=\s*true\s*$/m.test(body);
+  });
 }
 
 /**
@@ -125,7 +235,6 @@ export function publishedVersions(startDir: string = process.cwd()): {
   surfaces: { path: string; version: string }[];
 } {
   const root = repoRoot(startDir);
-  const crates = join(root, "crates");
   const sdk = join(root, "python", "geoquery");
   return {
     expected: workspaceVersion(startDir),
@@ -145,21 +254,41 @@ export function publishedVersions(startDir: string = process.cwd()): {
         path: "python/geoquery/pixi.toml",
         version: versionInTable(join(sdk, "pixi.toml"), "package")
       },
-      { path: "crates/pixi.toml", version: versionInTable(join(crates, "pixi.toml"), "package") },
-      // The Cargo manifests: what `geoquery --version` reports, and the library it
-      // reports it about. `crates/Cargo.toml` is the workspace root as well as a
-      // package, which is why the binary has no manifest of its own.
-      { path: "crates/Cargo.toml", version: cargoVersion(join(crates, "Cargo.toml")) },
+      // The CLI conda package: same manifest as the environment, so its `[package]`
+      // version is read out of the root pixi.toml rather than a sub-manifest's.
       {
-        path: "crates/core/Cargo.toml",
-        version: cargoVersion(join(crates, "core", "Cargo.toml"))
-      }
+        path: "pixi.toml [package]",
+        version: pixiPackageVersion(join(root, "pixi.toml"))
+      },
+      // The Cargo manifests: what `geoquery --version` reports, and the library it
+      // reports it about. The root `Cargo.toml` is the workspace root as well as the
+      // binary's package — which is why `crates/cli/` has no manifest of its own — and it
+      // is also where `[workspace.package]` keeps the version every other crate inherits.
+      { path: "Cargo.toml", version: cargoVersion(join(root, "Cargo.toml")) },
+      ...cargoManifests(root)
+        .filter((manifest) => manifest !== join(root, "Cargo.toml"))
+        .map((manifest) => ({
+          path: relative(repoRoot(startDir), manifest),
+          version: cargoVersion(manifest)
+        }))
     ]
   };
 }
 
 /** `--check`: fail if any published surface disagrees with the workspace version. */
 function check(startDir: string = process.cwd()): number {
+  // Checked before the versions, because a crate that hardcodes its own version is a
+  // structural fault rather than a value mismatch: reporting it as drift would be
+  // accurate about the symptom and misleading about the cause.
+  const hardcoded = hardcodedCargoVersions(startDir);
+  if (hardcoded.length > 0) {
+    process.stderr.write("hardcoded Cargo versions (use version.workspace = true):\n");
+    for (const manifest of hardcoded) {
+      process.stderr.write(`  ${relative(repoRoot(startDir), manifest)}\n`);
+    }
+    return 1;
+  }
+
   const { expected, surfaces } = publishedVersions(startDir);
   const drifted = surfaces.filter((surface) => surface.version !== expected);
   if (drifted.length === 0) {

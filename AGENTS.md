@@ -16,14 +16,18 @@ this file.
 
 ## The one thing that is not obvious
 
-`crates/` is both the Cargo workspace root and the directory `pixi publish` builds, and
-`crates/cli/` has no `Cargo.toml`. The reason is in the comment at the top of
-`crates/Cargo.toml`: `pixi-build-rust` runs `cargo install --path <source>`, and
-`cargo install` cannot install from a virtual manifest and has no `-p`. So the directory
-a conda package is built from must be a package that is also the workspace root. Do not
-"fix" this by adding a root `Cargo.toml`, a `crates/cli/Cargo.toml`, or a virtual
-workspace at `crates/` — each breaks the package build, which is the only way the CLI
-ships.
+The repository root holds both the Cargo workspace and the `geoquery-cli` package, and
+`crates/cli/` has no `Cargo.toml`. The reason is in the comment at the top of `Cargo.toml`:
+`pixi-build-rust` runs `cargo install --path <source>`, and `cargo install` cannot install
+from a virtual manifest and has no `-p`. So the directory a conda package is built from
+must be a package that is also the root of the workspace containing it. Do not "fix" this
+by adding a `crates/cli/Cargo.toml`, splitting the `[package]` out into a virtual root, or
+moving it back under `crates/` — each breaks the package build, which is the only way the
+CLI ships, and moving it back also silently disables crate vendoring in the sandbox.
+
+The same reasoning is why the root `pixi.toml` carries `[package]` for the CLI rather than a
+sub-manifest doing it: the package's build directory is the directory holding its manifest,
+and that has to be where the Cargo manifest is.
 
 ## How to run anything
 
@@ -46,7 +50,7 @@ not trustworthy inside a task.
 ## Conventions that gates enforce
 
 - Rust: `cargo fmt`, Clippy with `-D warnings` and `clippy::pedantic`, `cargo deny`, and
-  `unsafe_code = "forbid"`. Lints are declared once in `crates/Cargo.toml` under
+  `unsafe_code = "forbid"`. Lints are declared once in `Cargo.toml` under
   `[workspace.lints]`; a new crate opts in with `[lints] workspace = true` rather than
   restating them.
 - Rust: a rule about what a query *is* belongs in `geoquery-core`. The binary phrases it.
@@ -78,7 +82,7 @@ process-id-plus-name convention in `crates/cli/src/main.rs` rather than a fixed
 
 Two are published, and both are built by `pixi publish`:
 
-- `geoquery-cli` (`crates/pixi.toml`) — the `geoquery` binary, linux-64.
+- `geoquery-cli` (`[package]` in the root `pixi.toml`) — the `geoquery` binary, linux-64.
 - `geoquery` (`python/geoquery/pixi.toml`) — the Python SDK, `noarch: python`.
 
 `publish-plan` is a gate because a dry run still resolves the whole publish set, so a
@@ -87,20 +91,21 @@ channel upload is a release workflow job with credentials, not a task.
 
 Two backend settings that look arbitrary and are not:
 
-- `[package.build.config] compilers = ["c"]` in `crates/pixi.toml`. The default also
+- `[package.build.config] compilers = ["c"]` in the root `pixi.toml`. The default also
   requests `rust_linux-64`, which needs the `rust` metapackage that no longer exists on
   conda-forge, and the failure is a wall of "no candidates found" rather than a message
   about the compiler.
-- `preview = ["pixi-build"]` in the root `pixi.toml`. Without it, a sub-manifest cannot
-  carry a `[package]` table at all.
+- `preview = ["pixi-build"]` in the root `pixi.toml`. Without it, a manifest cannot carry a
+  `[package]` table at all.
 
 ## Offline work
 
 The full environment publishes to an orphan git branch and restores on a machine with no
 network: `pixi run sandbox-pack` → `doctor` → `publish`, then `sh scripts/restore.sh`.
 `.pixi-sandbox.toml` is a reviewed plan and `pixi run lint-sandbox-plan` gates it.
-`cargo_vendor` is `false` there because the Cargo manifest is not at the repository root;
-if that ever changes, the setting and `sandbox-pack` change together.
+`cargo_vendor` is `true` and `sandbox-pack` passes `--cargo-vendor`: the two are one
+decision, so if either is changed the other changes with it. Vendoring is possible *because*
+the Cargo manifest is at the repository root, which is the same reason it is there.
 
 ## Committing
 

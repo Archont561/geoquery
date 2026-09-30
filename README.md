@@ -53,22 +53,27 @@ is no engine to ask.
 | Path | What it is |
 | --- | --- |
 | `pixi.toml` | **the environment and the task runner.** One lockfile for Rust, JS, Python and the repo utilities |
-| `crates/Cargo.toml` | the Cargo workspace root, and the package `pixi publish` builds |
+| `Cargo.toml` | the Cargo workspace root, and the `geoquery-cli` package `pixi publish` builds |
 | `crates/core/` | `geoquery-core`: the query language — documents, versions, error classification |
 | `crates/cli/src/main.rs` | the `geoquery` binary: argument parsing, messages, exit codes |
-| `crates/pixi.toml` | the `geoquery-cli` conda package |
-| `packages/client/` | `@geoquery/client`, the TypeScript client |
+| `deny.toml` | the dependency policy: bans, licences, sources || `packages/client/` | `@geoquery/client`, the TypeScript client |
 | `python/geoquery/` | the `geoquery` Python SDK and its conda package |
 | `scripts/version.ts` | the version checker, and the one place a version lives |
 | `.devcontainer/` | a container that is nothing but `pixi install` |
 | `.github/workflows/` | CI, and the sandbox transport publisher |
 | `.knowledge/` | the design corpus: architecture, query model, interfaces, roadmap |
 
-`crates/` has no root `Cargo.toml` at the repository root, and `crates/cli/` has no
-manifest. Both are deliberate, and the reason is in the comment at the top of
-`crates/Cargo.toml`: `pixi-build-rust` installs with `cargo install --path`, which cannot
-select a member out of a virtual manifest, so the directory a package is built from has to
-be a package that is also the workspace root.
+`pixi.toml` is both the environment and the `geoquery-cli` conda package, and `Cargo.toml` is
+both the workspace root and that package. Neither is a coincidence, and both follow from one
+constraint: `pixi-build-rust` installs with `cargo install --path`, which cannot select a
+member out of a *virtual* manifest, so the directory a package is built from has to be a
+package that is also the root of the workspace containing it. Keeping the manifests at the
+repository root is what lets `crates/` hold nothing but crates, and it is what lets the
+offline sandbox vendor the whole dependency graph — see the comment at the top of
+`Cargo.toml`.
+
+`crates/cli/` has no manifest, because its sources are the root package's binary, reached
+through `[[bin]] path`. Every other directory under `crates/` is a real crate.
 
 ## Working on it
 

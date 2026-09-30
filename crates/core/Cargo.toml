@@ -1,20 +1,24 @@
 [package]
 name = "geoquery-core"
-# Checked against the root pixi.toml's `[workspace] version` by `pixi run
-# version-check`. This crate is the query *language*: its version is the protocol
-# version a service has to speak to understand it, which is why the CLI prints it
-# separately from its own.
-version = "0.1.0"
-edition = "2024"
-rust-version = "1.85"
-license = "MIT OR Apache-2.0"
+# This crate is the query *language*: its version is the protocol version a service has
+# to speak to understand it, which is why the CLI reports it separately from its own. It
+# inherits that version from `[workspace.package]` in `../Cargo.toml` like every other
+# member, and `pixi run version-check` fails if a crate here ever restates it — the
+# authority is the root pixi.toml and the hop through Cargo is checked, not assumed.
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
 description = "The geoquery query language: documents, and the rules that make them valid"
-repository = "https://github.com/Archont561/geoquery"
-homepage = "https://github.com/Archont561/geoquery"
 publish = false
 
 [dependencies]
-serde_json = ">=1.0"
+# serde_json brings serde with it; nothing here names serde directly, so nothing here
+# names it directly. The bound lives in one place for the whole workspace.
+serde_json = { workspace = true }
 
 [lints]
 workspace = true

@@ -1,0 +1,35 @@
+[package]
+name = "geoquery-adapter-ogc"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+description = "OGC API adapter: Features, CRS transforms and coverages as a geoquery source"
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+geoquery-types = { workspace = true }
+geoquery-core = { workspace = true }
+reqwest = { workspace = true }
+async-trait = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+geo-types = { workspace = true }
+geojson = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+flate2 = { workspace = true }
+
+
+[dev-dependencies]
+wiremock = { workspace = true }
+pretty_assertions = { workspace = true }

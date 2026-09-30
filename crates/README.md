@@ -16,15 +16,18 @@ until the query engine lands — see the repository README for the status.
 
 | Path | What it is |
 | --- | --- |
-| `Cargo.toml` | the workspace root, and the package this directory is published as |
+| `../Cargo.toml` | the workspace root, and the `geoquery-cli` package `pixi publish` builds |
+| `../pixi.toml` | the environment, and the same package's conda recipe |
+| `../deny.toml` | the dependency policy `pixi run deny` enforces |
 | `core/` | `geoquery-core`: the query language — documents, versions, rules |
 | `cli/src/main.rs` | the binary: argument parsing, messages, exit codes |
-| `pixi.toml` | the conda package built by `pixi publish` |
-| `deny.toml` | the dependency policy `pixi run deny` enforces |
+| `types/`, `adapter-*/`, `http/`, `mcp/`, `tui/`, `xtask/` | the remaining crates from the roadmap, declared with the dependencies each will need |
 
-There is no `cli/Cargo.toml`. See the comment at the top of `Cargo.toml`: the directory a
-conda package is built from must be the root of a workspace that is itself a package,
-because `cargo install` cannot install from a virtual manifest.
+The workspace manifests are at the repository root rather than here, and there is no
+`cli/Cargo.toml`. Both follow from the comment at the top of `../Cargo.toml`: the directory
+a conda package is built from must be the root of a workspace that is itself a package,
+because `cargo install` cannot install from a virtual manifest. Putting the manifests at the
+root is also what lets the offline sandbox vendor the whole dependency graph.
 
 Installed from a channel with `pixi global install geoquery-cli`, or from a checkout with
 `pixi run publish-dist` followed by the artefact in `dist/`.

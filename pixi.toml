@@ -68,7 +68,7 @@ channels = ["conda-forge"]
 platforms = ["linux-64"]
 requires-pixi = ">=0.81.0"
 # `pixi-build` is what lets a sub-manifest carry a `[package]` table, i.e. what lets
-# `crates/pixi.toml` and `python/geoquery/pixi.toml` describe the conda packages that
+# `[package]` below and `python/geoquery/pixi.toml` describe the conda packages that
 # `pixi publish` builds. It is a preview flag, so it is opted into here, in the one
 # manifest that owns the workspace — opting in per package would mean a workspace whose
 # members disagree about whether building is allowed.
@@ -172,6 +172,75 @@ default = { features = [
 # `cmd`. Pure aggregators (fmt / lint / gates / ci) omit it.
 # ---------------------------------------------------------------------------
 
+# The `[package]` table below makes this manifest two things at once: the pixi workspace
+# root that owns the environment, and the `geoquery-cli` conda package that `pixi publish`
+# builds. That is a deliberate merge, and it is forced by the same constraint that shapes
+# `Cargo.toml`: `pixi-build-rust` runs `cargo install --locked --path <dir>`, and `cargo
+# install` cannot install from a virtual manifest. The package's source directory is the
+# directory holding its manifest, so the manifest has to sit beside the Cargo manifest that
+# is also the package's. Keeping the package in a sub-manifest would mean the conda build
+# ran from a directory that is not a Cargo package, and `pixi-build-rust` would have nothing
+# to install.
+#
+# `[package.version]` is inherited from `[workspace].version` for the same reason the Cargo
+# manifests are: `version-check` asserts every surface agrees, and it is a good deal easier
+# to assert that than to maintain.
+
+[package]
+# The package name is not the crate name. `geoquery-cli` as a package installs the
+# binary `geoquery`, and the distinction matters on a channel where a user searching
+# for "geoquery" should find the library packages too.
+name = "geoquery-cli"
+# The root pixi.toml is the version authority for every published surface. This table
+# inherits rather than restating it: `pixi run version-check` walks the manifests and
+# fails on a literal, so the two cannot drift.
+version = { workspace = true }
+# The opt-in `pixi publish` looks for. Without it this package is buildable with
+# `pixi build --path .` and invisible to a workspace-wide publish.
+publish = true
+license = "MIT OR Apache-2.0"
+description = "Command-line client for geoquery"
+readme = "crates/README.md"
+repository = "https://github.com/Archont561/geoquery"
+homepage = "https://github.com/Archont561/geoquery"
+
+[package.build]
+# pixi-build-rust runs `cargo install --locked --path . --root $PREFIX`, so the crate
+# must be self-contained and carry its own Cargo.lock — it does, at the Cargo.lock
+# beside this manifest, because this directory is the Cargo workspace root too.
+backend = { name = "pixi-build-rust", version = ">=0.5,<0.6", channels = [
+  "https://prefix.dev/conda-forge",
+] }
+
+[package.build.config]
+# Only the C compiler. The backend defaults to `["rust", "c"]`, and the "rust" entry
+# asks conda-forge's compiler infrastructure for `rust_linux-64` — a package that then
+# requires the `rust` metapackage, which no longer exists: on conda-forge `rust` *is*
+# the platform package (a 165 MB linux-64 artefact that already depends on
+# gcc_impl_linux-64). Asking for both is an unsolvable environment, and the failure is
+# a wall of "rust 1.xx.* for which no candidates were found" rather than a message about
+# the compiler. The C entry is what supplies the linker; the toolchain comes from the
+# pinned `rust` build dependency below.
+compilers = ["c"]
+
+# One binary, named explicitly. An empty list installs whatever cargo thinks a package
+# produces, which is a decision made by a file that a later `src/bin/` would change
+# silently.
+binaries = ["geoquery"]
+# `cargo install` already builds release; the profile lives in the root Cargo.toml where
+# rustc reads it from, not here.
+extra-args = []
+
+[package.build-dependencies]
+# The backend adds rust and cargo itself; pinning the compiler here is what makes a
+# released binary reproducible across the years between this commit and the next one.
+# Keep the bound in step with `rust` in [feature.rust.dependencies] below.
+rust = ">=1.98.1,<1.99"
+
+# No [package.host-dependencies] and no [package.run-dependencies]: the binary links
+# the C runtime and nothing else. Declaring `libgcc-ng` or `openssl` here would be a
+# promise to keep them in step with what the toolchain actually links.
+
 [tasks]
 
 # ── setup ────────────────────────────────────────────────────────────────────
@@ -195,30 +264,48 @@ setup = { description = "Materialise the workspace: bun workspace, Python SDK, g
 
 # ── Rust ──────────────────────────────────────────────────────────────────────
 # Every cargo command runs in `crates/`, which is the root of the Cargo workspace and,
-# for the reason recorded in crates/Cargo.toml, also the directory the conda package is
+# for the reason recorded in Cargo.toml, also the directory the conda package is
 # built from. `--workspace` is explicit in the test and coverage tasks so a crate added
 # later is covered by the gate that exists today rather than by one someone remembers
 # to write.
 #
 # `cargo build --release` is what `cargo install` does inside the package build, so the
 # artefact this produces is the same binary that ships. The binary is `geoquery`, from
-# `[[bin]]` in crates/Cargo.toml.
-build-rs = { cmd = "cargo build --release", cwd = "crates", description = "Build the CLI binary in release mode" }
-fmt-rs = { cmd = "cargo fmt --all", cwd = "crates", description = "Rewrite the Rust sources with rustfmt" }
-fmt-check-rs = { cmd = "cargo fmt --all --check", cwd = "crates", description = "Check Rust formatting without writing" }
-clippy = { cmd = "cargo clippy --all-targets --all-features -- -D warnings", cwd = "crates", description = "Lint the Rust sources, treating warnings as errors" }
-test-rs = { cmd = "cargo nextest run --workspace", cwd = "crates", description = "Run the Rust test suites with nextest" }
-test-doc-rs = { cmd = "cargo test --doc --workspace", cwd = "crates", description = "Run the Rust documentation tests" }
-coverage = { cmd = "cargo llvm-cov nextest --workspace --lcov --output-path target/lcov.info", cwd = "crates", description = "Measure test coverage with cargo-llvm-cov" }
+# `[[bin]]` in Cargo.toml.
+build-rs = { cmd = "cargo build --release", description = "Build the CLI binary in release mode" }
+fmt-rs = { cmd = "cargo fmt --all", description = "Rewrite the Rust sources with rustfmt" }
+fmt-check-rs = { cmd = "cargo fmt --all --check", description = "Check Rust formatting without writing" }
+# `--workspace` is load-bearing, not decoration. The root `Cargo.toml` is a package *and*
+# the workspace root, so a bare `cargo clippy` run from `crates/` selects the root package
+# — geoquery-cli and core — and quietly lints neither of the other seven crates. The same
+# is true of `cargo build`, which is why `build-rs` stays unadorned on purpose: it is
+# meant to produce the one binary the package ships, not to check the workspace.
+clippy = { cmd = "cargo clippy --workspace --all-targets --all-features -- -D warnings", description = "Lint every Rust crate, treating warnings as errors" }
+test-rs = { cmd = "cargo nextest run --workspace", description = "Run the Rust test suites with nextest" }
+test-doc-rs = { cmd = "cargo test --doc --workspace", description = "Run the Rust documentation tests" }
+coverage = { cmd = "cargo llvm-cov nextest --workspace --lcov --output-path target/lcov.info", description = "Measure test coverage with cargo-llvm-cov" }
 # Bans, licences and sources from deny.toml. Not advisories: `deny-advisories` needs the
 # advisory database, and a gate that fails because rustsec.io was unreachable is a gate
 # that trains people to ignore gates. The release workflow runs it separately.
-deny = { cmd = "cargo deny check bans licenses sources", cwd = "crates", description = "Check the Rust dependency policy" }
-deny-advisories = { cmd = "cargo deny check advisories", cwd = "crates", description = "Check the Rust dependencies against the advisory database" }
+# `--workspace` is load-bearing for the same reason it is on `clippy`: `crates/` holds a
+# package, so without it cargo-deny roots the graph at geoquery-cli and checks 55 crates
+# instead of 435 — a licence policy over a graph it silently truncated, which is worse
+# than no policy because it reports success. `--locked` asserts the check ran against the
+# committed lockfile, so a policy pass means the artefact a release would build.
+#
+# `--exclude-unpublished` is deliberately NOT passed. Every member is `publish = false`
+# today (they ship as one conda package, not as crates.io crates), and that flag would
+# exclude every one of them from the graph roots — the exact truncation above, requested.
+#
+# The flags go *before* the subcommand. `cargo deny check --workspace` is an error even
+# though `--workspace` appears in `cargo deny check --help`, because it is a global
+# option; the same is true of `--locked`.
+deny = { cmd = "cargo deny --workspace --locked check bans licenses sources", description = "Check the Rust dependency policy over the whole workspace" }
+deny-advisories = { cmd = "cargo deny --workspace --locked check advisories", description = "Check the Rust dependencies against the advisory database" }
 
 # ── publishing (conda packages) ───────────────────────────────────────────────
 # `pixi publish` builds every package with `publish = true` — today that is
-# `crates/pixi.toml`'s geoquery-cli and `python/geoquery/pixi.toml`'s geoquery — and then
+# this manifest's geoquery-cli and `python/geoquery/pixi.toml`'s geoquery — and then
 # either uploads the artefacts or copies them out. The tasks below are the first two
 # points in that pipeline: the third is `pixi publish --channel <name>`, which needs a
 # token, so it belongs in the release workflow rather than in a task anyone can run by
@@ -255,9 +342,14 @@ typecheck = { cmd = "bun run typecheck", depends-on = [
 lint-js = { cmd = "bun run lint", depends-on = [
   "bun-install",
 ], description = "Format-check and lint the TypeScript workspace (biome)" }
+# `biome check --write`, not `biome format --write`: the pre-commit hook promises to fix
+# what the linter reports, and format alone cannot fix an import-order assist or any other
+# safe lint fix. A hook that reports a finding it has no way to repair trains people to
+# ignore the hook. Safe fixes only — an unsafe fix changes behaviour and stays a decision
+# for a person.
 fix-js = { cmd = "bun run format", depends-on = [
   "bun-install",
-], description = "Rewrite the TypeScript workspace with biome" }
+], description = "Rewrite the TypeScript workspace with biome (format and safe fixes)" }
 
 # ── Python SDK ───────────────────────────────────────────────────────────────
 # ruff check and ruff format are one binary, so it answers to the same two verbs as
@@ -343,11 +435,11 @@ setup-opencode = { depends-on = [
 # at a static build of the binary:
 #
 #   SANDBOX_SELF_BIN=~/pixi-sandbox-x86_64-unknown-linux-musl pixi run sandbox-pack
-# No `--cargo-vendor`: `.pixi-sandbox.toml` sets `cargo_vendor = false` because there is
-# no Cargo.toml at the repository root, and passing the flag here would ask the packer to
-# vendor a workspace that is not there. If a root manifest is ever added, the flag and
-# that setting have to change together.
-sandbox-pack = { cmd = "pixi-sandbox pack --repo-root . --envs default --output-dir .sandbox-out --platform linux-64 --fetch-tools --self-bin $SANDBOX_SELF_BIN", description = "Pack the offline sandbox transport" }
+# `--cargo-vendor` matches `cargo_vendor = true` in `.pixi-sandbox.toml`; the flag and the
+# setting are the same decision stated twice, and a disagreement between them packs a
+# transport that quietly lacks the crate sources. The manifest is at the repository root
+# now, which is what makes vendoring possible at all.
+sandbox-pack = { cmd = "pixi-sandbox pack --repo-root . --envs default --output-dir .sandbox-out --platform linux-64 --fetch-tools --cargo-vendor --self-bin $SANDBOX_SELF_BIN", description = "Pack the offline sandbox transport" }
 sandbox-doctor = { cmd = "pixi-sandbox doctor --branch-location .sandbox-out --verify", description = "Verify a packed transport without writing anything" }
 sandbox-publish = { cmd = "pixi-sandbox publish --input-dir .sandbox-out --branch-name sandbox/developer-linux-64 --remote origin", description = "Publish the transport to its orphan branch" }
 # One-liner offline reconstruction from the orphan branch, with PATH aliases.
