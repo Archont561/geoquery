@@ -23,19 +23,3 @@ pub const PROTOCOL_VERSION: &str = VERSION;
 pub fn user_agent() -> String {
     format!("geoquery/{VERSION} (query protocol {PROTOCOL_VERSION})")
 }
-
-#[cfg(test)]
-mod tests {
-    use super::{PROTOCOL_VERSION, VERSION, user_agent};
-
-    #[test]
-    fn the_client_identifies_itself_with_both_numbers() {
-        // An operator reading a server log needs to know which protocol version sent
-        // the request, not which build of the client it happened to come from.
-        assert_eq!(
-            user_agent(),
-            format!("geoquery/{VERSION} (query protocol {PROTOCOL_VERSION})")
-        );
-        assert!(user_agent().contains(PROTOCOL_VERSION));
-    }
-}

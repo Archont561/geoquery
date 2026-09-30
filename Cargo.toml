@@ -273,6 +273,15 @@ geoquery-core = { workspace = true }
 name = "geoquery"
 path = "crates/cli/src/main.rs"
 
+[[test]]
+# Declared for the same reason `[[bin]]` above is: the binary's sources live at
+# `crates/cli/` and its manifest is this file, so cargo's default `tests/` — the one
+# beside *this* manifest, at the repository root — would put the CLI's tests three
+# directories away from the code they are about. Every other crate gets `tests/` next to
+# `src/` for free; this names the same layout for the one crate whose manifest moved.
+name = "cli"
+path = "crates/cli/tests/main.rs"
+
 [profile.release]
 # A distributed binary: the user waits for it to download before they can use it.
 lto = "thin"
