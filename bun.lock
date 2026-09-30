@@ -19,9 +19,15 @@
         "astro": "^7.3.5",
       },
     },
+    "crates": {
+      "name": "@geoquery/rust",
+    },
     "packages/client": {
       "name": "@geoquery/client",
       "version": "0.1.0",
+    },
+    "python/geoquery": {
+      "name": "@geoquery/python",
     },
   },
   "packages": {
@@ -184,6 +190,10 @@
     "@geoquery/client": ["@geoquery/client@workspace:packages/client"],
 
     "@geoquery/docs": ["@geoquery/docs@workspace:apps/docs"],
+
+    "@geoquery/python": ["@geoquery/python@workspace:python/geoquery"],
+
+    "@geoquery/rust": ["@geoquery/rust@workspace:crates"],
 
     "@img/colour": ["@img/colour@1.1.0", "", {}, "sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ=="],
 

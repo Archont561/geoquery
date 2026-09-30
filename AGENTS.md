@@ -37,9 +37,19 @@ pixi run fmt          # rewrite what can be rewritten
 pixi run ci           # gates plus every built artefact, including both conda packages
 ```
 
-Never install a toolchain outside `pixi.toml`. There is no rustup, no node, no separate
-venv, and no `cargo install`. If a command is not a task, add the task first — the task
-list is what the git hooks and the workflows call, and a second entry point over the same
+Pixi is the one entry point; the repo-wide verbs delegate the fan-out to turbo. `build`,
+`test`, `lint`, `typecheck`, `cov` and `fmt` each run **every** language at once — the
+package-specific commands live in each package's own manifest (`crates/package.json` runs
+cargo, `python/geoquery/package.json` runs pytest/ruff, `packages/*` and `apps/*` run
+tsc/bun/astro), and turbo orders and caches them. To scope a run to one package, forward a
+turbo filter: `pixi run test -- --filter=@geoquery/rust`. What stays a plain pixi task is
+the repository-global work with no package to belong to (versions, changelog, Actions lint,
+conda publish, the sandbox transport).
+
+Never install a toolchain outside `pixi.toml`. There is no rustup, no separate venv, and no
+`cargo install`. If a command is a package's own work, add it to that package's manifest
+(where turbo runs it); if it is repository-global, add a pixi task. Either way the git hooks
+and the workflows reach it through `pixi run <task>` — a second entry point over the same
 commands is a second thing to keep in step.
 
 `bun` is the only JavaScript runtime. Reach JS tooling through `bun run` / `bun x`, never

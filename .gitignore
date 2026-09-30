@@ -10,7 +10,7 @@ dist/
 # What `sh scripts/restore.sh` writes on the other side: the vendored crate sources
 # (~500 MiB, 425 crates) unpacked from the transport. The trailing slash matters —
 # `.pixi-sandbox.toml`, the reviewed plan, is tracked and must stay tracked. Biome reads
-# this file (`vcs.useIgnoreFile`), so the entry is also what keeps `pixi run lint-js` from
+# this file (`vcs.useIgnoreFile`), so the entry is also what keeps `pixi run lint` (biome) from
 # checking the vendored crates' JSON after a restore.
 .pixi-sandbox/
 # Written by the same restore, pointing cargo at the vendor directory above. It is a
@@ -54,7 +54,7 @@ htmlcov/
 lcov.info
 coverage/
 lcov-report/
-# pytest-cov's machine-readable report, written by `pixi run coverage-py`.
+# pytest-cov's machine-readable report, written by `pixi run cov`.
 coverage.xml
 # python/geoquery/.coverage, when the suite is run from inside the package.
 .coverage.*

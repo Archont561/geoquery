@@ -18,20 +18,22 @@ pre-commit:
   # shells out to whatever is on PATH is a hook that works on one machine and no
   # other: outside a `pixi shell` there is no `ruff` on PATH at all, and a hook that
   # cannot find its own tools is a hook that fails every commit until someone notices.
-  # The glob still scopes *when* a hook runs; the task decides *what* to touch, so the
-  # formatting a commit is checked against is the same code path CI runs.
+  # The glob still scopes *when* a hook runs; `pixi run fmt` is the one repo-wide
+  # formatter, and `--filter` (forwarded through pixi to turbo) scopes *which* package it
+  # touches, so a Rust commit does not reformat the Python SDK. Same code path CI runs.
   commands:
     fix:
       glob: "*.{ts,tsx,js,jsx,mjs,cjs,json,jsonc}"
-      run: pixi run fix-js && git add {staged_files}
+      # `--filter=//` runs only the root biome task (JS/JSON), not the Rust or Python nodes.
+      run: pixi run fmt -- --filter=// && git add {staged_files}
       stage_fixed: true
     format-rs:
       glob: "crates/**/*.rs"
-      run: pixi run fmt-rs && git add {staged_files}
+      run: pixi run fmt -- --filter=@geoquery/rust && git add {staged_files}
       stage_fixed: true
     format-py:
       glob: "python/**/*.py"
-      run: pixi run fix-py && git add {staged_files}
+      run: pixi run fmt -- --filter=@geoquery/python && git add {staged_files}
       stage_fixed: true
 
 # The fast checks, on what is about to be committed.
@@ -40,9 +42,11 @@ pre-push:
   commands:
     lint:
       # Stages are not interesting here: the whole working tree is what CI will build.
+      # `pixi run lint` is one turbo invocation that fans out to every language.
       run: pixi run lint
     test:
-      run: pixi run test && pixi run test-rs && pixi run test-py
+      # One command: turbo runs the Rust, Python and TypeScript suites across the workspace.
+      run: pixi run test
 
 # Conventional commits, and only this: the changelog is generated from these messages,
 # so a message that is not conventional is a release note that cannot be written.

@@ -112,6 +112,19 @@ checks that are genuinely repository-global (`deny`, `version-check`, `lint-acti
 
 ### Stage 1 — the façades, with Phase 1
 
+> **Implemented 2026-09-30 (with one deliberate divergence).** The façades landed ahead of
+> `xtask codegen` at the maintainer's request, and one node per *language workspace* rather
+> than per cross-language edge: `crates/package.json` (`@geoquery/rust`, `--workspace`),
+> `python/geoquery/package.json` (`@geoquery/python`) and the existing `packages/*`/`apps/*`.
+> The root `pixi.toml` now exposes only the repo-wide turbo verbs plus the repository-global
+> tasks. **The divergence is rule 1 below:** the façade scripts run `cargo`/`pytest`/`ruff`
+> *directly* instead of `pixi run <task>`. This was an explicit decision and it is safe here
+> because the whole graph still launches from `pixi run` (`pixi run test` → `bun run all:test`
+> → `turbo run test` → the façade scripts), so the pinned tools are on PATH exactly as they
+> would be inside a pixi task. Rules 2–4 are kept as written; biome stays one repo-wide
+> `//#lint`/`//#fmt` turbo root task rather than a per-package script. When `xtask codegen`
+> lands it slots in as the `@geoquery/codegen` edge the diagram in §2 already shows.
+
 Land them *with* `xtask codegen`, not before: a façade whose build script generates
 nothing is a moving part with no job.
 

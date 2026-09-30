@@ -1,30 +1,47 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "ui": "stream",
-  "globalDependencies": ["biome.json", "tsconfig.base.json", "pixi.toml"],
+  "globalDependencies": [
+    "biome.json",
+    "tsconfig.base.json",
+    "pixi.toml",
+    "pixi.lock",
+    "Cargo.toml",
+    "Cargo.lock",
+    "deny.toml"
+  ],
   "globalEnv": ["GEOQUERY_VERSION"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": [
-        "src/**",
-        "public/**",
-        "astro.config.mjs",
-        "package.json",
-        "tsconfig.json",
-        "tsconfig.build.json"
-      ],
       "outputs": ["dist/**"]
     },
     "test": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**", "test/**", "package.json", "tsconfig.json"],
       "outputs": []
     },
     "typecheck": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**", "package.json", "tsconfig.json", "tsconfig.build.json"],
       "outputs": []
+    },
+    "lint": {
+      "outputs": []
+    },
+    "cov": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage.xml"]
+    },
+    "fmt": {
+      "cache": false
+    },
+    "advisories": {
+      "cache": false
+    },
+    "//#lint": {
+      "inputs": ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts,json,jsonc}", "biome.json"]
+    },
+    "//#fmt": {
+      "cache": false
     }
   }
 }
