@@ -1,0 +1,72 @@
+# Git hooks, installed by `pixi run setup` (lefthook install).
+#
+# Every hook body is a pixi task. Two reasons, both about the same thing: the command a
+# contributor runs on commit is the command CI runs, and the command a contributor runs
+# after `git clone` is the command that works — because it is in the lockfile's
+# environment, not in a global toolchain that may not be installed. A hook that shells
+# out to whatever `cargo`/`bun`/`ruff` is on PATH is a hook that works on one machine.
+#
+# lefthook runs hooks in parallel where it can, and every task below is safe to run
+# twice.
+
+# Stage what `git add` left out, so a commit contains the formatting the hook just
+# applied. Without this the hook fixes the tree and the commit still records the old
+# bytes, and the CI run on that commit fails the check the hook just passed locally.
+pre-commit:
+  parallel: true
+  # Every body is `pixi run <task>`, never a bare `biome`/`ruff`/`cargo`. A hook that
+  # shells out to whatever is on PATH is a hook that works on one machine and no
+  # other: outside a `pixi shell` there is no `ruff` on PATH at all, and a hook that
+  # cannot find its own tools is a hook that fails every commit until someone notices.
+  # The glob still scopes *when* a hook runs; the task decides *what* to touch, so the
+  # formatting a commit is checked against is the same code path CI runs.
+  commands:
+    fix:
+      glob: "*.{ts,tsx,js,jsx,mjs,cjs,json,jsonc}"
+      run: pixi run fix-js && git add {staged_files}
+      stage_fixed: true
+    format-rs:
+      glob: "crates/**/*.rs"
+      run: pixi run fmt-rs && git add {staged_files}
+      stage_fixed: true
+    format-py:
+      glob: "python/**/*.py"
+      run: pixi run fix-py && git add {staged_files}
+      stage_fixed: true
+
+# The fast checks, on what is about to be committed.
+pre-push:
+  parallel: true
+  commands:
+    lint:
+      # Stages are not interesting here: the whole working tree is what CI will build.
+      run: pixi run lint
+    test:
+      run: pixi run test && pixi run test-rs && pixi run test-py
+
+# Conventional commits, and only this: the changelog is generated from these messages,
+# so a message that is not conventional is a release note that cannot be written.
+commit-msg:
+  commands:
+    conventional:
+      # git passes the proposed message on stdin; convco reads it from there. `{1}` is
+      # the path to the message file, kept in the command so a failure prints something.
+      run: pixi run lint-commit < {1}
+
+# After a merge or a rebase, the tree may be perfectly fine while pixi.lock no longer
+# matches pixi.toml — two files, one lock, and the CI job that installs `--locked`
+# fails. Re-locking here means the developer finds out before pushing.
+post-merge:
+  commands:
+    relock:
+      run: pixi lock && git add pixi.lock
+    install:
+      run: pixi install
+post-rewrite:
+  commands:
+    relock:
+      run: pixi lock
+post-checkout:
+  commands:
+    install:
+      run: pixi install

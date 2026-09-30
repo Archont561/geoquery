@@ -1,0 +1,20 @@
+[package]
+name = "geoquery-core"
+# Checked against the root pixi.toml's `[workspace] version` by `pixi run
+# version-check`. This crate is the query *language*: its version is the protocol
+# version a service has to speak to understand it, which is why the CLI prints it
+# separately from its own.
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+description = "The geoquery query language: documents, and the rules that make them valid"
+repository = "https://github.com/Archont561/geoquery"
+homepage = "https://github.com/Archont561/geoquery"
+publish = false
+
+[dependencies]
+serde_json = ">=1.0"
+
+[lints]
+workspace = true

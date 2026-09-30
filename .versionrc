@@ -1,0 +1,23 @@
+# convco's configuration, read by the `commit-msg` hook and by the `changelog` task.
+#
+# The changelog is generated from commit history rather than edited, so it can only say
+# what was actually shipped. convco's default is Conventional Commits 1.0.0 with no
+# types, which accepts `feat: add a query engine` and nothing else; the list below is the
+# set the project's phases actually use, so a `wip:` or `tmp:` commit message is rejected
+# before it becomes a release note.
+[types]
+feat = { desc = "a new capability" }
+fix = { desc = "a bug fix" }
+perf = { desc = "a performance change" }
+refactor = { desc = "no behaviour change, different structure" }
+docs = { desc = "documentation only" }
+test = { desc = "tests only" }
+build = { desc = "the build, the toolchain, or a dependency" }
+ci = { desc = "CI configuration" }
+chore = { desc = "housekeeping" }
+
+[prebumps]
+pre = "RELEASE"
+
+[bump_profiles]
+conventional = { pre_major = "BREAKING CHANGE: " }

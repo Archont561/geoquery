@@ -1,0 +1,99 @@
+# The devcontainer *is* the environment definition.
+#
+# There is no apt list and no version matrix here. pixi.toml and pixi.lock already say
+# what a developer needs on this machine, and a devcontainer that keeps its own copy of
+# that list is a second place for it to be wrong. This file's whole job is to get a user
+# who can write to their own machine into a shell where `pixi run gates` works, so it
+# provisions git, a non-root user, and pixi itself — and nothing else.
+
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devcontainer.schema.json",
+  "name": "geoquery",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+
+  // git is not in the base image. actions/checkout runs in the host, but `pixi run
+  // changelog`, the lefthook commit-msg hook, and cargo-deny's advice lookups run in here
+  // and all three need it.
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+
+  // pixi is a release binary, not a distro package, and there is no devcontainer feature
+  // for it on the base image. Installed once, pinned to the version the manifest requires
+  // (requires-pixi in pixi.toml) rather than to latest: a devcontainer that silently
+  // upgrades itself is a build that fails for a reason nobody changed.
+  "onCreateCommand": "curl -fsSL https://pixi.sh/install.sh | PIXI_VERSION=\"${localEnv:PIXI_VERSION:-v0.81.0}\" bash",
+
+  // `install` then `setup`, and both are the tasks a developer would otherwise run by
+  // hand. Re-run on every rebuild, because `updateContentCommand` fires when the image is
+  // replaced too, and an image change is exactly when a lockfile needs re-verifying.
+  "updateContentCommand": "pixi install --locked && pixi run setup",
+
+  "remoteUser": "vscode",
+  "userEnvProbe": "loginInteractiveShell",
+  "updateRemoteUserUID": true,
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "biomejs.biome"
+      ],
+      "settings": {
+        // Pointed at the pixi environment's own interpreters, because the editors
+        // otherwise find whatever is on PATH — which in a container that has no system
+        // Python and no rustup is nothing. rust-analyzer reads rustc the same way: a
+        // rustup default would be a different compiler than pixi.lock pins, and lint
+        // would pass here against a toolchain CI never runs.
+        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.pixi/envs/default/bin/python",
+        "rust-analyzer.cargo.extraEnv": {
+          "PATH": "${containerEnv:PATH}"
+        },
+        // Biome and ruff, not eslint and prettier: one tool each, and each is the one
+        // biome.json and pyproject.toml already configure. Format-on-save means
+        // `bun run format` and `ruff format` have nothing left to do, so the pre-commit
+        // hook cannot fail a commit over formatting.
+        "[typescript]": {
+          "editor.defaultFormatter": "biomejs.biome",
+          "editor.formatOnSave": true
+        },
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+          }
+        },
+        "[rust]": {
+          "editor.defaultFormatter": "rust-lang.rust-analyzer",
+          "editor.formatOnSave": true
+        },
+        // 100 columns, because that is what biome.json and pyproject.toml both say. The
+        // editor is told once so a hard wrap agrees with both formatters instead of
+        // reflowing their output back.
+        "editor.rulers": [100],
+        // Credentials for a channel publish stay on a developer's own machine.
+        // `publish-plan` and `publish-dist` run here with no token; uploading to a
+        // channel is the release workflow's job.
+        "files.exclude": {
+          "**/target": true,
+          "**/.pixi": true,
+          "**/dist": true,
+          "**/__pycache__": true
+        },
+        "search.exclude": {
+          "**/target": true,
+          "**/.pixi": true,
+          "**/node_modules": true,
+          "**/dist": true
+        },
+        "git.decorations.enabled": false
+      }
+    }
+  },
+
+  "postCreateCommand": "pixi run hooks-install"
+}

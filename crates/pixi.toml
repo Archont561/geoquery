@@ -1,0 +1,62 @@
+# The conda package for the CLI binary — the thing `pixi publish` builds.
+#
+# Not the Rust build: `pixi run build-rs` is. This manifest exists to turn the binary
+# cargo produces into a package a user can install with `pixi global install
+# geoquery-cli` or `conda install -c <channel> geoquery-cli`, which is also how the
+# release workflow will ship it.
+#
+# There is no `[workspace]` table here on purpose. A sub-manifest with one would be a
+# second pixi workspace with a second pixi.lock, and a package section needs no more
+# than the table below to be discovered by the root workspace's `pixi publish`.
+
+[package]
+# The package name is not the crate name. `geoquery-cli` as a package installs the
+# binary `geoquery`, and the distinction matters on a channel where a user searching
+# for "geoquery" should find the library packages too.
+name = "geoquery-cli"
+version = "0.1.0"
+# The opt-in `pixi publish` looks for. Without it this package is buildable with
+# `pixi build --path crates` and invisible to a workspace-wide publish.
+publish = true
+license = "MIT OR Apache-2.0"
+description = "Command-line client for geoquery"
+readme = "README.md"
+repository = "https://github.com/Archont561/geoquery"
+homepage = "https://github.com/Archont561/geoquery"
+
+[package.build]
+# pixi-build-rust runs `cargo install --locked --path . --root $PREFIX`, so the crate
+# must be self-contained and carry its own Cargo.lock — it does, at crates/Cargo.lock,
+# because this directory is the workspace root.
+backend = { name = "pixi-build-rust", version = ">=0.5,<0.6", channels = [
+  "https://prefix.dev/conda-forge",
+] }
+
+[package.build.config]
+# Only the C compiler. The backend defaults to `["rust", "c"]`, and the "rust" entry
+# asks conda-forge's compiler infrastructure for `rust_linux-64` — a package that then
+# requires the `rust` metapackage, which no longer exists: on conda-forge `rust` *is*
+# the platform package (a 165 MB linux-64 artefact that already depends on
+# gcc_impl_linux-64). Asking for both is an unsolvable environment, and the failure is
+# a wall of "rust 1.xx.* for which no candidates were found" rather than a message about
+# the compiler. The C entry is what supplies the linker; the toolchain comes from the
+# pinned `rust` build dependency below.
+compilers = ["c"]
+
+# One binary, named explicitly. An empty list installs whatever cargo thinks a package
+# produces, which is a decision made by a file that a later `src/bin/` would change
+# silently.
+binaries = ["geoquery"]
+# `cargo install` already builds release; the profile lives in Cargo.toml where rustc
+# reads it from, not here.
+extra-args = []
+
+[package.build-dependencies]
+# The backend adds rust and cargo itself; pinning the compiler here is what makes a
+# released binary reproducible across the years between this commit and the next one.
+# Keep the bound in step with `rust` in the root [feature.rust.dependencies].
+rust = ">=1.98.1,<1.99"
+
+# No [package.host-dependencies] and no [package.run-dependencies]: the binary links
+# the C runtime and nothing else. Declaring `libgcc-ng` or `openssl` here would be a
+# promise to keep them in step with what the toolchain actually links.

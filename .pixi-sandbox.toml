@@ -1,0 +1,15 @@
+schema = 1
+branch_prefix = "sandbox"
+# There is no Cargo.toml at the repository root: the Cargo workspace root is `crates/`,
+# because the directory a conda package is built from has to be the root of a workspace
+# that is itself a package (cargo install cannot install from a virtual manifest — see
+# crates/Cargo.toml). pixi-sandbox looks for a manifest at the repository root, so
+# vendoring crates into the transport is off until that agrees. It costs an airgapped
+# machine a `cargo fetch` it cannot do; it does not cost it the toolchain, which is a
+# conda dependency and is packed whole.
+cargo_vendor = false
+
+[[bundle]]
+name = "developer"
+environments = ["default"]
+platforms = ["linux-64"]

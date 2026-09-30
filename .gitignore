@@ -1,0 +1,53 @@
+# ── pixi ───────────────────────────────────────────────────────────────────────
+# The environment is restored from the lockfile, not committed. `.pixi/envs` is a
+# multi-gigabyte tree of hardlinks that is meaningless on another machine.
+.pixi/
+# Build scratch for `pixi publish` / `pixi build`: the package archives a release
+# produces are artefacts of a tag, not source.
+dist/
+# `pixi run sandbox-pack` writes here before `sandbox-doctor` reviews the transport.
+.sandbox-out/
+
+# ── Rust ───────────────────────────────────────────────────────────────────────
+# cargo's build output. `crates/target/` is the only one there is today, but the pattern
+# is not anchored to it: cargo decides where a workspace's target directory goes, and a
+# rule that only covers the current location is a rule that fails on the next layout.
+/target/
+target/
+
+# ── JavaScript / TypeScript ────────────────────────────────────────────────────
+node_modules/
+# `dist/` twice: once for the .conda artefacts, once for turbo/tsc output. Both are build
+# products of a commit rather than sources, and both are large and ignorable.
+dist/
+.turbo/
+*.tsbuildinfo
+
+# ── Python ─────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+# Editable installs drop the source tree's egg-info / dist-info next to the code.
+*.egg-info/
+.eggs/
+build/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ── coverage ───────────────────────────────────────────────────────────────────
+# cargo-llvm-cov writes an lcov report into the crate's target directory; the html
+# report is a review artefact.
+lcov.info
+coverage/
+lcov-report/
+# pytest-cov's machine-readable report, written by `pixi run coverage-py`.
+coverage.xml
+# python/geoquery/.coverage, when the suite is run from inside the package.
+.coverage.*
+
+# ── editors and OS ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp

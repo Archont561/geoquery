@@ -1,0 +1,83 @@
+[build-system]
+# hatchling because it is in the environment: `pixi run py-install` builds this package
+# with the interpreter and backend that pixi.lock already pinned, with no network access
+# and no separate build isolation. setuptools would be the other candidate, and it is not
+# chosen: pip would fetch it into a temporary venv on every editable install.
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "geoquery"
+version = "0.1.0"
+license = "MIT OR Apache-2.0"
+description = "Python client for geoquery"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+authors = [{ name = "Archont561", email = "142521648+Archont561@users.noreply.github.com" }]
+keywords = ["geospatial", "stac", "ogc", "query", "client"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: GIS",
+  "Typing :: Typed",
+]
+# Declared, not resolved: the dependencies are already in the pixi environment (see the
+# `python` feature layer) and `pixi run py-install` passes --no-deps. pip reads this
+# table when the package is installed from PyPI, where those same libraries come from
+# wherever the user gets them.
+dependencies = ["httpx>=0.28,<0.29", "pydantic>=2.12,<3"]
+
+[project.optional-dependencies]
+# The runtime type checker and the test client. Kept optional so `geoquery` can be
+# imported where only the request models are wanted.
+dev = [
+  "pytest>=8.4,<9",
+  "pytest-asyncio>=1.2,<2",
+  "pytest-cov>=6,<7",
+  "ruff>=0.14,<0.15",
+]
+
+[project.urls]
+Homepage = "https://github.com/Archont561/geoquery"
+Repository = "https://github.com/Archont561/geoquery"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/geoquery"]
+
+[tool.ruff]
+# Line length matches biome's, so a diff rewritten by one tool is not re-rejected by the
+# other: 100 is the width both formatters are configured for.
+line-length = 100
+target-version = "py313"
+# The src layout hides the package from ruff's import resolution unless it is told where
+# it is; `pixi run test-py` runs from the repository root, not from python/geoquery.
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+  "ANN401", # `Any` is the honest type for a JSON document
+  "COM812", # missing trailing comma: conflicts with the formatter
+  "D203",    # one-line docstring summary: incompatible with D211
+  "D213",    # multi-line summary: incompatible with D212
+  "ISC001",  # implicit string concat: conflicts with the formatter
+  "S101",    # assert: the whole point of a test suite
+]
+
+[tool.ruff.lint.per-file-ignores]
+# INP001: a `tests/` directory is a directory of tests, not a package, and pytest
+# collects it by path. Requiring `__init__.py` here would only make the test files
+# importable as `tests.test_x`, which nothing does.
+"tests/*" = ["D100", "D101", "D102", "D103", "INP001", "PLR2004"]
+"src/geoquery/__init__.py" = ["A005"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.pytest.ini_options]
+# `testpaths` is absolute-from-root so `pixi run test-py`, which runs from the repository
+# root, finds the suite; running pytest from inside python/geoquery finds it too.
+testpaths = ["python/geoquery/tests"]
+pythonpath = ["python/geoquery/src"]
+asyncio_mode = "auto"

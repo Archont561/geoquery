@@ -1,0 +1,90 @@
+name: ci
+
+# Every command is `pixi run <task>`. The task list in pixi.toml is the source of truth
+# for what a check is; this file says when and in what order, and nothing else. A gate
+# added to `pixi run gates` is inherited by this workflow with no edit here, which is the
+# whole reason the tasks exist rather than living as inline shell in the YAML.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A second push to a branch cancels the first: the newer commit's result is the one that
+# matters, and an interrupted build costs nobody an answer.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    name: gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: prefix-dev/setup-pixi@v0.10.2
+        with:
+          cache: true
+          environments: default
+
+      # The lockfile is the environment. A solution that differs from it is not this
+      # project's environment, and `--frozen-lockfile` is what makes a stale pixi.lock a
+      # failure at this step rather than a silently different dependency graph three
+      # steps later.
+      - name: Install the locked environment
+        run: pixi install --locked
+
+      # `gates` = lint, every test suite, and `publish-plan`. It does not build anything
+      # into an artefact; that is the `packages` job below, which can fail on its own
+      # without hiding which gate found a problem.
+      - name: Gates
+        run: pixi run gates
+
+  packages:
+    name: packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: prefix-dev/setup-pixi@v0.10.2
+        with:
+          cache: true
+          environments: default
+
+      - name: Install the locked environment
+        run: pixi install --locked
+
+      # `pixi publish --target-dir dist` builds both conda packages and writes them
+      # here. This is the step that proves a user could install them: the build backend,
+      # the compiler pin, the binary name, the runtime dependency resolution and the
+      # channel metadata all have to hold. A `cargo build` proves none of that.
+      - name: Build the publishable packages
+        run: pixi run publish-dist
+
+      # Uploaded because a build nobody can download is a build nobody can check. They
+      # are artefacts of a CI run, not a release: the release channel is the release
+      # workflow's business.
+      - name: Upload the packages
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: conda-packages
+          path: dist/*.conda
+          if-no-files-found: error
+
+  sandbox:
+    name: sandbox plan
+    # Validates `.pixi-sandbox.toml` and the publish plan derived from it, without
+    # packing or publishing. The transport itself is published by publish-sandbox.yml;
+    # this job only refuses to let a malformed plan reach that workflow.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: Archont561/pixi-sandbox/setup@da230c2db2dff8a242c40a89c3a4c66de7777518
+        with:
+          version: v0.3.2
+      - name: Validate the sandbox plan
+        run: pixi run lint-sandbox-plan
