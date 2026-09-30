@@ -1,9 +1,17 @@
 name: ci
 
-# Every command is `pixi run <task>`. The task list in pixi.toml is the source of truth
-# for what a check is; this file says when and in what order, and nothing else. A gate
-# added to `pixi run gates` is inherited by this workflow with no edit here, which is the
-# whole reason the tasks exist rather than living as inline shell in the YAML.
+# Each check is one `pixi run <task>` step. The task list in pixi.toml is the source of
+# truth for what a check *is*; this file says when, in what order, and with which caches.
+# The package-specific work fans out through turbo (Rust via cargo, TypeScript via bun,
+# Python via pytest/ruff), so a single verb — `pixi run test` — runs every language at once
+# and the steps below read as the gate, top to bottom.
+#
+# Three caches, one per tool that owns build output, keep repeat runs cheap and independent:
+#   - the pixi environment  (setup-pixi, keyed on pixi.lock) — the toolchain itself
+#   - the Cargo build       (registry + git + target/, keyed on Cargo.lock) — compiled crates
+#   - the turbo cache       (.turbo) — the TypeScript task outputs turbo can replay
+# setup-pixi restores the toolchain, not the compiled artefacts, which is why the second and
+# third caches exist alongside it.
 
 on:
   push:
@@ -20,29 +28,87 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  gates:
-    name: gates
+  checks:
+    name: checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
 
+      # The pixi environment: the whole toolchain (rust, bun, python, the utilities) from
+      # one lockfile. `cache: true` keys the restore on pixi.lock.
       - uses: prefix-dev/setup-pixi@v0.10.2
         with:
           cache: true
           environments: default
 
+      # Cargo owns the Rust build cache. setup-pixi restored the compiler, not the compiled
+      # crates; this restores the registry, the git checkouts and target/ so a rerun does
+      # not recompile the dependency graph from scratch. Keyed on Cargo.lock, with a prefix
+      # fallback so an unchanged lock but changed sources still warm-starts from target/.
+      - name: Cache Cargo build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      # Turbo owns the cross-package cache for the TypeScript workspace. The Rust and Python
+      # turbo nodes are `cache: false` — cargo (above) and the instrumented coverage run own
+      # their output — so this cache is the client/docs task replay. Newest restore wins.
+      - name: Cache turbo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
       # The lockfile is the environment. A solution that differs from it is not this
       # project's environment, and `--frozen-lockfile` is what makes a stale pixi.lock a
-      # failure at this step rather than a silently different dependency graph three
-      # steps later.
+      # failure at this step rather than a silently different dependency graph later.
       - name: Install the locked environment
         run: pixi install --locked
 
-      # `gates` = lint, every test suite, and `publish-plan`. It does not build anything
-      # into an artefact; that is the `packages` job below, which can fail on its own
-      # without hiding which gate found a problem.
-      - name: Gates
-        run: pixi run gates
+      # The gate, one verb per step. Each fans out across every language through turbo.
+      - name: Lint
+        run: pixi run lint
+
+      - name: Type-check
+        run: pixi run typecheck
+
+      - name: Test
+        run: pixi run test
+
+      # Coverage runs the suites under instrumentation and writes target/lcov.info (Rust,
+      # cargo-llvm-cov) and python/geoquery/coverage.xml (Python, pytest-cov). It is a
+      # separate step from Test on purpose: doctests are not measured by llvm-cov on stable,
+      # so they stay gated by the Test step above rather than being dropped here.
+      - name: Coverage
+        run: pixi run cov
+
+      # Uploaded whether or not CODECOV_TOKEN is set (tokenless works for a public repo);
+      # `fail_ci_if_error: false` keeps a Codecov outage from failing a green build.
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./target/lcov.info,./python/geoquery/coverage.xml
+          fail_ci_if_error: false
+
+      # The repository-global checks that have no package to belong to.
+      - name: Version check
+        run: pixi run version-check
+
+      - name: Lint GitHub Actions
+        run: pixi run lint-actions
+
+      - name: Publish plan (dry-run)
+        run: pixi run publish-plan
 
   packages:
     name: packages
@@ -55,19 +121,33 @@ jobs:
           cache: true
           environments: default
 
+      # The conda build compiles the CLI through pixi-build-rust; the same Cargo cache keeps
+      # that compile off the cold path on a rerun.
+      - name: Cache Cargo build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
       - name: Install the locked environment
         run: pixi install --locked
 
-      # `pixi publish --target-dir dist` builds both conda packages and writes them
-      # here. This is the step that proves a user could install them: the build backend,
-      # the compiler pin, the binary name, the runtime dependency resolution and the
-      # channel metadata all have to hold. A `cargo build` proves none of that.
+      # `pixi publish --target-dir dist` builds both conda packages and writes them here.
+      # This is the step that proves a user could install them: the build backend, the
+      # compiler pin, the binary name, the runtime dependency resolution and the channel
+      # metadata all have to hold. A `cargo build` proves none of that.
       - name: Build the publishable packages
         run: pixi run publish-dist
 
-      # Uploaded because a build nobody can download is a build nobody can check. They
-      # are artefacts of a CI run, not a release: the release channel is the release
-      # workflow's business.
+      # Uploaded because a build nobody can download is a build nobody can check. They are
+      # artefacts of a CI run, not a release: the release channel is the release workflow's
+      # business.
       - name: Upload the packages
         uses: actions/upload-artifact@v4.4.3
         with:
@@ -77,19 +157,17 @@ jobs:
 
   sandbox:
     name: sandbox plan
-    # Validates `.pixi-sandbox.toml` and the publish plan derived from it, without
-    # packing or publishing. The transport itself is published by publish-sandbox.yml;
-    # this job only refuses to let a malformed plan reach that workflow.
+    # Validates `.pixi-sandbox.toml` and the publish plan derived from it, without packing
+    # or publishing. The transport itself is published by publish-sandbox.yml; this job only
+    # refuses to let a malformed plan reach that workflow.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
 
-      # Both tools, because the step below needs both and this job used to install only
-      # one: `lint-sandbox-plan` is a pixi task that runs the `pixi-sandbox` binary, so a
-      # job with the binary and no pixi fails at `pixi: command not found` before the plan
-      # is read at all. Calling the binary directly here would fix the symptom and split
-      # the command across two places — the task exists precisely so a local run and this
-      # step cannot drift.
+      # Both tools, because the step below needs both: `lint-sandbox-plan` is a pixi task
+      # that runs the `pixi-sandbox` binary, so a job with the binary and no pixi fails at
+      # `pixi: command not found` before the plan is read at all. The task exists precisely
+      # so a local run and this step cannot drift.
       - uses: prefix-dev/setup-pixi@v0.10.2
         with:
           cache: true
