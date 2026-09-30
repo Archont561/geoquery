@@ -5,6 +5,7 @@
   "scripts": {
     "lint": "cd ../.. && ruff check python/geoquery && ruff format --check python/geoquery",
     "fmt": "cd ../.. && ruff check --fix python/geoquery && ruff format python/geoquery",
+    "dist": "cd ../.. && rm -rf dist/pypi && mkdir -p dist/pypi && cd python/geoquery && hatchling build --directory ../../dist/pypi",
     "test": "cd ../.. && pytest",
     "cov": "cd ../.. && pytest --cov=geoquery --cov-report=term-missing --cov-report=xml:python/geoquery/coverage.xml"
   }

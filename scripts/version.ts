@@ -176,6 +176,26 @@ export function cargoVersion(cargoTomlPath: string): string {
 }
 
 /**
+ * Read the registry version embedded in one workspace path dependency.
+ *
+ * `geoquery-cli` is a root package and reaches `geoquery-core` through this table. Cargo
+ * replaces the path with this version while packaging for crates.io, so it must be the
+ * release number rather than an untracked compatibility range.
+ */
+function workspaceDependencyVersion(manifestPath: string, dependency: string): string {
+  const manifest = readFileSync(manifestPath, "utf8");
+  const body = manifest.match(/^\[workspace\.dependencies\]$([\s\S]*?)^\[/m)?.[1] ?? "";
+  const line = body.match(new RegExp(`^${dependency}\\s*=\\s*\\{[^\\n]*\\}`, "m"))?.[0] ?? "";
+  const version = line.match(/version\s*=\s*"([^"]+)"/)?.[1];
+  if (!version) {
+    throw new Error(
+      `no registry version for ${dependency} in [workspace.dependencies] of ${manifestPath}`
+    );
+  }
+  return version;
+}
+
+/**
  * Every Cargo manifest in the repository, root first, so the sweep is deterministic.
  *
  * The walk starts at `crates/` rather than the repository root and adds the root manifest
@@ -273,6 +293,13 @@ export function publishedVersions(startDir: string = process.cwd()): {
       // binary's package — which is why `crates/cli/` has no manifest of its own — and it
       // is also where `[workspace.package]` keeps the version every other crate inherits.
       { path: "Cargo.toml", version: cargoVersion(join(root, "Cargo.toml")) },
+      // Cargo strips the local path when packaging geoquery-cli for crates.io and uses this
+      // explicit version instead. Treat it as a published surface so a release cannot
+      // publish a CLI that asks crates.io for an older core.
+      {
+        path: "Cargo.toml [workspace.dependencies].geoquery-core",
+        version: workspaceDependencyVersion(join(root, "Cargo.toml"), "geoquery-core")
+      },
       ...cargoManifests(root)
         .filter((manifest) => manifest !== join(root, "Cargo.toml"))
         .map((manifest) => ({
@@ -293,6 +320,23 @@ function setTomlVersion(manifestPath: string, table: string, version: string): v
   writeFileSync(manifestPath, manifest.replace(pattern, `$1"${version}"`));
 }
 
+/** Keep the crates.io version of one workspace path dependency on the release version. */
+function setWorkspaceDependencyVersion(
+  manifestPath: string,
+  dependency: string,
+  version: string
+): void {
+  const manifest = readFileSync(manifestPath, "utf8");
+  const pattern = new RegExp(
+    `(^${dependency}\\s*=\\s*\\{[^\\n]*version\\s*=\\s*)"[^"]+"([^\\n]*\\})`,
+    "m"
+  );
+  if (!pattern.test(manifest)) {
+    throw new Error(`no registry version for ${dependency} in ${manifestPath}`);
+  }
+  writeFileSync(manifestPath, manifest.replace(pattern, `$1"${version}"$2`));
+}
+
 /** Update the few manifests that own a literal; inherited Cargo/pixi versions follow them. */
 function setVersion(version: string, startDir: string = process.cwd()): void {
   if (!/^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/.test(version)) {
@@ -301,6 +345,7 @@ function setVersion(version: string, startDir: string = process.cwd()): void {
   const root = repoRoot(startDir);
   setTomlVersion(join(root, "pixi.toml"), "workspace", version);
   setTomlVersion(join(root, "Cargo.toml"), "workspace.package", version);
+  setWorkspaceDependencyVersion(join(root, "Cargo.toml"), "geoquery-core", version);
   setTomlVersion(join(root, "python/geoquery/pyproject.toml"), "project", version);
   setTomlVersion(join(root, "python/geoquery/pixi.toml"), "package", version);
   for (const relativePath of [

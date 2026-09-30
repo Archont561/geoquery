@@ -1,4 +1,10 @@
-# geoquery (Python)
+# geoquery-sdk
+
+The Python distribution is named `geoquery-sdk`; its import package remains `geoquery`.
+
+```sh
+python -m pip install geoquery-sdk
+```
 
 ```python
 import geoquery

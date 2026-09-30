@@ -7,7 +7,10 @@ requires = ["hatchling>=1.27,<2"]
 build-backend = "hatchling.build"
 
 [project]
-name = "geoquery"
+# `geoquery` is already registered on PyPI by an unrelated project. The distribution name
+# is therefore distinct, while the import remains `geoquery` so applications use the same
+# Python module name documented by this repository.
+name = "geoquery-sdk"
 version = "0.1.0"
 license = "MIT OR Apache-2.0"
 description = "Python client for geoquery"

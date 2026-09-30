@@ -52,10 +52,12 @@ Never install a toolchain outside `pixi.toml`. There is no rustup, no separate v
 and the workflows reach it through `pixi run <task>` — a second entry point over the same
 commands is a second thing to keep in step.
 
-`bun` is the only JavaScript runtime. Reach JS tooling through `bun run` / `bun x`, never
-through a `node_modules/.bin` path: those entries carry a `node` shebang, and no
-environment here provides `node`. Likewise `python -m pip`, never a bare `pip`: PATH is
-not trustworthy inside a task.
+`bun` is the only JavaScript runtime in the development environment. Reach JS tooling through
+`bun run` / `bun x`, never through a `node_modules/.bin` path: those entries carry a `node`
+shebang, and no environment here provides `node`. The tagged-release workflow is the sole
+exception: npm Trusted Publishing requires the upstream npm CLI, so that one isolated
+GitHub-hosted step installs Node 24 after Bun has built the client tarball. Likewise
+`python -m pip`, never a bare `pip`: PATH is not trustworthy inside a task.
 
 ## Conventions that gates enforce
 
@@ -120,12 +122,19 @@ because a version a reader sees is a version that has to be right.
 
 ## Packages
 
-Two are published, and both are built by `pixi publish`:
+Two Conda packages are built by `pixi publish`:
 
 - `geoquery-cli` (`[package]` in the root `pixi.toml`) — the `geoquery` binary, linux-64.
 - `geoquery` (`python/geoquery/pixi.toml`) — the Python SDK, `noarch: python`.
 
-`publish-plan` is a gate because a dry run still resolves the whole publish set, so a
+The tag release also builds the `geoquery-sdk` PyPI distribution, the
+`@archont561/geoquery-client` npm/GitHub Packages tarball, and the `geoquery-core` plus
+`geoquery-cli` crates.io packages. All third-party uploads are optional after an artifact has
+been built: the GitHub Release is the required, checksummed fallback. PyPI and npmjs use OIDC
+Trusted Publishing; GitHub Packages uses `GITHUB_TOKEN`; crates.io receives only the protected
+`CRATES_IO_TOKEN` environment secret.
+
+`publish-plan` is a gate because a dry run still resolves the whole Conda publish set, so a
 package whose build dependencies do not solve fails before anything is uploaded. Actual
 channel upload is a release workflow job with credentials, not a task.
 

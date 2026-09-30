@@ -1,22 +1,19 @@
 name: release
 
-# A release is an explicit, immutable version tag—not an effect of merging to main.
-# prefix.dev authorises this exact workflow through GitHub OIDC, so there is no long-lived
-# publishing token in the repository. Configure Repository Access for:
-#   Archont561/geoquery · release.yml · read/write
+# A release is an explicit, immutable version tag—not an effect of merging to main. One
+# protected job builds every artifact, attempts each external registry independently, and
+# always creates the GitHub Release when verification and artifact creation succeeded.
 
 on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
 
-# Publishing the same tag twice would race both the channel and the GitHub Release.
+# Publishing the same tag twice would race immutable registry versions and the GitHub Release.
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
-# Default every step to read-only. The release job receives only the two additional
-# capabilities it needs: an OIDC token for prefix.dev and GitHub Release creation.
 permissions:
   contents: read
 
@@ -25,13 +22,18 @@ jobs:
     name: publish ${{ github.ref_name }}
     runs-on: ubuntu-latest
     environment: release
+    # The protected environment gates this union of capabilities. Each credential is used
+    # only in the step that needs it: OIDC for prefix.dev, PyPI, and npm; packages for the
+    # GitHub npm registry; contents for the final GitHub Release.
     permissions:
       contents: write
       id-token: write
+      packages: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
         with:
@@ -60,26 +62,135 @@ jobs:
       - name: Run release gates
         run: pixi run gates
 
-      # Build once, retain the exact files uploaded to prefix.dev, and make replacement of
-      # an existing filename a hard failure. Published package files are immutable.
+      # Build every immutable release asset before attempting a network publication. A
+      # failed build remains release-blocking; only external registry uploads are optional.
       - name: Build Conda packages
-        run: pixi publish --target-dir dist --clean
+        run: pixi publish --target-dir dist/conda --clean
+
+      - name: Build Python distributions
+        run: pixi run py-dist
+
+      # npm Trusted Publishing needs npm >=11.5.1 and Node >=22.14. Bun remains the project
+      # runtime and compiles the client below; this isolated npm CLI is necessary because Bun
+      # does not yet support npm's GitHub Actions OIDC exchange. Do not add an npm token.
+      - name: Install npm CLI for trusted publishing
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
+      - name: Verify npm Trusted Publishing support
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --version
+          npm --version | awk -F. '($1 > 11) || ($1 == 11 && $2 >= 5) { exit 0 } { exit 1 }'
+
+      - name: Build and pack TypeScript package
+        shell: bash
+        run: |
+          set -euo pipefail
+          pixi run client-dist
+          mkdir -p dist/npm
+          (cd packages/client && npm pack --pack-destination ../../dist/npm)
 
       - name: Write checksums
         shell: bash
-        run: sha256sum dist/*.conda > dist/SHA256SUMS
+        run: |
+          set -euo pipefail
+          find dist -type f -not -name SHA256SUMS -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > dist/SHA256SUMS
 
       # pixi exchanges GitHub's short-lived OIDC identity for channel access automatically.
-      # The scoped channel name must match the Repository Access grant on prefix.dev.
+      # A registry outage is recorded below but must not hide the verified release assets.
       - name: Publish to prefix.dev
+        id: prefix
+        continue-on-error: true
         run: |
           pixi upload prefix \
             --channel '@archont561/geoquery' \
             --generate-attestation \
-            dist/*.conda
+            dist/conda/*.conda
 
-      # The GitHub Release is created last: users never see a successful release whose
-      # canonical Conda packages failed to reach the channel.
+      # PyPI exchanges the job's OIDC identity for a short-lived upload token. Configure the
+      # geoquery-sdk project on PyPI to trust Archont561/geoquery, release.yml, environment
+      # release before the first trusted upload; no PYPI_TOKEN belongs in GitHub secrets.
+      - name: Publish to PyPI
+        id: pypi
+        continue-on-error: true
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+        with:
+          packages-dir: dist/pypi
+
+      # npm's trusted publisher must match the exact repository URL in package.json and this
+      # workflow's filename and release environment. NODE_AUTH_TOKEN is intentionally absent:
+      # npm mints its own short-lived credential from the job's OIDC token.
+      - name: Publish to npmjs
+        id: npm
+        continue-on-error: true
+        run: npm publish --access public --provenance dist/npm/*.tgz
+
+      # GitHub Packages is a separate npm registry and does not implement npmjs Trusted
+      # Publishing. Its short-lived workflow token has packages:write above; use a temporary
+      # config so that token is neither committed nor applied to the npmjs OIDC upload.
+      - name: Publish to GitHub Packages
+        id: github_packages
+        continue-on-error: true
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          config="$RUNNER_TEMP/github-packages.npmrc"
+          cat >"$config" <<'EOF'
+          @archont561:registry=https://npm.pkg.github.com
+          //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+          EOF
+          NPM_CONFIG_USERCONFIG="$config" npm publish --registry https://npm.pkg.github.com dist/npm/*.tgz
+
+      # The CLI package needs geoquery-core in crates.io first. Cargo replaces the local path
+      # with the checked-in core version when packaging the CLI. An earlier attempt can leave
+      # core published while the CLI waits for index propagation, so do not let that immutable
+      # duplicate stop a later retry of the CLI upload.
+      - name: Publish Rust crates to crates.io
+        id: crates
+        continue-on-error: true
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! cargo publish --locked --package geoquery-core --token "$CARGO_REGISTRY_TOKEN"; then
+            echo "::warning title=geoquery-core was not uploaded::It may already exist from an earlier attempt; continuing with the CLI upload."
+          fi
+          for attempt in 1 2 3 4 5 6; do
+            if cargo publish --locked --package geoquery-cli --token "$CARGO_REGISTRY_TOKEN"; then
+              exit 0
+            fi
+            test "$attempt" = 6 && exit 1
+            sleep 10
+          done
+
+      # Failures above are intentionally visible without making the verified GitHub release
+      # disappear. A release maintainer can retry one service from this immutable tag.
+      - name: Summarize external publication
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          {
+            echo "### External registry publication"
+            echo
+            echo "| Target | Result |"
+            echo "| --- | --- |"
+            echo "| prefix.dev | ${{ steps.prefix.outcome }} |"
+            echo "| PyPI | ${{ steps.pypi.outcome }} |"
+            echo "| npmjs | ${{ steps.npm.outcome }} |"
+            echo "| GitHub Packages | ${{ steps.github_packages.outcome }} |"
+            echo "| crates.io | ${{ steps.crates.outcome }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Required and last: it holds all exact build outputs, whether or not a third-party
+      # registry accepted its copy. Do not make this step optional or use if: always().
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -88,4 +199,4 @@ jobs:
             --verify-tag \
             --generate-notes \
             --title "geoquery ${GITHUB_REF_NAME#v}" \
-            dist/*.conda dist/SHA256SUMS
+            dist/conda/*.conda dist/pypi/* dist/npm/*.tgz dist/SHA256SUMS
