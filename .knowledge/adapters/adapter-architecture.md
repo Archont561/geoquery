@@ -148,6 +148,20 @@ ServiceDescriptor {
 
 → See [project/data-model](../project/data-model.md) for CapabilitySet definition
 
+### describe() Is the Only Discovery Path
+
+Whatever `describe()` returns is the whole of what Geoquery knows about a
+service. It is serialized as a **service snapshot** and reused by the offline
+planner, by drift detection, and by client generation — none of which may
+rediscover anything on their own. An adapter therefore owes the descriptor every
+fact a consumer could need, including payload semantics (CRS and axis order,
+formats, styles, dimensions, property schemas), not just the operation flags the
+planner reads.
+
+Adapters know nothing about snapshots or generation; they only produce
+descriptors. The dependency arrow stays one-way.
+→ See [codegen/service-snapshot](../codegen/service-snapshot.md)
+
 ---
 
 ## Query Execution
@@ -270,5 +284,6 @@ source status report rather than failing the entire query.
 - [adapters/ogc](ogc.md) — OGC API adapter details
 - [adapters/native](native.md) — Geoquery native resource format
 - [project/data-model](../project/data-model.md) — ServiceDescriptor, CapabilitySet, GeoResult
+- [codegen/service-snapshot](../codegen/service-snapshot.md) — How a described service is persisted
 - [query/planner](../query/planner.md) — How the planner uses capabilities
 - [extensions/extension-points](../extensions/extension-points.md) — Adapter as Layer 1 extension

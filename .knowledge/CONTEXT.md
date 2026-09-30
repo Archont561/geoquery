@@ -9,7 +9,7 @@ created: 2025-07-11T00:00:00Z
 updated: 2026-09-17T00:00:00Z
 id: context
 category: meta
-refs: [project/overview, project/architecture, query/planner, roadmap/roadmap]
+refs: [project/overview, project/architecture, query/planner, codegen/service-snapshot, codegen/client-generation, roadmap/roadmap]
 audience: [LLMs, AI agents, new contributors, decision makers]
 purpose: single-file project briefing for context loading
 ---
@@ -299,7 +299,7 @@ federation. GeoJSON is the external output contract.
 
 ---
 
-## The 14 Extension Points
+## The 15 Extension Points
 
 Every layer of Geoquery is extensible through a trait with a default
 implementation. Users who don't need customization never touch these:
@@ -320,9 +320,50 @@ implementation. Users who don't need customization never touch these:
 | 12 | Metadata extensions | `extensions` / `properties` maps |
 | 13 | Event/hook system | `QueryEventListener` trait |
 | 14 | MCP tools | Tool registry on MCP server |
+| 15 | Generator backends | `GeneratorBackend` trait |
 
 **Golden rule:** Every extension point is a trait with a default
 implementation. Minimal use requires zero customization.
+
+---
+
+## Snapshots and Client Generation
+
+`describe()` already produces everything Geoquery knows about a service.
+Persisting that as a deterministic **service snapshot** (`geoquery.lock` +
+`sources/*.json`) unlocks four things at once:
+
+- **offline planning** — capabilities on disk, no network
+- **drift detection** — `geoquery check` fails CI when a source silently drops
+  a collection, a CRS or a filter operation
+- **reproducibility** — same snapshot → same plan, forever
+- **client generation** — the snapshot is a compile input
+
+```bash
+geoquery add https://maps.example.org/geoserver     # detect + describe + snapshot
+geoquery check                                       # has the contract drifted?
+geoquery generate example-geoserver --target typescript --out ./src/generated
+```
+
+```typescript
+import { Roads } from "./generated";
+await Roads.query({ bbox, crs: "EPSG:3857", style: "transport" });
+//                        ↑ only the CRSs and styles this server advertises
+```
+
+Two modes of the same engine: **federation binds at run time** (breadth,
+degradation, provenance), **generation binds at build time** (one source,
+autocomplete, compile-time safety). Generation never touches the network — if a
+snapshot is missing the command fails and says so. Targets are a registry of
+`GeneratorBackend` implementations: TypeScript and Python first, then Rust,
+plus `openapi` and `docs` backends over the same model.
+
+This also raises the bar on the descriptor: it must carry GIS payload semantics
+— CRS **with axis order**, extents, formats, styles, dimensions, property
+schemas — not just the operation flags the planner reads.
+
+→ See [codegen/service-snapshot](codegen/service-snapshot.md),
+[codegen/client-generation](codegen/client-generation.md)
 
 ---
 
@@ -458,6 +499,14 @@ in CI, GitHub Actions.
 
 ## Codegen Pipeline
 
+Two distinct things share the word *codegen*:
+
+1. **Internal type propagation** — `cargo xtask codegen`, below. Keeps Rust,
+   TypeScript and MCP schemas in sync.
+2. **Client generation** — `geoquery generate`, which compiles a *service
+   snapshot* into a typed client for one external service.
+   → See [codegen/client-generation](codegen/client-generation.md)
+
 `cargo xtask codegen` is the source-of-truth propagation mechanism:
 
 ```
@@ -520,6 +569,8 @@ Depending on what you need to do:
 | Design the API contract | [query/query-model](./query/query-model.md) |
 | Understand the planner | [query/planner](./query/planner.md) |
 | Build an adapter | [adapters/adapter-architecture](./adapters/adapter-architecture.md) |
+| Persist / diff a service | [codegen/service-snapshot](./codegen/service-snapshot.md) |
+| Generate a typed client | [codegen/client-generation](./codegen/client-generation.md) |
 | Set up the monorepo | [infrastructure/monorepo](./infrastructure/monorepo.md) |
 | Configure CI | [infrastructure/ci](./infrastructure/ci.md) |
 | Add MCP integration | [interfaces/mcp](./interfaces/mcp.md) |

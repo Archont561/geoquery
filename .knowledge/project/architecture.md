@@ -88,6 +88,26 @@ Unified Result Stream
 
 → See [query/planner](../query/planner.md) for detailed planner design
 
+### The Build-Time Branch
+
+Discovery is shared by both of Geoquery's modes. The run-time branch is the
+pipeline above; the build-time branch reuses the same descriptor:
+
+```
+adapter.describe()
+      │
+      ▼
+service snapshot (deterministic, committable)
+      │
+      ├─► planner           capability matching, offline plans
+      ├─► geoquery check    drift detection against the live service
+      └─► geoquery generate typed client for that one service
+```
+
+Generation performs no discovery and no I/O beyond writing files. Adapters know
+nothing about it.
+→ See [codegen/service-snapshot](../codegen/service-snapshot.md)
+
 ---
 
 ## Core Components
@@ -99,6 +119,8 @@ Unified Result Stream
 | **Executor** | `geoquery-executor` | Runs the execution plan. Parallel fan-out, timeout management, partial failure handling, result normalization. |
 | **Index** | `geoquery-index` | Spatial index (`rstar`), full-text search (`tantivy`), optional vector search. Used for local metadata filtering and semantic discovery. |
 | **Adapters** | `geoquery-adapter-*` | Protocol-specific modules. Each implements `ServiceAdapter` trait. Pluggable, independent crates. |
+| **Snapshots** | `geoquery-registry` | Serializes what `describe()` found into a deterministic, committable artifact. Enables offline planning, drift detection, and generation. |
+| **Codegen** | `geoquery-codegen*` | Optional. Lowers a snapshot into a language-neutral generation model and emits a typed client per target backend. Feature-gated; nothing in the engine depends on it. |
 
 ---
 
@@ -182,7 +204,7 @@ ArcGIS REST, NASA CMR, generic HTTP/OpenAPI, Geoquery native.
 extension point of the entire system.
 
 → See [adapters/adapter-architecture](../adapters/adapter-architecture.md) for trait details
-→ See [extensions/extension-points](../extensions/extension-points.md) for all 14 extension layers
+→ See [extensions/extension-points](../extensions/extension-points.md) for all 15 extension layers
 
 ---
 

@@ -1,8 +1,8 @@
 # Extension System
 
-All 14 extension points where Geoquery can be customized without forking core code.
+All 15 extension points where Geoquery can be customized without forking core code.
 
-* [Extension Points — All 14 Layers](extension-points.md) - All 14 extension layers — adapters, storage, auth, ranking, embeddings, geocoders, transforms, MCP tools, events.
+* [Extension Points — All 15 Layers](extension-points.md) - All 15 extension layers — adapters, storage, auth, ranking, embeddings, geocoders, transforms, MCP tools, events, generator backends.
 
 # Navigation
 
