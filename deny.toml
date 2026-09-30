@@ -85,8 +85,33 @@ confidence-threshold = 0.93
 
 [bans]
 # Two majors of the same crate is normal and cheap; three is usually two dependencies
-# that could be one. `warn` keeps the report in CI without blocking a release on it —
-# the graph is two dependencies deep today, so there is nothing to report yet.
+# that could be one. `warn` keeps the report in CI without blocking a release on it.
+#
+# This deliberately stays `warn` while the workspace is seeded, and the reason is worth
+# writing down because it will look like an oversight otherwise. `deny` cannot be satisfied
+# here without pinning transitives this project does not control: `cargo tree -i` puts every
+# one of the ten behind somebody else's version requirement. Setting it would mean a
+# hand-maintained skip list that has to be re-derived every time the graph grows, in
+# exchange for no safety — the checks that *are* about safety are the licence and source
+# tables below, and both pass. So the warnings stay, named, and nobody re-investigates them:
+#
+#   thiserror 1.x and syn 1.x
+#       reqwest's and wiremock's trees, plus schemars. `crates/tui` used to add four more
+#       (darling 0.20, darling_core, darling_macro, and a second thiserror path) purely by
+#       depending on ratatui 0.30, whose termwiz renderer reaches the wezterm stack; it no
+#       longer does, for the reason given in crates/tui/Cargo.toml.
+#   tower-http 0.6 alongside 0.7
+#       reqwest 0.13 depends on 0.6; `crates/http` is on 0.7. Ecosystem skew, not ours.
+#   hashbrown 0.16 alongside 0.17
+#       kasuari, via lru.
+#   windows-sys 0.45 / 0.52 / 0.61
+#       target-specific; irrelevant on the linux-64 this project builds for.
+#
+# One of those is cheap to remove by dropping a dependency nothing imports yet (`wiremock`,
+# in dev). It is not worth doing: it would delete a warning, not a risk. The honest number
+# to watch is the graph's size, not its duplicate count — cutting ratatui took the workspace
+# from 435 crates to 328 and these warnings from ten to six, and neither of those was worth
+# a decision on its own.
 multiple-versions = "warn"
 wildcards = "deny"
 # The toolchain crates that legitimately float (`*`) are allowlisted by name, not by

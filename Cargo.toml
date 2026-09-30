@@ -72,7 +72,21 @@ members = [
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+# 1.88, and it is the graph's number rather than a preference. Edition 2024 implies
+# resolver 3, which uses `rust-version` during *version selection*, so a declaration below
+# the real floor does not merely mislabel the project: a resolve on that toolchain picks
+# versions it then cannot compile, and the failure lands in somebody else's dependency
+# rather than here. The floor is measurable — `cargo metadata` reports 16 crates in this
+# lockfile requiring exactly 1.88 and none requiring more, and it is ratatui 0.30, rmcp 3.5,
+# utoipa 6 and time 0.3.55 that set it.
+#
+# It is also satisfiable, which is the part that matters. Each of those four requires 1.88
+# at its *minimum* version, so a resolver running on 1.88 selects a combination that builds
+# — the declaration is a floor the workspace can still be built against, not a wish. Lower
+# than 1.88 would mean going back a major version on ratatui, rmcp and utoipa to buy a
+# number nobody builds with: the toolchain here is pinned at 1.98 and the released binary is
+# compiled by it, so an MSRV is a compatibility claim, not a support policy.
+rust-version = "1.88"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Archont561/geoquery"
 homepage = "https://github.com/Archont561/geoquery"
@@ -167,7 +181,8 @@ utoipa = { version = ">=6.0,<7", features = [
 # MCP, for the agent-facing tools (Phase 4).
 rmcp = ">=3.5.0,<4" # 3.x implements the stable 2026-07-28 spec; the corpus names 3.2.0.
 
-# Terminal UI (ratatui 0.30 / crossterm 0.29; the corpus names 0.29 / 0.28).
+# Terminal UI (ratatui 0.30 / crossterm 0.29; the corpus names 0.29 / 0.28). Declared by
+# `crates/tui`, which is the only crate that should pay for them — see the note there.
 ratatui = ">=0.30,<0.31"
 crossterm = ">=0.29,<0.30"
 

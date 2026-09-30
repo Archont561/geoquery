@@ -16,14 +16,31 @@ workspace = true
 [dependencies]
 geoquery-types = { workspace = true }
 geoquery-core = { workspace = true }
-ratatui = { workspace = true }
-crossterm = { workspace = true }
+# ratatui and crossterm are declared in the workspace and NOT here, and that is the one
+# place the "seed the whole graph" rule is deliberately broken.
+#
+# ratatui 0.30 costs 163 crates — 37% of this workspace — because it adopted a termwiz-based
+# renderer that drags in the wezterm stack on darling 0.20 and syn 1. It is the sole source
+# of five of the ten duplicate warnings, and it is a Phase 4 dependency of a crate that is
+# currently a doc comment.
+#
+# The argument for seeding it anyway was that a stable Cargo.lock means the offline sandbox
+# never needs repacking. That argument is weaker than it looks: packing a transport is a
+# networked operation done on a developer machine, and the airlocked machine only ever
+# *consumes* the result. So `cargo add ratatui` in Phase 4 costs one repack, while seeding
+# it here costs a third of the graph, and the sandbox with it, on every future pack.
+#
+# The dependencies that stay declared despite being unused are cheap, or carry information
+# worth having early: rmcp and utoipa pin the MSRV and the licence set, and learning either
+# of those at Phase 4 rather than now would be a late surprise. ratatui pins neither.
+#
+# To restore: add `ratatui = { workspace = true }` and `crossterm = { workspace = true }`
+# below. The workspace declarations are already there, deliberately unused.
 tokio = { workspace = true }
 geo-types = { workspace = true }
 geojson = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
