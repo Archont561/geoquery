@@ -92,20 +92,27 @@ $ pixi run gates          # everything CI runs
 $ pixi run fmt            # rewrite what can be rewritten
 ```
 
-`pixi run` lists every task. The ones that matter most:
+`pixi run` lists every task. The package-specific work — build, test, lint, typecheck,
+coverage, format — lives in each package's own manifest now (`crates/package.json`,
+`python/geoquery/package.json`, `packages/*` and `apps/*`) and is fanned out by turbo, so
+one repo-wide verb runs every language at once. The tasks that matter most:
 
 | Task | What it does |
 | --- | --- |
-| `gates` | lint, all four test suites, and the publish dry-run |
+| `build` / `test` | build, or run the tests for, **every** package (turbo: Rust + Python + TS) |
+| `lint` / `typecheck` / `fmt` | lint, type-check, or format every package (clippy + cargo-deny + ruff + biome) |
+| `cov` | coverage for every package that reports it (lcov, coverage.py, bun) |
+| `gates` | `lint`, `typecheck`, `test`, `version-check`, `lint-actions`, and the publish dry-run |
 | `ci` | `gates` plus every built artefact, including both conda packages |
 | `docs-dev` / `docs-build` | serve the documentation site / build it into `apps/docs/dist` |
-| `coverage` / `coverage-py` | lcov for the Rust workspace, coverage.py for the SDK |
-| `deny` | licences, bans, sources for the Cargo graph |
+| `advisories` | check the Cargo graph against the RustSec advisory database (network) |
 | `version-check` | assert every manifest that carries a version agrees on one number |
 | `publish-plan` / `publish-dist` | resolve the publish set / build the `.conda` files |
 
-Every command is `pixi run <task>`, in a shell, a git hook and a CI step alike. The task
-list is the source of truth; the workflows only decide when to run it.
+Every command is `pixi run <task>`, in a shell, a git hook and a CI step alike: pixi is the
+one entry point, and it delegates the fan-out to turbo. To scope a run to one package, pass
+a turbo filter through — `pixi run test -- --filter=@geoquery/rust`. The task list is the
+source of truth; the workflows only decide when to run it.
 
 ## Versioning
 

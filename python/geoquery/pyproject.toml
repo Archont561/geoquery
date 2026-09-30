@@ -51,7 +51,8 @@ packages = ["src/geoquery"]
 line-length = 100
 target-version = "py313"
 # The src layout hides the package from ruff's import resolution unless it is told where
-# it is; `pixi run test-py` runs from the repository root, not from python/geoquery.
+# it is. The turbo façade (python/geoquery/package.json) `cd`s to the repository root before
+# running ruff, so this `src` is resolved from there, not from python/geoquery.
 src = ["src"]
 
 [tool.ruff.lint]
@@ -76,8 +77,9 @@ ignore = [
 docstring-code-format = true
 
 [tool.pytest.ini_options]
-# `testpaths` is absolute-from-root so `pixi run test-py`, which runs from the repository
-# root, finds the suite; running pytest from inside python/geoquery finds it too.
+# `testpaths` is absolute-from-root because the turbo façade (python/geoquery/package.json)
+# `cd`s to the repository root before running pytest; running pytest from inside
+# python/geoquery finds the suite too (via the recursive fallback).
 testpaths = ["python/geoquery/tests"]
 pythonpath = ["python/geoquery/src"]
 asyncio_mode = "auto"

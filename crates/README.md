@@ -18,7 +18,8 @@ until the query engine lands — see the repository README for the status.
 | --- | --- |
 | `../Cargo.toml` | the workspace root, and the `geoquery-cli` package `pixi publish` builds |
 | `../pixi.toml` | the environment, and the same package's conda recipe |
-| `../deny.toml` | the dependency policy `pixi run deny` enforces |
+| `../deny.toml` | the dependency policy `pixi run lint` enforces (via `cargo deny`) |
+| `package.json` | the turbo façade for the Rust workspace: `build`/`test`/`lint`/`typecheck`/`cov`/`fmt` run cargo |
 | `core/` | `geoquery-core`: the query language — documents, versions, rules |
 | `cli/src/main.rs` | the binary: argument parsing, messages, exit codes |
 | `cli/tests/main.rs` | the binary's tests: it is run, and its stdout, stderr and exit code are the assertions |

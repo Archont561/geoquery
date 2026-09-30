@@ -1,0 +1,14 @@
+{
+  "name": "@geoquery/rust",
+  "private": true,
+  "//": "Façade so turbo can see the Rust workspace as one node in the repo-wide task graph. It carries no dependencies of its own — Cargo owns those. Every script `cd ..` first because the Cargo workspace root is the repository root (crates/ has no Cargo.toml), and cargo-deny in particular reads Cargo.toml/deny.toml from the directory it runs in. The commands are the ones that used to be pixi's *-rs tasks, verbatim; `--workspace` is load-bearing because the root Cargo.toml is a package as well as the workspace root.",
+  "scripts": {
+    "build": "cd .. && cargo build --release",
+    "test": "cd .. && cargo nextest run --workspace && cargo test --doc --workspace",
+    "lint": "cd .. && cargo fmt --all --check && cargo clippy --workspace --all-targets --all-features -- -D warnings && cargo deny --workspace --locked check bans licenses sources",
+    "typecheck": "cd .. && cargo check --workspace --all-targets",
+    "cov": "cd .. && cargo llvm-cov nextest --workspace --lcov --output-path target/lcov.info",
+    "fmt": "cd .. && cargo fmt --all",
+    "advisories": "cd .. && cargo deny --workspace --locked check advisories"
+  }
+}

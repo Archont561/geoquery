@@ -1,4 +1,4 @@
-# The dependency policy, checked by `pixi run deny` and therefore by CI.
+# The dependency policy, checked by `pixi run lint` (via cargo-deny) and therefore by CI.
 #
 # `cargo deny` reads this from the Cargo workspace root, which is this directory (see
 # the `[workspace]` table in Cargo.toml), so a policy checked out anywhere else would be
@@ -28,7 +28,7 @@ ignore = []
 # carries is a licence decision nobody made, and cargo-deny reports each of those as
 # `license-not-encountered` — so a tight list turns those warnings back into real signals
 # and a dependency arriving under a new licence has to be an edit here that a reviewer
-# can see. `pixi run deny` must print no `license-not-encountered` warnings: that is the
+# can see. `pixi run lint` must print no `license-not-encountered` warnings: that is the
 # check that the policy and the graph still agree.
 #
 # Per-licence reasoning, because "it is permissive" is not the same answer for all of
