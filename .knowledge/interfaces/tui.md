@@ -129,17 +129,9 @@ tokio.workspace = true
 
 ---
 
-## MVP Scope (Phased)
+## Delivery scope
 
-| Phase | Feature |
-|-------|---------|
-| **2a** | Read-only result browser (query via CLI args, browse in TUI) |
-| **2b** | Source status dashboard with live federation progress |
-| **2c** | Detail + provenance view |
-| **3a** | Interactive query editing |
-| **3b** | ASCII map rendering |
-| **3c** | Saved queries / history |
-| **4** | Resource registry browser |
+The backlog owns the staged TUI scope and acceptance criteria. This page records the interface design that applies when those capabilities are implemented.
 
 ---
 

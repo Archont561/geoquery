@@ -219,4 +219,4 @@ that sits above them all.
 - [project/standards](standards.md) — Standards reuse policy
 - [project/data-model](data-model.md) — Core type definitions
 - [query/planner](../query/planner.md) — The query planner (the actual IP)
-- [roadmap/roadmap](../roadmap/roadmap.md) — Phased delivery plan
+- [`backlog/`](../../backlog/) — Delivery milestones, tasks, and acceptance criteria

@@ -9,7 +9,7 @@ created: 2025-07-11T00:00:00Z
 updated: 2026-09-17T00:00:00Z
 id: context
 category: meta
-refs: [project/overview, project/architecture, query/planner, codegen/service-snapshot, codegen/client-generation, roadmap/roadmap]
+refs: [project/overview, project/architecture, query/planner, codegen/service-snapshot, codegen/client-generation]
 audience: [LLMs, AI agents, new contributors, decision makers]
 purpose: single-file project briefing for context loading
 ---
@@ -212,7 +212,7 @@ wrappers around `geoquery-core::execute(GeoQuery) → QueryResult`.
 | CLI | `geoquery-cli` | `geoquery add`, `geoquery query`, `geoquery sources` |
 | HTTP | `geoquery-http` (Axum) | REST API, SSE streaming |
 | MCP | `geoquery-mcp` (`rmcp` 3.x) | `geo_query`, `geo_resource`, `geo_resolve` for AI agents |
-| TUI | `geoquery-tui` (`ratatui`) | Interactive terminal exploration (Phase 5) |
+| TUI | `geoquery-tui` (`ratatui`) | Interactive terminal exploration |
 | TypeScript | `@geoquery/client` | Fluent builder, HTTP transport, WASM future |
 | Python | `geoquery` | GeoPandas integration, PyO3 future |
 
@@ -238,7 +238,7 @@ pub trait ServiceAdapter: Send + Sync {
 **MVP adapters:** STAC, OGC API Features, OGC API Records, Native
 YAML/Markdown.
 
-**Phase 2+:** WFS, ArcGIS REST, NASA CMR, CKAN, PostGIS, generic HTTP.
+Other candidate adapters: WFS, ArcGIS REST, NASA CMR, CKAN, PostGIS, and generic HTTP. Their delivery status belongs in the backlog.
 
 **Constraint:** Adapters depend on `geoquery-types` only, never on
 `geoquery-core`. Dependency arrow is one-way.
@@ -397,22 +397,9 @@ Embeddings never perform spatial reasoning.
 
 ---
 
-## The Roadmap in One Table
+## Delivery status
 
-| Phase | Duration | Exit Demo | Critical? |
-|-------|----------|-----------|-----------|
-| **0. Foundation** | 3 weeks | Types compile, schemas generate | ✅ |
-| **1. Single Source** | 5 weeks | CLI queries real STAC API | ✅ |
-| **2. Federation** | 6 weeks | Multi-source parallel query, dedup | ✅ |
-| **3. API Layer** | 6 weeks | TS + Python SDKs work | ✅ |
-| **4. AI / MCP** | 6 weeks | Agent queries via MCP | ✅ |
-| **5. Experience** | 8 weeks | TUI + streaming | Optional |
-| **6. Scale** | 10 weeks | Edge + WASM + PyO3 | Optional |
-| **7. Ecosystem** | Ongoing | Plugin marketplace | Optional |
-
-**Critical path to value:** Phase 0 → 1 → 2 → 4 (MCP only, skip
-semantic) = ~20 weeks to a working federated query engine that AI
-agents can use.
+Delivery phases, priorities, dependencies, and acceptance criteria are maintained in [`backlog/`](../backlog/). This briefing describes the intended system, not the work schedule.
 
 ---
 
@@ -436,7 +423,7 @@ agents can use.
 | Time | `chrono` |
 | Errors | `thiserror` (libs) + `anyhow` (apps) |
 | Logging | `tracing` + `tracing-subscriber` |
-| TUI (Phase 5) | `ratatui` + `crossterm` |
+| TUI | `ratatui` + `crossterm` |
 | Task runner | `xtask` (via `cargo xtask` alias) |
 
 ### TypeScript
@@ -484,7 +471,7 @@ geoquery/
 │   ├── cli/
 │   ├── http/
 │   ├── mcp/
-│   └── tui/                    # Phase 5
+│   └── tui/                    # terminal interface
 ├── packages/client/            # @geoquery/client (TypeScript)
 ├── python/geoquery/            # geoquery (Python)
 ├── schemas/                    # Auto-generated JSON schemas
@@ -575,7 +562,7 @@ Depending on what you need to do:
 | Configure CI | [infrastructure/ci](./infrastructure/ci.md) |
 | Add MCP integration | [interfaces/mcp](./interfaces/mcp.md) |
 | Extend Geoquery | [extensions/extension-points](./extensions/extension-points.md) |
-| See the delivery plan | [roadmap/roadmap](./roadmap/roadmap.md) |
+| See delivery status and planned work | [`backlog/`](../backlog/) |
 | Look at crate choices | [research/rust-crates](./research/rust-crates.md) |
 
 For full navigation, see [Index](/index.md).

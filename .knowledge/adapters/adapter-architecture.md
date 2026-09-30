@@ -215,17 +215,17 @@ not on `geoquery-core` for engine logic.
 
 ## Initial Adapters
 
-| Adapter | Crate | Protocol | MVP? |
+| Adapter | Crate | Protocol | Role |
 |---------|-------|----------|------|
-| STAC API | `geoquery-adapter-stac` | STAC API 1.0 | ✅ |
-| OGC API | `geoquery-adapter-ogc` | OGC API Features + Records | ✅ |
-| Native | `geoquery-adapter-native` | Geoquery YAML/Markdown | ✅ |
-| WFS | `geoquery-adapter-wfs` | WFS 2.0 / 3.0 | Phase 2 |
-| ArcGIS | `geoquery-adapter-arcgis` | ArcGIS REST / GeoServices | Phase 2 |
-| CMR | `geoquery-adapter-cmr` | NASA CMR | Phase 2 |
-| CKAN | `geoquery-adapter-ckan` | CKAN | Phase 3 |
-| PostGIS | `geoquery-adapter-postgis` | Direct SQL | Phase 3 |
-| Generic HTTP | `geoquery-adapter-http` | OpenAPI-described | Phase 3 |
+| STAC API | `geoquery-adapter-stac` | STAC API 1.0 | Core candidate |
+| OGC API | `geoquery-adapter-ogc` | OGC API Features + Records | Core candidate |
+| Native | `geoquery-adapter-native` | Geoquery YAML/Markdown | Core candidate |
+| WFS | `geoquery-adapter-wfs` | WFS 2.0 / 3.0 | Candidate |
+| ArcGIS | `geoquery-adapter-arcgis` | ArcGIS REST / GeoServices | Candidate |
+| CMR | `geoquery-adapter-cmr` | NASA CMR | Candidate |
+| CKAN | `geoquery-adapter-ckan` | CKAN | Candidate |
+| PostGIS | `geoquery-adapter-postgis` | Direct SQL | Candidate |
+| Generic HTTP | `geoquery-adapter-http` | OpenAPI-described | Candidate |
 
 ---
 
@@ -242,7 +242,7 @@ let engine = GeoqueryEngine::builder()
     .build();
 ```
 
-In Phase 7, this extends to dynamic plugin loading:
+A future dynamic-loading design could extend this model:
 - Shared libraries (`.so` / `.dylib` / `.dll`)
 - WASM plugins (sandboxed, portable)
 - `geoquery install adapter-ckan` from a registry
