@@ -58,6 +58,7 @@ is no engine to ask.
 | `crates/cli/src/main.rs` | the `geoquery` binary: argument parsing, messages, exit codes |
 | `deny.toml` | the dependency policy: bans, licences, sources || `packages/client/` | `@geoquery/client`, the TypeScript client |
 | `python/geoquery/` | the `geoquery` Python SDK and its conda package |
+| `apps/docs/` | the documentation site: Astro + Starlight, deployed to GitHub Pages by `docs.yml` |
 | `scripts/version.ts` | the version checker, and the one place a version lives |
 | `.devcontainer/` | a container that is nothing but `pixi install` |
 | `.github/workflows/` | CI, and the sandbox transport publisher |
@@ -75,6 +76,13 @@ offline sandbox vendor the whole dependency graph — see the comment at the top
 `crates/cli/` has no manifest, because its sources are the root package's binary, reached
 through `[[bin]] path`. Every other directory under `crates/` is a real crate.
 
+Every crate and every package keeps its tests in a `tests/` (`test/` for the TypeScript
+client) directory beside `src/`, with one test file per source file: `src/document.rs` is
+tested by `tests/document.rs`, and a source file with no test file beside it is a visible
+gap rather than a question. `crates/cli/tests/main.rs` is the one that needs a line of
+configuration — `[[test]]` in the root `Cargo.toml` — because the binary's manifest is not
+in its own directory.
+
 ## Working on it
 
 ```console
@@ -90,9 +98,10 @@ $ pixi run fmt            # rewrite what can be rewritten
 | --- | --- |
 | `gates` | lint, all four test suites, and the publish dry-run |
 | `ci` | `gates` plus every built artefact, including both conda packages |
+| `docs-dev` / `docs-build` | serve the documentation site / build it into `apps/docs/dist` |
 | `coverage` / `coverage-py` | lcov for the Rust workspace, coverage.py for the SDK |
 | `deny` | licences, bans, sources for the Cargo graph |
-| `version-check` | assert all eight published manifests agree on one version |
+| `version-check` | assert every manifest that carries a version agrees on one number |
 | `publish-plan` / `publish-dist` | resolve the publish set / build the `.conda` files |
 
 Every command is `pixi run <task>`, in a shell, a git hook and a CI step alike. The task

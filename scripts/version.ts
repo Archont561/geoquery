@@ -245,6 +245,14 @@ export function publishedVersions(startDir: string = process.cwd()): {
         path: "packages/client/package.json",
         version: npmVersion(join(root, "packages/client/package.json"))
       },
+      // Private, and still checked. The docs site prints this project's version on every
+      // page, and a manifest carrying a number nothing compares is exactly the second
+      // authority this module exists to prevent — publishing is not what makes a version
+      // real, being read by someone is.
+      {
+        path: "apps/docs/package.json",
+        version: npmVersion(join(root, "apps/docs/package.json"))
+      },
       {
         path: "python/geoquery/pyproject.toml",
         version: pythonVersion(join(sdk, "pyproject.toml"))

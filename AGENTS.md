@@ -75,8 +75,38 @@ assertion in `check_distinguishes_a_missing_file_from_a_bad_one` is that the pat
 named once, because it was named twice and nobody would have noticed.
 
 Rust tests run under `cargo nextest`, so each test needs its own files: use the
-process-id-plus-name convention in `crates/cli/src/main.rs` rather than a fixed
+process-id-plus-name convention in `crates/cli/tests/main.rs` rather than a fixed
 `tests/fixtures/` path that parallel tests would share.
+
+Tests mirror sources. Every crate and package has a `tests/` (`test/`, for the TypeScript
+client) directory beside `src/`, with one test file per source file — `src/document.rs` is
+tested by `tests/document.rs` — so a source file with no test file beside it is something a
+reader can see. Two consequences worth knowing before moving a test:
+
+- They are integration tests, not `#[cfg(test)] mod tests`. A test that reaches only the
+  public surface is a test of the interface; one that reaches a private item is a test of
+  today's structure, and the mirror is what makes that distinction mechanical rather than a
+  matter of discipline.
+- `crates/cli/` is the exception that needs configuration: its manifest is the root
+  `Cargo.toml`, so cargo's default `tests/` would be at the repository root. `[[test]] name
+  = "cli", path = "crates/cli/tests/main.rs"` puts it back beside the sources. Those tests
+  run the built binary through `CARGO_BIN_EXE_geoquery` and assert stdout, stderr and the
+  exit code, because those three are what the binary actually promises.
+
+## Documentation
+
+`apps/docs/` is an Astro + Starlight site, a member of the same Bun workspace as
+`packages/*`, built by `pixi run docs-build` and deployed to GitHub Pages by `docs.yml` on
+a push to `main` that touched something the site reads. `pixi run docs-dev` serves it.
+
+It documents what the code does. `.knowledge/` is the design corpus and stays where it is:
+a design document copied into a published site is a second copy to keep true, so the site
+links into the knowledge base rather than restating it.
+
+The version the site prints comes from the environment (`GEOQUERY_VERSION`, exported by the
+docs tasks) and falls back to `scripts/version.ts` — never from a number written into the
+site. `apps/docs/package.json` is private and is still covered by `pixi run version-check`,
+because a version a reader sees is a version that has to be right.
 
 ## Packages
 

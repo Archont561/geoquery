@@ -1,24 +1,73 @@
 name: docs
 
-# The knowledge base lives in .knowledge/, and the README points to it. This is the only
-# workflow that would deploy it if it ever became a site, and for now it is a no-op that
-# would validate a build rather than publishing anything. The Phase 0 scaffold does not
-# build the docs site, so the job is a placeholder and is cheap to keep.
+# Build the Astro + Starlight site in apps/docs and publish it to GitHub Pages.
+# One line per step: `pixi run docs-build` is the whole build (install + astro build),
+# so what runs here is what runs locally and there is no second entry point to keep in
+# step.
+#
+# `paths:` because a docs deploy is only interesting when something the site reads
+# changed. The list is the site itself, the sources it documents, the knowledge base it
+# links into, and the four files that decide the version and the toolchain the build
+# uses.
 
 on:
   push:
     branches: [main]
-  pull_request:
+    paths:
+      - "apps/docs/**"
+      - "crates/**"
+      - ".knowledge/**"
+      - "scripts/version.ts"
+      - "package.json"
+      - "bun.lock"
+      - "pixi.toml"
+      - "pixi.lock"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+# One deploy at a time per ref, newest wins: a superseded build is a page nobody will
+# ever see, and Pages rejects concurrent deployments anyway.
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 jobs:
-  build-docs:
+  build:
+    name: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.1
-      - name: Intentionally no-op for Phase 0
-        run: >-
-          echo "docs: no build yet; the knowledge base is static markdown in
-          .knowledge/ and the README is the only rendered page"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
+        with:
+          environments: default
+          cache: true
+      # The lockfile is the environment here as everywhere else: a docs build that
+      # solved its own dependencies would be documenting a toolchain nobody has.
+      - name: Install the locked environment
+        run: pixi install --locked
+      - run: pixi run docs-build
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: apps/docs/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        # Pages limits that matter here: 1 GB published site, ~100 GB/month bandwidth,
+        # a 10-minute build. The sandbox transport is nearly a gigabyte on its own and
+        # never belongs on this site — it is published to an orphan git branch, and a
+        # conda package belongs on a channel.

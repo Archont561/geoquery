@@ -6,13 +6,47 @@ tags: [monorepo, workspace, Cargo, tooling, dependencies, lints, resolver]
 status: draft
 generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
 created: 2025-07-11T00:00:00Z
-updated: 2026-09-17T00:00:00Z
+updated: 2026-09-30T00:00:00Z
 id: infrastructure/monorepo
 category: infrastructure
-refs: [infrastructure/xtask, infrastructure/ci, project/architecture, extensions/extension-points]
+refs: [infrastructure/monorepo-refactor, infrastructure/xtask, infrastructure/ci, project/architecture, extensions/extension-points]
 ---
 
 # Rust Monorepo — Workspace & Tooling
+
+## Divergence from the build
+
+This document is the design. The repository diverges from it in ways that are decisions
+rather than drift, recorded here because a reader who follows the layout below would
+break the build:
+
+- **The workspace root is not virtual.** The root `Cargo.toml` is both the `[workspace]`
+  and the `geoquery-cli` `[package]`, and `crates/cli/` has no manifest of its own:
+  `pixi-build-rust` runs `cargo install --path <source>`, which cannot select a member out
+  of a virtual manifest, so the directory a Conda package is built from has to be a package
+  that is also the root of its workspace. It is also what lets the offline sandbox vendor
+  the whole dependency graph. The reasoning is in the comment at the top of `Cargo.toml`;
+  `infrastructure/monorepo-refactor.md` records what it would take to undo.
+- **Members are `crates/*` with `exclude = ["crates/cli"]`**, not a hand-written list —
+  one edit to add a crate, and the one directory under `crates/` that is not a crate is the
+  one named above.
+- **`xtask` is `crates/xtask/`, not a root directory, and it is not the task runner.**
+  Pixi is: every command a hook or a workflow runs is `pixi run <task>`, and there is no
+  `.cargo/config.toml` alias in the repository (the one that exists on a restored machine
+  is written by the offline sandbox and is ignored). `xtask` keeps exactly one job — code
+  generation, which needs the workspace's own types in memory.
+- **Resolver 3, edition 2024, MSRV 1.88**, not resolver 2. Resolver 3 uses `rust-version`
+  during version selection, which is what makes the MSRV a fact about the graph rather than
+  a claim in a manifest.
+- **`clippy::nursery` is not enabled.** Nursery lints are unstable, so a patch bump of the
+  pinned toolchain would turn into a lint failure; `pedantic` is gated instead.
+- **There is no `rustfmt.toml`.** Defaults, so there is no second formatting policy to keep
+  in step with Biome's and Ruff's hundred columns.
+- **`schemas/` does not exist yet** (it arrives with codegen in Phase 1), and the docs site
+  is `apps/docs/`, not `docs/`.
+- **Tests mirror sources.** Every crate has `tests/`, one file per file in `src/`, and the
+  tests are integration tests against the public surface — `crates/cli/tests/main.rs` runs
+  the built binary and asserts stdout, stderr and the exit code.
 
 ## Directory Layout
 
@@ -228,6 +262,7 @@ use_try_shorthand = true
 
 ## Related Files
 
+- [infrastructure/monorepo-refactor](monorepo-refactor.md) — What the build does instead, and the staged plan
 - [infrastructure/xtask](xtask.md) — Task runner setup
 - [infrastructure/ci](ci.md) — CI pipeline
 - [project/architecture](../project/architecture.md) — Crate responsibilities

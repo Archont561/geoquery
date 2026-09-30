@@ -6,7 +6,14 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**", "package.json", "tsconfig.json", "tsconfig.build.json"],
+      "inputs": [
+        "src/**",
+        "public/**",
+        "astro.config.mjs",
+        "package.json",
+        "tsconfig.json",
+        "tsconfig.build.json"
+      ],
       "outputs": ["dist/**"]
     },
     "test": {

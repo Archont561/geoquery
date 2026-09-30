@@ -20,5 +20,12 @@ publish = false
 # names it directly. The bound lives in one place for the whole workspace.
 serde_json = { workspace = true }
 
+[dev-dependencies]
+# The tests live in `tests/`, one file per module in `src/`, so they link the crate the
+# way a dependent does and reach nothing a dependent cannot. That is what makes serde_json
+# a dev-dependency as well as a dependency: `json!` is used to write the expected values,
+# and an integration test does not inherit the crate's own dependency list.
+serde_json = { workspace = true }
+
 [lints]
 workspace = true

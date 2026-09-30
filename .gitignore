@@ -7,6 +7,16 @@
 dist/
 # `pixi run sandbox-pack` writes here before `sandbox-doctor` reviews the transport.
 .sandbox-out/
+# What `sh scripts/restore.sh` writes on the other side: the vendored crate sources
+# (~500 MiB, 425 crates) unpacked from the transport. The trailing slash matters —
+# `.pixi-sandbox.toml`, the reviewed plan, is tracked and must stay tracked. Biome reads
+# this file (`vcs.useIgnoreFile`), so the entry is also what keeps `pixi run lint-js` from
+# checking the vendored crates' JSON after a restore.
+.pixi-sandbox/
+# Written by the same restore, pointing cargo at the vendor directory above. It is a
+# property of a restored machine, not of the project: a committed copy would break every
+# clone that has no vendor tree.
+/.cargo/
 
 # ── Rust ───────────────────────────────────────────────────────────────────────
 # cargo's build output. `crates/target/` is the only one there is today, but the pattern
@@ -22,6 +32,8 @@ node_modules/
 dist/
 .turbo/
 *.tsbuildinfo
+# Astro's generated types and build cache for apps/docs, rewritten on every build.
+.astro/
 
 # ── Python ─────────────────────────────────────────────────────────────────────
 __pycache__/

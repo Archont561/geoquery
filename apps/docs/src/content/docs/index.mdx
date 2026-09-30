@@ -1,0 +1,45 @@
+---
+title: What geoquery is
+description: One query language for geospatial resources and services, and the state it is in today.
+template: splash
+hero:
+  tagline: One protocol-independent query language for federating geospatial resources and services.
+  actions:
+    - text: The command line
+      link: ./cli/
+      icon: right-arrow
+    - text: Source
+      link: https://github.com/Archont561/geoquery
+      icon: external
+      variant: minimal
+---
+
+## The idea
+
+A query is a document. The API is that document's shape — the query AST — and every
+interface the project ships (Rust, CLI, HTTP, TypeScript, Python, MCP) is an adapter to
+it. A client that can write the document can talk to any of them, and a source that can
+be described can be federated behind one.
+
+## Where it actually is
+
+Phase 0. The environment, the layout, the query-document reader and the two publishable
+packages are real. The engine is not.
+
+`geoquery query` therefore refuses, with exit code 3, rather than returning empty
+results. That refusal is the feature: a client that silently answered nothing until the
+engine landed would be worse than one that declines and says so.
+
+What works today:
+
+- reading a query document and saying what is wrong with it, offline, with no service;
+- a version number that every published surface is checked against;
+- an environment that restores on a machine with no network at all.
+
+## Where the design lives
+
+This site documents what the code does. The design corpus — the query model, the adapter
+research, the roadmap — is markdown in
+[`.knowledge/`](https://github.com/Archont561/geoquery/tree/main/.knowledge) and is more
+specific than anything here. Where the two disagree, the code is right and the divergence
+is supposed to be noted in the knowledge file it diverges from.
