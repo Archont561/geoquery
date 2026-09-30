@@ -83,8 +83,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
+
+      # Both tools, because the step below needs both and this job used to install only
+      # one: `lint-sandbox-plan` is a pixi task that runs the `pixi-sandbox` binary, so a
+      # job with the binary and no pixi fails at `pixi: command not found` before the plan
+      # is read at all. Calling the binary directly here would fix the symptom and split
+      # the command across two places — the task exists precisely so a local run and this
+      # step cannot drift.
+      - uses: prefix-dev/setup-pixi@v0.10.2
+        with:
+          cache: true
+          environments: default
       - uses: Archont561/pixi-sandbox/setup@da230c2db2dff8a242c40a89c3a4c66de7777518
         with:
           version: v0.3.2
+
+      - name: Install the locked environment
+        run: pixi install --locked
+
       - name: Validate the sandbox plan
         run: pixi run lint-sandbox-plan
