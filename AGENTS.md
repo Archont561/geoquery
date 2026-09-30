@@ -29,6 +29,20 @@ The same reasoning is why the root `pixi.toml` carries `[package]` for the CLI r
 sub-manifest doing it: the package's build directory is the directory holding its manifest,
 and that has to be where the Cargo manifest is.
 
+## Agent tooling
+
+The repository carries the shared agent workflow used by the qgis-rs and pixi-sandbox
+owner repositories:
+
+- Skills are versioned under `.agents/skills/` and their provenance is recorded in
+  `skills-lock.json`.
+- Install the root Bun workspace with `pixi run bun-install`.
+- Run the skills CLI with `pixi run skills` (equivalent to `bun x skills`).
+- Manage project work as Markdown tasks with `pixi run backlog`.
+
+Use the skills CLI to add or update skills rather than copying files manually, so the lock
+file remains the source of truth for skill provenance.
+
 ## How to run anything
 
 ```console

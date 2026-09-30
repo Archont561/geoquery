@@ -332,6 +332,15 @@ version-set = { cmd = "bun \"$PIXI_PROJECT_ROOT/scripts/version.ts\" --set", dep
 ], description = "Set the release version in every manifest that owns a literal" }
 
 # ── repo utilities (lefthook + CI share these) ─────────────────────────────────
+# The backlog and skills CLIs are installed in the root Bun workspace and invoked through
+# `bun x`, which uses Bun instead of the packages' Node shebangs. This keeps the commands
+# usable in the restored sandbox, where Bun is the available JavaScript runtime.
+backlog = { cmd = "bun x backlog", depends-on = [
+  "bun-install",
+], description = "Manage the Markdown project backlog", default-environment = "bun" }
+skills = { cmd = "bun x skills", depends-on = [
+  "bun-install",
+], description = "Manage agent skills", default-environment = "bun" }
 # Conventional-commit check for the `commit-msg` hook; reads the proposed message from
 # stdin (git passes it via {1} in lefthook.yml).
 lint-commit = { cmd = "convco check --from-stdin", description = "Validate a commit message against the conventional-commit spec" }
