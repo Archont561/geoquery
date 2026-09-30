@@ -333,6 +333,28 @@ typecheck = { cmd = "bun run typecheck", depends-on = [
   "bun-install",
 ], description = "Type-check every TypeScript workspace package (turbo)" }
 
+# ── documentation site (astro + starlight) ───────────────────────────────────
+# `apps/docs` is a member of the same Bun workspace as `packages/*`, so the install is
+# the root one and the site has no lockfile of its own. `turbo run build` therefore
+# builds it along with everything else; these tasks exist for the two things turbo is
+# the wrong tool for — a dev server, and a Pages build that has to be one line in a
+# workflow.
+#
+# GEOQUERY_VERSION is exported rather than written into the site: the documented version
+# is decided by the environment that built it, and `scripts/version.ts` reads it from the
+# one manifest that owns the number. A build started outside these tasks still shows the
+# real version — `astro.config.mjs` falls back to the same module — so the variable is a
+# shortcut, not a requirement.
+docs-dev = { cmd = "GEOQUERY_VERSION=\"$(bun \"$PIXI_PROJECT_ROOT/scripts/version.ts\")\" bun run dev", cwd = "apps/docs", depends-on = [
+  "bun-install",
+], description = "Serve the documentation site with hot reload" }
+docs-build = { cmd = "GEOQUERY_VERSION=\"$(bun \"$PIXI_PROJECT_ROOT/scripts/version.ts\")\" bun run build", cwd = "apps/docs", depends-on = [
+  "bun-install",
+], description = "Build the documentation site into apps/docs/dist" }
+docs-preview = { cmd = "bun run preview", cwd = "apps/docs", depends-on = [
+  "docs-build",
+], description = "Serve the built documentation site as Pages will" }
+
 # ── Biome ────────────────────────────────────────────────────────────────────
 # Resolved from the Bun workspace, not from conda-forge: biome.json's `$schema`
 # names the exact version, and one lockfile then decides both the config and the
