@@ -20,7 +20,7 @@
  *     did not survive. A build started outside pixi still shows the real number; only a
  *     build that can reach neither throws.
  */
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 
 /**
@@ -283,6 +283,38 @@ export function publishedVersions(startDir: string = process.cwd()): {
   };
 }
 
+/** Replace one literal key in a named TOML table without touching similarly named tables. */
+function setTomlVersion(manifestPath: string, table: string, version: string): void {
+  const manifest = readFileSync(manifestPath, "utf8");
+  const tablePattern = table.replaceAll(".", "\\.");
+  const pattern = new RegExp(`(^\\[${tablePattern}\\]$[\\s\\S]*?^version\\s*=\\s*)"[^"]+"`, "m");
+  if (!pattern.test(manifest))
+    throw new Error(`no literal version in [${table}] of ${manifestPath}`);
+  writeFileSync(manifestPath, manifest.replace(pattern, `$1"${version}"`));
+}
+
+/** Update the few manifests that own a literal; inherited Cargo/pixi versions follow them. */
+function setVersion(version: string, startDir: string = process.cwd()): void {
+  if (!/^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/.test(version)) {
+    throw new Error(`release version must be stable semver (X.Y.Z), got ${version}`);
+  }
+  const root = repoRoot(startDir);
+  setTomlVersion(join(root, "pixi.toml"), "workspace", version);
+  setTomlVersion(join(root, "Cargo.toml"), "workspace.package", version);
+  setTomlVersion(join(root, "python/geoquery/pyproject.toml"), "project", version);
+  setTomlVersion(join(root, "python/geoquery/pixi.toml"), "package", version);
+  for (const relativePath of [
+    "package.json",
+    "packages/client/package.json",
+    "apps/docs/package.json"
+  ]) {
+    const path = join(root, relativePath);
+    const json = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
+    json.version = version;
+    writeFileSync(path, `${JSON.stringify(json, null, 2)}\n`);
+  }
+}
+
 /** `--check`: fail if any published surface disagrees with the workspace version. */
 function check(startDir: string = process.cwd()): number {
   // Checked before the versions, because a crate that hardcodes its own version is a
@@ -316,6 +348,13 @@ function check(startDir: string = process.cwd()): number {
 if (import.meta.main) {
   const startDir = process.cwd();
   if (process.argv.includes("--check")) {
+    process.exit(check(startDir));
+  }
+  const setIndex = process.argv.indexOf("--set");
+  if (setIndex >= 0) {
+    const version = process.argv[setIndex + 1];
+    if (!version) throw new Error("--set requires a version");
+    setVersion(version, startDir);
     process.exit(check(startDir));
   }
   process.stdout.write(workspaceVersion(startDir));

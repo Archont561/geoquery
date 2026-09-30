@@ -32,11 +32,11 @@ jobs:
     name: checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # The pixi environment: the whole toolchain (rust, bun, python, the utilities) from
       # one lockfile. `cache: true` keys the restore on pixi.lock.
-      - uses: prefix-dev/setup-pixi@v0.10.2
+      - uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
         with:
           cache: true
           environments: default
@@ -46,7 +46,7 @@ jobs:
       # not recompile the dependency graph from scratch. Keyed on Cargo.lock, with a prefix
       # fallback so an unchanged lock but changed sources still warm-starts from target/.
       - name: Cache Cargo build
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.cargo/registry/index/
@@ -61,7 +61,7 @@ jobs:
       # turbo nodes are `cache: false` — cargo (above) and the instrumented coverage run own
       # their output — so this cache is the client/docs task replay. Newest restore wins.
       - name: Cache turbo
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .turbo
           key: ${{ runner.os }}-turbo-${{ github.sha }}
@@ -94,7 +94,7 @@ jobs:
       # Uploaded whether or not CODECOV_TOKEN is set (tokenless works for a public repo);
       # `fail_ci_if_error: false` keeps a Codecov outage from failing a green build.
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./target/lcov.info,./python/geoquery/coverage.xml
@@ -114,9 +114,9 @@ jobs:
     name: packages
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: prefix-dev/setup-pixi@v0.10.2
+      - uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
         with:
           cache: true
           environments: default
@@ -124,7 +124,7 @@ jobs:
       # The conda build compiles the CLI through pixi-build-rust; the same Cargo cache keeps
       # that compile off the cold path on a rerun.
       - name: Cache Cargo build
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.cargo/registry/index/
@@ -149,7 +149,7 @@ jobs:
       # artefacts of a CI run, not a release: the release channel is the release workflow's
       # business.
       - name: Upload the packages
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: conda-packages
           path: dist/*.conda
@@ -162,13 +162,13 @@ jobs:
     # refuses to let a malformed plan reach that workflow.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # Both tools, because the step below needs both: `lint-sandbox-plan` is a pixi task
       # that runs the `pixi-sandbox` binary, so a job with the binary and no pixi fails at
       # `pixi: command not found` before the plan is read at all. The task exists precisely
       # so a local run and this step cannot drift.
-      - uses: prefix-dev/setup-pixi@v0.10.2
+      - uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
         with:
           cache: true
           environments: default

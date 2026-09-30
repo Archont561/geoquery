@@ -326,6 +326,9 @@ version = { cmd = "bun \"$PIXI_PROJECT_ROOT/scripts/version.ts\"", depends-on = 
 version-check = { cmd = "bun \"$PIXI_PROJECT_ROOT/scripts/version.ts\" --check", depends-on = [
   "bun-install",
 ], description = "Assert the npm and Python manifests agree with the workspace version" }
+version-set = { cmd = "bun \"$PIXI_PROJECT_ROOT/scripts/version.ts\" --set", depends-on = [
+  "bun-install",
+], description = "Set the release version in every manifest that owns a literal" }
 
 # ── repo utilities (lefthook + CI share these) ─────────────────────────────────
 # Conventional-commit check for the `commit-msg` hook; reads the proposed message from

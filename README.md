@@ -1,149 +1,271 @@
 # geoquery
 
-**One protocol-independent query language and execution engine for federating
-geospatial resources and services.**
+<p align="center">
+  <a href="https://github.com/Archont561/geoquery/actions/workflows/ci.yml"><img src="https://github.com/Archont561/geoquery/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/Archont561/geoquery"><img src="https://codecov.io/gh/Archont561/geoquery/branch/main/graph/badge.svg" alt="Coverage"></a>
+  <a href="https://github.com/Archont561/geoquery/actions/workflows/docs.yml"><img src="https://github.com/Archont561/geoquery/actions/workflows/docs.yml/badge.svg" alt="Docs"></a>
+  <a href="https://github.com/Archont561/geoquery/releases"><img src="https://img.shields.io/github/v/release/Archont561/geoquery?label=release" alt="Release"></a>
+  <a href="https://prefix.dev/channels/@archont561/geoquery"><img src="https://img.shields.io/badge/prefix.dev-%40archont561%2Fgeoquery-5c4ee5" alt="prefix.dev channel"></a>
+  <a href="https://github.com/Archont561/geoquery/blob/main/LICENSE-MIT"><img src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue" alt="MIT OR Apache-2.0"></a>
+  <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-1.98-orange?logo=rust" alt="Rust 1.98"></a>
+  <a href="https://pixi.sh"><img src="https://img.shields.io/badge/Pixi-0.81%2B-yellow?logo=condaforge" alt="Pixi 0.81+"></a>
+  <img src="https://img.shields.io/badge/platform-linux--64-brightgreen" alt="linux-64">
+  <a href="https://github.com/Archont561/geoquery/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs welcome"></a>
+</p>
 
-It sits one level above STAC, OGC API, WFS, ArcGIS, CMR and the rest: discover what a
-service can do, translate one query into source-native queries, run them, and return one
-result set with provenance.
+<p align="center">
+  <strong>One query language and execution engine for federating geospatial resources and services.</strong><br>
+  Discover capabilities, translate one query into source-native requests, and return one result set with provenance.
+</p>
 
-> **Status: Phase 0.** The environment, the repository layout, the query document reader
-> and the publishable packages are real and gated. The query engine is not built yet, so
-> `geoquery query` refuses with exit code 3 rather than pretending. See [Status](#status)
-> and `.knowledge/roadmap/roadmap.md` for what is next.
+---
 
-## Install
+> [!IMPORTANT]
+> **Geoquery is in Phase 0.** The workspace, query-document reader, SDK foundations, CI,
+> offline environment, and release packaging are real. The federation engine is not built
+> yet. `geoquery query` exits with code `3` rather than pretending to contact a service.
 
-The packages are built by `pixi publish` and are not on a public channel yet. From a
-checkout:
+Geoquery sits above STAC, OGC API, WFS, ArcGIS, CMR, and similar protocols. Applications
+express intent once; adapters negotiate source capabilities and the planner decides what can
+be pushed down, what must run locally, and how results retain their provenance.
 
-```console
-$ pixi run publish-dist          # builds dist/*.conda
-$ pixi shell                     # or: pixi run -e default <cmd>
-$ pixi run publish-plan          # what a release would contain
+## 🧭 Architecture
+
+```text
+                         one Geoquery document
+                                  │
+                 ┌────────────────┼────────────────┐
+                 │                │                │
+           Rust CLI/TUI      Python SDK      TypeScript SDK
+                 │                │                │
+                 └────────────────┼────────────────┘
+                                  ▼
+                       planner + execution engine
+                                  │
+             ┌────────────┬───────┴───────┬────────────┐
+             ▼            ▼               ▼            ▼
+           STAC        OGC APIs         ArcGIS        CMR …
+                                  │
+                                  ▼
+                    normalized results + provenance
 ```
 
-A user with a channel would write `pixi global install geoquery-cli`. The Python SDK is
-`geoquery`; the TypeScript client is `@geoquery/client`.
+| Surface | Package | Role |
+| --- | --- | --- |
+| CLI | `geoquery-cli` | Canonical Rust command line; future TUI ships as `geoquery tui` |
+| Python | `geoquery` | Typed, HTTP-first Python SDK |
+| TypeScript | `@geoquery/client` | Fetch-based browser and server SDK |
+| Core | `geoquery-core` | Protocol-independent query model and execution contracts |
 
-## The CLI
+The SDKs do not bundle or reimplement the Rust executable. Shared schemas and conformance
+fixtures keep the language surfaces compatible.
 
-```console
-$ geoquery --version
-geoquery 0.1.0
+## 📦 Installation
 
-$ echo '{"limit": 25, "execution": {"max_concurrency": 4}}' > q.json
-$ geoquery check q.json
-q.json is a query object with 2 keys: execution, limit
+Tagged releases are published to the public
+[`@archont561/geoquery`](https://prefix.dev/channels/@archont561/geoquery) channel.
+The channel currently targets `linux-64`.
 
-$ geoquery query --service https://example.org --query q.json
+```bash
+pixi global install \
+  --channel https://prefix.dev/@archont561/geoquery \
+  --channel conda-forge \
+  geoquery-cli
+```
+
+Or add Geoquery to a Pixi project:
+
+```toml
+[workspace]
+channels = [
+  "https://prefix.dev/@archont561/geoquery",
+  "conda-forge",
+]
+
+[dependencies]
+geoquery-cli = ">=0.1,<0.2"
+# geoquery = ">=0.1,<0.2" # Python SDK
+```
+
+> [!NOTE]
+> Until the first tagged release appears in the channel, build packages from a checkout with
+> `pixi run publish-dist`. GitHub Releases retain the exact `.conda` files and checksums that
+> the release workflow uploads to prefix.dev.
+
+## ⚡ CLI quick start
+
+```bash
+geoquery --version
+
+echo '{"limit": 25, "execution": {"max_concurrency": 4}}' > query.json
+geoquery check query.json
+```
+
+Expected output:
+
+```text
+query.json is a query object with 2 keys: execution, limit
+```
+
+The execution command is intentionally honest about the current phase:
+
+```bash
+geoquery query --service https://example.org --query query.json
+echo $?
+```
+
+```text
 geoquery: no engine yet — https://example.org was not contacted. geoquery 0.1.0 reads
 query documents; executing them arrives with the query engine.
-$ echo $?
 3
 ```
 
-`check` reads a document and reports its shape without contacting anything, so a
-malformed query can be caught before a service is involved. Exit codes are distinct on
-purpose: `1` the file could not be read, `2` the file is not a query document, `3` there
-is no engine to ask.
+| Exit code | Meaning |
+| ---: | --- |
+| `0` | Success |
+| `1` | Input could not be read |
+| `2` | Input is not a query document |
+| `3` | Execution engine is not available yet |
 
-## Repository layout
+## ✨ Design goals
 
-| Path | What it is |
+| Goal | What it means |
 | --- | --- |
-| `pixi.toml` | **the environment and the task runner.** One lockfile for Rust, JS, Python and the repo utilities |
-| `Cargo.toml` | the Cargo workspace root, and the `geoquery-cli` package `pixi publish` builds |
-| `crates/core/` | `geoquery-core`: the query language — documents, versions, error classification |
-| `crates/cli/src/main.rs` | the `geoquery` binary: argument parsing, messages, exit codes |
-| `deny.toml` | the dependency policy: bans, licences, sources || `packages/client/` | `@geoquery/client`, the TypeScript client |
-| `python/geoquery/` | the `geoquery` Python SDK and its conda package |
-| `apps/docs/` | the documentation site: Astro + Starlight, deployed to GitHub Pages by `docs.yml` |
-| `scripts/version.ts` | the version checker, and the one place a version lives |
-| `.devcontainer/` | a container that is nothing but `pixi install` |
-| `.github/workflows/` | CI, and the sandbox transport publisher |
-| `.knowledge/` | the design corpus: architecture, query model, interfaces, roadmap |
+| **Protocol-independent** | User queries describe intent rather than STAC, WFS, or vendor request syntax |
+| **Capability-aware** | Adapters discover what each source supports before planning requests |
+| **Federated** | One plan can query heterogeneous services concurrently |
+| **Provenance-preserving** | Every normalized result retains where and how it was obtained |
+| **Pushdown-first** | Spatial, temporal, and semantic filters run at the source whenever possible |
+| **Multi-interface** | CLI, TUI, HTTP, MCP, Python, and TypeScript share one engine and query model |
+| **Reproducible** | Pixi locks the Rust, Python, JavaScript, and repository toolchains together |
+| **Offline-capable** | A verified sandbox branch restores the complete development environment without network access |
 
-`pixi.toml` is both the environment and the `geoquery-cli` conda package, and `Cargo.toml` is
-both the workspace root and that package. Neither is a coincidence, and both follow from one
-constraint: `pixi-build-rust` installs with `cargo install --path`, which cannot select a
-member out of a *virtual* manifest, so the directory a package is built from has to be a
-package that is also the root of the workspace containing it. Keeping the manifests at the
-repository root is what lets `crates/` hold nothing but crates, and it is what lets the
-offline sandbox vendor the whole dependency graph — see the comment at the top of
-`Cargo.toml`.
+## 🛠️ Development
 
-`crates/cli/` has no manifest, because its sources are the root package's binary, reached
-through `[[bin]] path`. Every other directory under `crates/` is a real crate.
+[Pixi](https://pixi.sh) is the only repository entry point. Package-specific commands live
+beside their packages and [Turbo](https://turbo.build) fans them out across Rust, Python, and
+TypeScript.
 
-Every crate and every package keeps its tests in a `tests/` (`test/` for the TypeScript
-client) directory beside `src/`, with one test file per source file: `src/document.rs` is
-tested by `tests/document.rs`, and a source file with no test file beside it is a visible
-gap rather than a question. `crates/cli/tests/main.rs` is the one that needs a line of
-configuration — `[[test]]` in the root `Cargo.toml` — because the binary's manifest is not
-in its own directory.
-
-## Working on it
-
-```console
-$ pixi install            # restore the locked environment
-$ pixi run setup          # bun workspace, editable Python SDK, git hooks
-$ pixi run gates          # everything CI runs
-$ pixi run fmt            # rewrite what can be rewritten
+```bash
+pixi install       # restore the locked toolchain
+pixi run setup     # install Bun workspace, editable Python SDK, and Git hooks
+pixi run gates     # reproduce the required CI checks
+pixi run fmt       # format every package
+pixi run ci        # gates plus all publishable artifacts
 ```
 
-`pixi run` lists every task. The package-specific work — build, test, lint, typecheck,
-coverage, format — lives in each package's own manifest now (`crates/package.json`,
-`python/geoquery/package.json`, `packages/*` and `apps/*`) and is fanned out by turbo, so
-one repo-wide verb runs every language at once. The tasks that matter most:
+Useful tasks:
 
-| Task | What it does |
+| Task | Purpose |
 | --- | --- |
-| `build` / `test` | build, or run the tests for, **every** package (turbo: Rust + Python + TS) |
-| `lint` / `typecheck` / `fmt` | lint, type-check, or format every package (clippy + cargo-deny + ruff + biome) |
-| `cov` | coverage for every package that reports it (lcov, coverage.py, bun) |
-| `gates` | `lint`, `typecheck`, `test`, `version-check`, `lint-actions`, and the publish dry-run |
-| `ci` | `gates` plus every built artefact, including both conda packages |
-| `docs-dev` / `docs-build` | serve the documentation site / build it into `apps/docs/dist` |
-| `advisories` | check the Cargo graph against the RustSec advisory database (network) |
-| `version-check` | assert every manifest that carries a version agrees on one number |
-| `publish-plan` / `publish-dist` | resolve the publish set / build the `.conda` files |
+| `build` / `test` | Build or test every package through Turbo |
+| `lint` / `typecheck` / `fmt` | Run Clippy, cargo-deny, Ruff, Biome, and language type checkers |
+| `cov` | Produce Rust, Python, and TypeScript coverage |
+| `gates` | Required tests, lint, version checks, workflow lint, and publish-plan validation |
+| `docs-dev` / `docs-build` | Serve or build the Astro + Starlight documentation |
+| `version-check` | Assert every published manifest carries the workspace version |
+| `version-set X.Y.Z` | Update every manifest that owns a literal release version |
+| `publish-plan` | Resolve the package set without uploading anything |
+| `publish-dist` | Build `dist/*.conda` locally |
 
-Every command is `pixi run <task>`, in a shell, a git hook and a CI step alike: pixi is the
-one entry point, and it delegates the fan-out to turbo. To scope a run to one package, pass
-a turbo filter through — `pixi run test -- --filter=@geoquery/rust`. The task list is the
-source of truth; the workflows only decide when to run it.
+Scope a Turbo-backed task to one package by forwarding a filter:
 
-## Versioning
-
-`pixi.toml`'s `[workspace].version` is the number. `pixi run version-check` compares the
-two Cargo manifests, both `[package]` tables and the npm and Python manifests against it,
-and it is in `gates` — a release whose package says `0.1.0` and whose binary says `0.1.1`
-is a bug nobody reports.
-
-## Offline development
-
-The full environment can be published to an orphan git branch and restored on a machine
-with no network. The plan is reviewed in-repo (`.pixi-sandbox.toml`), validated by
-`pixi run lint-sandbox-plan`, packed and pushed by `publish-sandbox.yml`, and restored
-with:
-
-```console
-$ sh scripts/restore.sh
+```bash
+pixi run test -- --filter=@geoquery/rust
 ```
 
-## Status
+## 🗂️ Repository map
 
-| Phase | What it means | Where it is |
-| --- | --- | --- |
-| 0 — foundation | environment, layout, document reader, publishable packages | **done** |
-| 1 — query language | the AST, filters, CQL2, code generation | next |
-| 2 — federation | STAC and OGC adapters, the planner, the engine | |
-| 4 — MCP | tools for agents | |
+| Path | Purpose |
+| --- | --- |
+| `crates/core/` | Query documents, versions, and protocol-independent types |
+| `crates/adapter-{native,ogc,stac}/` | Execution adapters |
+| `crates/http/`, `crates/mcp/`, `crates/tui/` | User-facing Rust interfaces |
+| `crates/cli/src/main.rs` | Canonical `geoquery` executable |
+| `python/geoquery/` | Python SDK and Conda package |
+| `packages/client/` | `@geoquery/client` TypeScript SDK |
+| `apps/docs/` | Astro + Starlight documentation |
+| `pixi.toml` | Environment, task graph, and `geoquery-cli` package |
+| `scripts/version.ts` | Shared-version reader, validator, and updater |
+| `.pixi-sandbox.toml` | Reviewed offline-environment publication plan |
+| `.knowledge/` | Architecture, query model, interfaces, decisions, and roadmap |
 
-The full plan is in `.knowledge/roadmap/roadmap.md`, and `.knowledge/CONTEXT.md` is a
-single-file briefing for anyone — human or agent — new to the project.
+The root `Cargo.toml` is both a Cargo workspace and the CLI package. The root `pixi.toml` is
+both a Pixi workspace and the publishable `geoquery-cli` Conda package. This lets
+`pixi-build-rust` install the root binary with `cargo install --locked --path .` while all
+library crates remain under `crates/`.
 
-## Licence
+## 🚢 Releases
 
-MIT OR Apache-2.0. See `LICENSE-MIT` and `LICENSE-APACHE`.
+The release process has two deliberately separate workflows:
+
+1. **Prepare release** is manually dispatched. Convco derives the next SemVer from
+   conventional commits, regenerates `CHANGELOG.md`, updates every manifest, commits to
+   `main`, and creates an annotated `vX.Y.Z` tag.
+2. **Release** is triggered by that tag. It reruns the gates, builds immutable Conda
+   packages, publishes to prefix.dev through GitHub OIDC, generates Sigstore attestations,
+   and creates the GitHub Release with SHA-256 checksums.
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) because commit history is the
+release input:
+
+```text
+fix: correct temporal interval normalization      # patch
+feat: add STAC item search adapter                 # minor
+feat!: replace the v1 query envelope               # major
+```
+
+No long-lived prefix.dev token is stored in GitHub. Repository Access grants `release.yml`
+read/write access only to `@archont561/geoquery`.
+
+## 🔒 Offline development
+
+The complete locked environment is published to an orphan Git branch by
+`publish-sandbox.yml`. After transferring Git history into an airlock:
+
+```bash
+sh scripts/restore.sh
+source .pixi/sandbox-env.sh
+pixi install --frozen --offline   # must be a no-op
+cargo build --offline             # uses the restored vendor tree
+```
+
+The restore launcher reads `.pixi-sandbox.toml`, selects the bundle for the host platform,
+verifies every declared byte, relocates the Pixi environment, and configures Cargo to use
+vendored dependencies.
+
+> [!TIP]
+> Override automatic bundle selection with `PIXI_SANDBOX_BRANCH` or
+> `PIXI_SANDBOX_BUNDLE` when testing a specific transport.
+
+## 🗺️ Roadmap
+
+| Phase | Outcome | Status |
+| ---: | --- | --- |
+| 0 | Environment, repository structure, document reader, publishable packages | ✅ Done |
+| 1 | Query AST, filters, CQL2, and code generation | 🚧 Next |
+| 2 | STAC and OGC adapters, planner, and federation engine | Planned |
+| 3 | HTTP service and SDK integration | Planned |
+| 4 | MCP tools for agents | Planned |
+| 5 | Interactive TUI | Planned |
+
+See [`.knowledge/roadmap/roadmap.md`](.knowledge/roadmap/roadmap.md) for the full plan and
+[`.knowledge/CONTEXT.md`](.knowledge/CONTEXT.md) for a compact project briefing.
+
+## 🤝 Contributing
+
+Issues and pull requests are welcome. Run the same gates used by CI before opening a PR:
+
+```bash
+pixi run gates
+```
+
+Commit messages are checked by Lefthook and must follow the Conventional Commits format.
+Please keep changes focused and include tests beside the source they cover.
+
+## 📄 License
+
+Licensed under either of the following, at your option:
+
+- [Apache License, Version 2.0](LICENSE-APACHE)
+- [MIT License](LICENSE-MIT)
