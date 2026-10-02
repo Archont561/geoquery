@@ -24,6 +24,11 @@ describe("a per-test fixture", () => {
   // fixture's value survives to.
   let previous: object | undefined;
 
+  // The value `tracked` handed to the test below, so the test after it can compare it with
+  // what teardown received. Same reason as `previous`: a per-test fixture's value does not
+  // survive past its own test.
+  let handedOut: { id: number } | undefined;
+
   const setup = mock(() => ({}));
   const fixture = createFixture(setup);
 
@@ -44,11 +49,25 @@ describe("a per-test fixture", () => {
     previous = current;
   });
 
+  test("hands the accessor and the teardown the same value", () => {
+    // The pairing is the part worth asserting: a helper that ran setup twice, or gave the
+    // teardown a different value than the accessor handed out, would leave two objects that
+    // look alike and are not the same one. `toEqual` would pass for either.
+    //
+    // Read here and compared in the next test, because `afterEach` runs between them and
+    // inside either one there is no teardown call to look at yet. Identity rather than
+    // equality, or this would be asserting `{ id: 1 }` equals `{ id: 1 }`.
+    handedOut = tracked();
+    expect(handedOut).toEqual({ id: 1 });
+  });
+
   test("tears down after each test", () => {
     // Greater than zero rather than exactly two: the point is that teardown runs per test,
     // and pinning the count would make this suite fail the day a test is added above.
     expect(teardown.mock.calls.length).toBeGreaterThan(0);
-    expect(teardown.mock.calls[0]?.[0]).toEqual({ id: 1 });
+    // The most recent call rather than the first: the one that matters is the teardown of
+    // the test above, which is the value this suite compared an accessor against.
+    expect(teardown.mock.calls.at(-1)?.[0]).toBe(handedOut);
   });
 
   test("runs setup again for every test in the scope", () => {

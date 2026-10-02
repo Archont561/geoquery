@@ -7,6 +7,7 @@
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "//tsconfig": "allowImportingTsExtensions because this package typechecks its own tests, and a test importing `../src/fixtures.ts` is how bun resolves it. Legal here only because this tsconfig is noEmit; the client emits declarations to dist, so it cannot take the flag and keeps its tests out of `include` instead.",
   "//": "Private on purpose: every export here is test infrastructure that runs under `bun test`, and nothing in a published package may depend on it. `main` points at `src/` rather than `dist/` because bun resolves TypeScript directly, and building a `.d.ts` for a package only `bun` ever loads would be a step whose only failure mode is the two halves disagreeing about the same types.",
   "exports": {
     ".": "./src/index.ts",

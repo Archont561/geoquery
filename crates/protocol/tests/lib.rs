@@ -21,7 +21,7 @@ use rstest::fixture;
 /// Any JSON value, assembled from proptest's own strategies.
 ///
 /// Written out rather than reached for because `serde_json::Value` does not implement
-/// `Arbitrary`: serde_json had an `arbitrary_impl` feature and dropped it, so the recursive
+/// `Arbitrary`: `serde_json` had an `arbitrary_impl` feature and dropped it, so the recursive
 /// structure has to be composed here. `prop_recursive` is what makes it terminate — depth is
 /// bounded, and the leaves are the strategies that cannot recurse.
 fn arb_json() -> impl Strategy<Value = serde_json::Value> {
