@@ -64,6 +64,14 @@ ignore = [
 [tool.ruff.format]
 docstring-code-format = true
 
+[tool.hypothesis]
+# Deadline off because every example in this suite crosses a C ABI twice, and a loaded CI
+# runner can spend longer on one example than the default 200 ms without anything being
+# wrong. `max_examples` bounds the work instead, which is deterministic rather than a
+# function of how busy the machine is — a suite whose total time depends on the runner is a
+# suite that gets its deadline raised until it is not checked at all.
+max_examples = 100
+
 [tool.pytest.ini_options]
 testpaths = ["python/geoquery/tests"]
 pythonpath = ["python/geoquery/src"]

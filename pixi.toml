@@ -94,6 +94,9 @@ python = ">=3.13,<3.14"
 pytest = ">=8.4,<9"
 pytest-asyncio = ">=1.2,<2"
 pytest-cov = ">=6,<7"
+# Property testing, and dev-only like the rest of this table: a package that ships its own
+# test framework is a package whose install pulls in a test framework.
+hypothesis = ">=6,<7"
 ruff = ">=0.14,<0.15"
 maturin = ">=1.7,<2"
 pip = ">=26,<27"
@@ -137,6 +140,10 @@ pytest-asyncio = { workspace = true }
 # runner the suite already uses, so the SDK's `cov` façade is one command instead of a
 # `coverage run` wrapper that has to know where the sources are.
 pytest-cov = { workspace = true }
+# The generator behind the property tests in `python/geoquery/tests/property/`, which is why
+# it sits next to pytest rather than in the published package's requirements: nothing that
+# installs `geoquery-sdk` should get it.
+hypothesis = { workspace = true }
 ruff = { workspace = true }
 maturin = { workspace = true }
 # pip because `py-install` edits this package into the interpreter: an editable install
