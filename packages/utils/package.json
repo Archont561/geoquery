@@ -1,0 +1,25 @@
+{
+  "name": "@geoquery/utils",
+  "version": "0.1.0",
+  "license": "MIT OR Apache-2.0",
+  "description": "Shared test fixtures for the geoquery TypeScript packages",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "//": "Private on purpose: every export here is test infrastructure that runs under `bun test`, and nothing in a published package may depend on it. `main` points at `src/` rather than `dist/` because bun resolves TypeScript directly, and building a `.d.ts` for a package only `bun` ever loads would be a step whose only failure mode is the two halves disagreeing about the same types.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./fixtures": "./src/fixtures.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit --project tsconfig.json",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit --project tsconfig.json",
+    "lint": "biome check src test"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.11",
+    "typescript": "^5.9.0"
+  }
+}

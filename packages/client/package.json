@@ -27,7 +27,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "//": "Façade so turbo can see the TypeScript client as one node in the repo-wide task graph. `build:native` compiles the N-API addon from `crates/node-native` into this package's root, which is where `src/native.ts` looks for it; `build` is the addon and then tsc, because a `dist/` that type-checks but cannot load its own addon is not a build. `test` builds first for the same reason. `*.node` is in the turbo `outputs` because the addon is an output of this task, not an input: a cache hit has to restore both `dist/` and the addon, or it produces a package whose TypeScript exists and whose addon does not. Every script `cd ../..` to the repository root because cargo's target directory and the workspace manifest are resolved from there.",
+  "//": "Fa\u00e7ade so turbo can see the TypeScript client as one node in the repo-wide task graph. `build:native` compiles the N-API addon from `crates/node-native` into this package's root, which is where `src/native.ts` looks for it; `build` is the addon and then tsc, because a `dist/` that type-checks but cannot load its own addon is not a build. `test` builds first for the same reason. `*.node` is in the turbo `outputs` because the addon is an output of this task, not an input: a cache hit has to restore both `dist/` and the addon, or it produces a package whose TypeScript exists and whose addon does not. Every script `cd ../..` to the repository root because cargo's target directory and the workspace manifest are resolved from there.",
   "scripts": {
     "build:native": "napi build --platform --release --manifest-path ../../crates/node-native/Cargo.toml --output-dir .",
     "build": "bun run build:native && tsc --project tsconfig.json",
@@ -42,8 +42,10 @@
     ]
   },
   "devDependencies": {
+    "@geoquery/utils": "workspace:*",
     "@napi-rs/cli": "^3.4.1",
     "@types/bun": "^1.3.11",
+    "fast-check": "^4.10.2",
     "typescript": "^5.9.0"
   }
 }

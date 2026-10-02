@@ -9,22 +9,27 @@
  */
 
 import { describe, expect, test } from "bun:test";
+import { createFixture } from "@geoquery/utils";
 
 import addon from "../src/native.ts";
+
+// File-scoped: the addon is a compiled artifact, so rebuilding it per test would cost the
+// same second for every assertion in this file and buy nothing — nothing here mutates it.
+const boundAddon = createFixture(() => addon, undefined, "file");
 
 describe("the addon", () => {
   test("exports exactly one function", () => {
     // The whole argument for this package's shape. A second export is a second operation
     // signature that has to be kept in step with the Rust enum, which is the cost the wire
     // protocol exists to remove — so the count is asserted rather than trusted.
-    expect(Object.keys(addon)).toEqual(["invoke"]);
+    expect(Object.keys(boundAddon())).toEqual(["invoke"]);
   });
 
   test("takes and returns JSON text", () => {
     // Not an object on the way in or out. The addon does not get a say in what crosses the
     // boundary, because a binding that decoded the payload here would be a second place
     // where the wire format is written down.
-    const returned = addon.invoke('{"transportVersion":1,"operation":"ping","payload":{}}');
+    const returned = boundAddon().invoke('{"transportVersion":1,"operation":"ping","payload":{}}');
 
     expect(typeof returned).toBe("string");
     expect(JSON.parse(returned)).toMatchObject({ transportVersion: 1, ok: true });
@@ -34,6 +39,6 @@ describe("the addon", () => {
     // The import above is the assertion: a `createRequire` path that does not resolve
     // throws here rather than inside an unrelated assertion. This test names the reason so
     // that a failure reads as "the addon is missing", not "the protocol is broken".
-    expect(addon.invoke).toBeInstanceOf(Function);
+    expect(boundAddon().invoke).toBeInstanceOf(Function);
   });
 });
