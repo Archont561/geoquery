@@ -1,11 +1,11 @@
 {
   "name": "@geoquery/python",
   "private": true,
-  "//": "Façade so turbo can see the Python SDK as one node in the repo-wide task graph. It carries no dependencies — pixi owns the interpreter and the toolchain, and the editable install is done by `pixi run py-install` (a depends-on of the pixi `test`/`cov` tasks). Every script `cd ../..` to the repository root because the ruff `src` config, the pytest `testpaths`/`pythonpath` and the coverage output path are all resolved from there. The commands are the ones that used to be pixi's *-py tasks, verbatim.",
+  "//": "Façade so turbo can see the native Python SDK as one node in the repo-wide task graph. Pixi owns Python, maturin, and the Rust toolchain; `pixi run py-install` builds the PyO3 extension in editable mode. Every script `cd ../..` to the repository root because the ruff `src` config, pytest paths, and coverage output are resolved from there.",
   "scripts": {
     "lint": "cd ../.. && ruff check python/geoquery && ruff format --check python/geoquery",
     "fmt": "cd ../.. && ruff check --fix python/geoquery && ruff format python/geoquery",
-    "dist": "cd ../.. && rm -rf dist/pypi && mkdir -p dist/pypi && cd python/geoquery && hatchling build --directory ../../dist/pypi",
+    "dist": "cd ../.. && rm -rf dist/pypi && mkdir -p dist/pypi && cd python/geoquery && maturin build --release --out ../../dist/pypi",
     "test": "cd ../.. && pytest",
     "cov": "cd ../.. && pytest --cov=geoquery --cov-report=term-missing --cov-report=xml:python/geoquery/coverage.xml"
   }

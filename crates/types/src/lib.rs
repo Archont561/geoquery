@@ -11,7 +11,7 @@
 //! document format; a type that can only be expressed by asking the engine what it means
 //! is a type the clients cannot construct.
 //!
-//! Lands in Phase 1 (`.knowledge/roadmap/roadmap.md`). Scaffolding only: the member
+//! Lands in Phase 1 (`backlog/milestones/`). Scaffolding only: the member
 //! exists so the lockfile and the licence policy cover the dependencies above from the
 //! first commit. See the comment at the top of `../Cargo.toml` for why that is worth a
 //! few hundred crates of compile time.

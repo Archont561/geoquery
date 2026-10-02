@@ -12,7 +12,7 @@ milestone: m-0
 dependencies:
   - GQ-12
 references:
-  - .knowledge/roadmap/roadmap.md
+  - backlog/milestones/
   - README.md
 priority: medium
 type: task

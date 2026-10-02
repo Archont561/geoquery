@@ -13,7 +13,7 @@ dependencies:
   - GQ-4
   - GQ-24
 references:
-  - .knowledge/infrastructure/monorepo-refactor.md
+  - backlog/docs/plans/monorepo-refactor.md
   - .knowledge/infrastructure/monorepo.md
 priority: medium
 type: task

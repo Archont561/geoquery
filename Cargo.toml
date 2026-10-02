@@ -25,7 +25,7 @@
 #     `[workspace.package]` below, and `pixi run version-check` asserts the two agree, so
 #     the authority stays single and the hop is checked rather than assumed.
 #
-# The workspace is the *whole* crate list from `.knowledge/roadmap/roadmap.md`, not just
+# The workspace is the *whole* crate list from `backlog/milestones/`, not just
 # the crates that exist. Every one of them is declared as a member with the dependencies
 # it will need, so `Cargo.lock` and `pixi.lock` describe the environment the project is
 # going to be built in rather than the one it happened to be started in. That matters
@@ -54,7 +54,10 @@
 # `cargo build --workspace`, not in `Cargo.lock`, and not in the licence report `pixi run
 # deny` produces. Adding a crate is now one edit, in the crate's own directory, and the
 # workspace notices it without being told.
-members = ["crates/*"]
+members = ["crates/*", "python/geoquery/native"]
+# The PyO3 extension is a workspace member even though it lives beside the Python package:
+# it must share the core crate and the workspace lockfile, while maturin still owns the
+# Python wheel build from `python/geoquery/`.
 # The only directory under `crates/` that is not a crate. Its sources are this package's
 # binary, reached through `[[bin]] path` below, and its manifest is this file.
 exclude = ["crates/cli"]
@@ -107,6 +110,9 @@ geoquery-adapter-native = { path = "crates/adapter-native" }
 geoquery-http = { path = "crates/http" }
 geoquery-mcp = { path = "crates/mcp" }
 geoquery-tui = { path = "crates/tui" }
+# The Python package is built by maturin, but its extension stays in this lockfile and
+# depends on the same core parser as every other interface.
+pyo3 = { version = ">=0.23.5,<0.24", features = ["abi3-py313"] }
 
 # Geospatial. .knowledge/research/rust-crates.md pins geo 0.29, geojson 0.24 and
 # rstar 0.12; the current releases are geo 0.33, geojson 1.0 and rstar 0.13. The corpus is

@@ -53,7 +53,7 @@ be pushed down, what must run locally, and how results retain their provenance.
 | Surface | Package | Role |
 | --- | --- | --- |
 | CLI | `geoquery-cli` | Canonical Rust command line; future TUI ships as `geoquery tui` |
-| Python | `geoquery` | Typed, HTTP-first Python SDK |
+| Python | `geoquery` | Native PyO3/maturin Python SDK |
 | TypeScript | `@archont561/geoquery-client` | Fetch-based browser and server SDK |
 | Core | `geoquery-core` | Protocol-independent query model and execution contracts |
 
@@ -258,7 +258,7 @@ vendored dependencies.
 | 4 | MCP tools for agents | Planned |
 | 5 | Interactive TUI | Planned |
 
-See [`.knowledge/roadmap/roadmap.md`](.knowledge/roadmap/roadmap.md) for the full plan and
+See [`backlog/milestones/`](backlog/milestones/) for the full plan and
 [`.knowledge/CONTEXT.md`](.knowledge/CONTEXT.md) for a compact project briefing.
 
 ## 🤝 Contributing

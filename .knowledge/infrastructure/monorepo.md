@@ -26,7 +26,7 @@ break the build:
   of a virtual manifest, so the directory a Conda package is built from has to be a package
   that is also the root of its workspace. It is also what lets the offline sandbox vendor
   the whole dependency graph. The reasoning is in the comment at the top of `Cargo.toml`;
-  `infrastructure/monorepo-refactor.md` records what it would take to undo.
+  `../../backlog/docs/plans/monorepo-refactor.md` records what it would take to undo.
 - **Members are `crates/*` with `exclude = ["crates/cli"]`**, not a hand-written list —
   one edit to add a crate, and the one directory under `crates/` that is not a crate is the
   one named above.
@@ -262,7 +262,7 @@ use_try_shorthand = true
 
 ## Related Files
 
-- [infrastructure/monorepo-refactor](monorepo-refactor.md) — What the build does instead, and the staged plan
+- [infrastructure/monorepo-refactor](../../backlog/docs/plans/monorepo-refactor.md) — What the build does instead, and the staged plan
 - [infrastructure/xtask](xtask.md) — Task runner setup
 - [infrastructure/ci](ci.md) — CI pipeline
 - [project/architecture](../project/architecture.md) — Crate responsibilities

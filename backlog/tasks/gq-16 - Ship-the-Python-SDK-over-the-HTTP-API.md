@@ -1,6 +1,6 @@
 ---
 id: GQ-16
-title: Ship the Python SDK over the HTTP API
+title: Ship the native Python SDK with maturin and PyO3
 status: To Do
 assignee: []
 created_date: '2026-09-30 20:40'
@@ -8,13 +8,13 @@ labels:
   - phase-3
   - python
   - sdk
+  - pyo3
 milestone: m-2
 dependencies:
-  - GQ-15
   - GQ-4
 references:
   - .knowledge/interfaces/python.md
-  - .knowledge/interfaces/http.md
+  - .knowledge/query/query-model.md
 priority: medium
 type: feature
 ordinal: 16000
@@ -23,13 +23,14 @@ ordinal: 16000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-python/geoquery currently carries a version test and nothing else. Give Python users the documented client: a typed query builder over the HTTP transport and the dataframe conversions that make results usable in an existing geospatial workflow.
+Ship `geoquery-sdk` as a platform Python wheel built with maturin and PyO3. The package must call the same Rust query language and engine as the CLI in-process; it must not model the protocol a second time in Python or depend on a running HTTP service.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 The geoquery package wraps the HTTP API behind a Geoquery client with typed models kept in step with the generated schemas rather than hand-written twice.
-- [ ] #2 The query builder covers spatial, temporal, semantic, and attribute filter clauses and refuses combinations the AST does not allow.
-- [ ] #3 to_geopandas and to_arrow convert results without dropping provenance or source status.
-- [ ] #4 pytest runs the SDK against a mocked HTTP transport inside the default gates, with no network dependency.
+- [ ] #1 `python/geoquery/native` exposes a stable PyO3 module and maturin builds an editable development install plus release wheels.
+- [ ] #2 The Python package validates and constructs canonical query documents through Rust, with errors mapped to useful Python exceptions.
+- [ ] #3 Query execution runs through the shared in-process planner and adapter registry rather than an HTTP round trip.
+- [ ] #4 Results expose provenance and an optional Arrow/GeoPandas conversion without making those ecosystems core dependencies.
+- [ ] #5 Pytest and Rust tests cover the FFI boundary on every supported Python platform.
 <!-- AC:END -->
