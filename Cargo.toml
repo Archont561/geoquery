@@ -54,7 +54,14 @@
 # `cargo build --workspace`, not in `Cargo.lock`, and not in the licence report `pixi run
 # deny` produces. Adding a crate is now one edit, in the crate's own directory, and the
 # workspace notices it without being told.
-members = ["crates/*", "python/geoquery/native"]
+# Every crate is under `crates/`, including the FFI adapters and the transport they speak.
+# They used to sit beside the packages that load them — `python/geoquery/native` and
+# `packages/client/native` — which meant naming each one here as well, and meant the
+# adapters were invisible to `scripts/version.ts`, whose sweep starts at `crates/`. A
+# binding crate has no more reason to live inside a Python or JavaScript package than the
+# engine it binds has; the packages load a compiled artifact, and where cargo puts the
+# source is a separate question from what a Python or JavaScript user installs.
+members = ["crates/*"]
 # The only directory under `crates/` that is not a crate. Its sources are this package's
 # binary, reached through `[[bin]] path` below, and its manifest is this file.
 exclude = ["crates/cli"]
@@ -113,8 +120,10 @@ geoquery-engine = { path = "crates/engine" }
 # else, so the dependency arrow from here to `geoquery-engine` is the whole story: neither
 # one can reach the core except through the wire, which is what keeps the Python and
 # TypeScript SDKs on one interpretation of a query rather than two.
-# The Python package is built by maturin, but its extension stays in this lockfile and
-# depends on the same core parser as every other interface.
+geoquery-python-native = { path = "crates/python-native" }
+# The Python wheel is built by maturin, but the extension stays in this lockfile rather
+# than resolving its own dependencies, so the versions it was tested against are the
+# versions in `Cargo.lock`.
 pyo3 = { version = ">=0.24.2,<0.25", features = ["abi3-py313"] }
 
 # Geospatial. .knowledge/research/rust-crates.md pins geo 0.29, geojson 0.24 and

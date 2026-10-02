@@ -27,10 +27,18 @@ Homepage = "https://github.com/Archont561/geoquery"
 Repository = "https://github.com/Archont561/geoquery"
 
 [tool.maturin]
-manifest-path = "native/Cargo.toml"
+# The extension is a crate under `crates/`, not a directory inside this package: an FFI
+# adapter has no more reason to live in a Python package than the engine it binds has, and
+# from here it is in the same lockfile and under the same lint policy as every other crate.
+# maturin still owns the wheel build, which is why this path is all that crosses over.
+manifest-path = "../../crates/python-native/Cargo.toml"
 python-source = "src"
 module-name = "geoquery._native"
 bindings = "pyo3"
+# Turns on `pyo3/extension-module` for this build only. See the comment on that feature in
+# `crates/python-native/Cargo.toml`: the wheel is the one artifact that must *not* link
+# libpython, and it is the one build that runs outside `cargo test`.
+features = ["extension-module"]
 strip = true
 
 [tool.ruff]

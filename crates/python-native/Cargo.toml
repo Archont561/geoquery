@@ -1,0 +1,48 @@
+[package]
+name = "geoquery-python-native"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+description = "PyO3 adapter for the Python SDK"
+publish = false
+
+[lib]
+# Deliberately *not* `name = "_native"`, so the Rust crate is reachable as
+# `geoquery_python_native` from its own tests. The Python module's name is decided in
+# `pyproject.toml` by `module-name = "geoquery._native"`, and maturin renames the artifact
+# to match when it builds the wheel — the cdylib's own file name never reaches the import
+# statement in `geoquery/__init__.py`. Setting it here as well would only make the Rust side
+# unnameable from `tests/`, where it has to be callable.
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+geoquery-engine.workspace = true
+pyo3.workspace = true
+
+# `extension-module` is a feature rather than a dependency attribute, and that is the whole
+# reason this crate can be tested at all.
+#
+# With the attribute set here, pyo3 does not link libpython: the interpreter's symbols are
+# assumed to be present in whatever process loads the addon, which is exactly right for the
+# cdylib and exactly wrong for a test binary. `cargo nextest run --workspace` builds one of
+# those for every member, so the member would fail to link with a wall of `undefined
+# reference to PyList_New` and nothing naming pyo3 or this decision.
+#
+# So the attribute is off by default and `pyproject.toml` turns it on with maturin's
+# `features = ["extension-module"]`, which only runs for the wheel. Plain `cargo build` and
+# `cargo test` then link libpython from the environment and produce a test binary that runs.
+[lints]
+workspace = true
+
+[features]
+extension-module = ["pyo3/extension-module"]
+
+[dev-dependencies]
+# The tests in `tests/lib.rs` decode the response to assert on it. Reaching for
+# `serde_json` there rather than a string compare is what lets them assert that the engine
+# *agreed* rather than that it produced a particular substring.
+serde_json.workspace = true
