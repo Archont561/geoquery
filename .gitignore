@@ -34,11 +34,6 @@ dist/
 *.tsbuildinfo
 # Astro's generated types and build cache for apps/docs, rewritten on every build.
 .astro/
-# The compiled N-API addon, named for the Rust target triple it was built for. Ignored
-# rather than committed because the name is platform-dependent, so committing one would
-# either pin a platform or make the tree disagree with whatever cargo last built. It is
-# listed in the client's turbo `outputs`, so a cache hit restores it.
-*.node
 
 # ── Python ─────────────────────────────────────────────────────────────────────
 __pycache__/
@@ -63,6 +58,16 @@ lcov-report/
 coverage.xml
 # python/geoquery/.coverage, when the suite is run from inside the package.
 .coverage.*
+# The compiled `PyO3` extension. `pixi run py-install` builds it with maturin in editable
+# mode, which writes it into `src/geoquery/` so the import resolves from a checkout — so
+# without this rule a `src/` tree that has been installed is a tree with a 5 MB binary in
+# it, and that binary would differ per platform while `src/` would look unchanged.
+*.so
+# The N-API addon, named for the Rust target triple it was built for. Ignored rather than
+# committed because the name is platform-dependent, so committing one would either pin a
+# platform or make the tree disagree with whatever cargo last built. It is listed in the
+# client's turbo `outputs`, so a cache hit restores it.
+*.node
 
 # ── editors and OS ─────────────────────────────────────────────────────────────
 .DS_Store
