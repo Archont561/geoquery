@@ -28,6 +28,17 @@ rust = ">=1.98.1,<1.99"
 
 [package.host-dependencies]
 python = ">=3.13,<3.14"
+# `maturin` is here and not only in `[package.build-dependencies]` because
+# `pixi-build-python` generates a build script that runs `uv pip install --python $PYTHON
+# --no-build-isolation`, and `$PYTHON` is the *host* interpreter. Without isolation, uv
+# imports the PEP 517 backend in the environment it is installing into, so a `maturin` that
+# lives only in the build prefix puts its executable on PATH and leaves the module
+# unimportable — the build dies on `import maturin` rather than on anything a reader would
+# recognise as a Python packaging problem.
+#
+# Keeping it in build-dependencies as well is deliberate: the `bld` prefix is what puts
+# `cargo` on PATH for maturin to drive, and the two prefixes are not the same place.
+maturin = ">=1.7,<2"
 
 [package.run-dependencies]
 python = ">=3.13,<3.14"
