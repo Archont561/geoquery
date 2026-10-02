@@ -55,9 +55,6 @@
 # deny` produces. Adding a crate is now one edit, in the crate's own directory, and the
 # workspace notices it without being told.
 members = ["crates/*", "python/geoquery/native"]
-# The PyO3 extension is a workspace member even though it lives beside the Python package:
-# it must share the core crate and the workspace lockfile, while maturin still owns the
-# Python wheel build from `python/geoquery/`.
 # The only directory under `crates/` that is not a crate. Its sources are this package's
 # binary, reached through `[[bin]] path` below, and its manifest is this file.
 exclude = ["crates/cli"]
@@ -110,9 +107,15 @@ geoquery-adapter-native = { path = "crates/adapter-native" }
 geoquery-http = { path = "crates/http" }
 geoquery-mcp = { path = "crates/mcp" }
 geoquery-tui = { path = "crates/tui" }
+geoquery-protocol = { path = "crates/protocol" }
+geoquery-engine = { path = "crates/engine" }
+# The two FFI adapters. Each exposes one `invoke` over the transport above and owns nothing
+# else, so the dependency arrow from here to `geoquery-engine` is the whole story: neither
+# one can reach the core except through the wire, which is what keeps the Python and
+# TypeScript SDKs on one interpretation of a query rather than two.
 # The Python package is built by maturin, but its extension stays in this lockfile and
 # depends on the same core parser as every other interface.
-pyo3 = { version = ">=0.23.5,<0.24", features = ["abi3-py313"] }
+pyo3 = { version = ">=0.24.2,<0.25", features = ["abi3-py313"] }
 
 # Geospatial. .knowledge/research/rust-crates.md pins geo 0.29, geojson 0.24 and
 # rstar 0.12; the current releases are geo 0.33, geojson 1.0 and rstar 0.13. The corpus is
