@@ -258,7 +258,7 @@ vendored dependencies.
 | 4 | MCP tools for agents | Planned |
 | 5 | Interactive TUI | Planned |
 
-See [`.knowledge/roadmap/roadmap.md`](.knowledge/roadmap/roadmap.md) for the full plan and
+See [`backlog/milestones/`](backlog/milestones/) for the full plan and
 [`.knowledge/CONTEXT.md`](.knowledge/CONTEXT.md) for a compact project briefing.
 
 ## 🤝 Contributing

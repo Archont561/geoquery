@@ -25,7 +25,7 @@
 #     `[workspace.package]` below, and `pixi run version-check` asserts the two agree, so
 #     the authority stays single and the hop is checked rather than assumed.
 #
-# The workspace is the *whole* crate list from `.knowledge/roadmap/roadmap.md`, not just
+# The workspace is the *whole* crate list from `backlog/milestones/`, not just
 # the crates that exist. Every one of them is declared as a member with the dependencies
 # it will need, so `Cargo.lock` and `pixi.lock` describe the environment the project is
 # going to be built in rather than the one it happened to be started in. That matters
