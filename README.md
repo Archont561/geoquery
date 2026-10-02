@@ -53,7 +53,7 @@ be pushed down, what must run locally, and how results retain their provenance.
 | Surface | Package | Role |
 | --- | --- | --- |
 | CLI | `geoquery-cli` | Canonical Rust command line; future TUI ships as `geoquery tui` |
-| Python | `geoquery` | Typed, HTTP-first Python SDK |
+| Python | `geoquery` | Native PyO3/maturin Python SDK |
 | TypeScript | `@archont561/geoquery-client` | Fetch-based browser and server SDK |
 | Core | `geoquery-core` | Protocol-independent query model and execution contracts |
 

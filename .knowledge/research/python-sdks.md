@@ -21,10 +21,10 @@ languages. `pystac-client` and `OWSLib` are established, battle-tested
 SDKs that Geoquery's Python wrapper can leverage directly (unlike Rust
 and TypeScript, which lack dominant equivalents).
 
-The key architectural decision: the Python SDK starts as an HTTP
-client to the Rust server but has a clear path to **PyO3 native
-bindings** for zero-copy GeoArrow integration — which is what Python
-data scientists actually want.
+The key architectural decision: the Python SDK uses **PyO3 native
+bindings** to call the Rust engine in-process. This is the path to
+zero-copy GeoArrow integration; HTTP remains a server interface for
+remote applications, not the Python SDK transport.
 
 ---
 
@@ -58,8 +58,7 @@ items = list(search.items())
 - Item collection → GeoDataFrame conversion
 
 **Decision:** For the Python SDK's direct STAC access mode, delegate
-to `pystac-client`. For the primary mode, the Python SDK talks to the
-Rust HTTP server and doesn't need `pystac-client` at all.
+to `pystac-client`. The native engine owns the primary mode and does not need `pystac-client` at the FFI boundary.
 
 ---
 
@@ -159,7 +158,7 @@ result = duckdb.sql("""
 ```
 
 **Decision:** DuckDB as the Python-side analytical backend for local
-GeoParquet caches. This is the Phase 6 PyO3 integration path — the
+GeoParquet caches. This is the native PyO3 integration path — the
 Rust engine and Python DuckDB can share the same GeoParquet files.
 
 ---
@@ -218,39 +217,15 @@ the full Rust engine isn't deployed.
 
 ---
 
-## Async / Federation
+## Native federation
 
-| Package | Purpose | Notes |
-|---------|---------|-------|
-| `httpx` | Async HTTP client | **Primary choice** for Python SDK HTTP transport |
-| `aiohttp` | Async HTTP client | Alternative, more complex API |
-| `asyncio` | Async runtime | Built-in, `asyncio.Semaphore` for bounded concurrency |
+The Python SDK does not own an HTTP transport. Federation and remote protocol access stay
+inside the Rust adapter and planner layers, which the PyO3 module calls in-process. Remote
+applications that cannot load a native wheel can use the HTTP server independently.
 
-### Federation Pattern
-
-```python
-import httpx
-import asyncio
-
-async def query_sources(sources: list[str], query: dict) -> list[dict]:
-    sem = asyncio.Semaphore(10)  # max 10 concurrent
-
-    async def query_one(source: str) -> dict:
-        async with sem:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                try:
-                    resp = await client.post(f"{source}/search", json=query)
-                    return {"source": source, "status": "ok", "results": resp.json()}
-                except httpx.TimeoutException:
-                    return {"source": source, "status": "timeout", "results": []}
-
-    return await asyncio.gather(*[query_one(s) for s in sources])
-```
-
-**Decision:** `httpx` for the Python SDK. Modern, async-first, clean
-API, good timeout handling.
-
----
+The native boundary should expose cancellation and bounded concurrency without leaking a Rust
+async runtime into Python. Python async support can be added later as a wrapper around those
+explicit operations; it must not reimplement federation with a second HTTP client.
 
 ## Semantic Search
 

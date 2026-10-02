@@ -5,8 +5,8 @@
 #   rust     the toolchain the engine will be built with: rust, cargo-nextest,
 #            cargo-llvm-cov, cargo-deny
 #   js       bun, the only JavaScript runtime here
-#   python   the interpreter and the whole SDK toolchain: pytest, pytest-cov, ruff,
-#            hatchling, pip, httpx, pydantic
+#   python   the interpreter and native SDK toolchain: pytest, pytest-cov, ruff, maturin,
+#            pip
 #   utils    the repository's own instruments: convco, lefthook, actionlint
 #
 # The layers exist so a version bump to one toolchain is its own reviewable diff, and
@@ -28,11 +28,10 @@
 # carry a `node` shebang, which no environment here provides.
 #
 # The Python toolchain lives *in* the environment rather than in a venv: conda-forge
-# carries the interpreter, pip, pytest, ruff, hatchling, httpx and pydantic, so the SDK's
-# whole toolchain is one `pixi.lock`. `py-install` therefore installs the package with
-# `--no-deps` — the dependencies are already solved, and letting pip resolve them a
-# second time would give the SDK a version of pydantic the lockfile does not know
-# about. It is `python -m pip`, not `pip`: PATH is not trustworthy inside a task (see the
+# carries the interpreter, pip, pytest, ruff and maturin, so the native SDK build toolchain
+# is one `pixi.lock`. `py-install` uses pip's editable mode with the maturin backend; the
+# Rust dependencies are resolved by Cargo from the workspace lockfile rather than by pip.
+# It is `python -m pip`, not `pip`: PATH is not trustworthy inside a task (see the
 # opencode-install note), and conda-forge's interpreter is the one that must run it.
 #
 # `maturin` and the PyO3 bindings are deliberately absent. The Python SDK talks to the
@@ -86,10 +85,8 @@ pytest = ">=8.4,<9"
 pytest-asyncio = ">=1.2,<2"
 pytest-cov = ">=6,<7"
 ruff = ">=0.14,<0.15"
-hatchling = ">=1.27,<2"
+maturin = ">=1.7,<2"
 pip = ">=26,<27"
-httpx = ">=0.28,<0.29"
-pydantic = ">=2.12,<3"
 convco = ">=0.7.2,<0.8"
 lefthook = ">=2.1.15,<3"
 actionlint = ">=1.7.12,<2"
@@ -120,8 +117,8 @@ cargo-deny = ">=0.20.2,<0.21"
 bun = { workspace = true }
 
 [feature.python.dependencies]
-# The interpreter and the whole SDK toolchain, from one lockfile. `pytest-asyncio`
-# because the SDK's transport is async httpx, so the tests are.
+# The interpreter and native extension build toolchain, from one lockfile. The Python
+# package crosses the Rust boundary in-process through PyO3 rather than using HTTP.
 python = { workspace = true }
 pytest = { workspace = true }
 pytest-asyncio = { workspace = true }
@@ -130,14 +127,12 @@ pytest-asyncio = { workspace = true }
 # `coverage run` wrapper that has to know where the sources are.
 pytest-cov = { workspace = true }
 ruff = { workspace = true }
-hatchling = { workspace = true }
+maturin = { workspace = true }
 # pip because `py-install` edits this package into the interpreter: an editable install
 # is a build, and without a build backend in the environment it would either download one
 # into a temporary venv or refuse. `python -m pip` with nothing to install into is the
 # failure this dependency exists to prevent.
 pip = { workspace = true }
-httpx = { workspace = true }
-pydantic = { workspace = true }
 
 [feature.utils.dependencies]
 # Repo utilities shared by the git hooks and CI, so the two cannot drift.
@@ -362,9 +357,9 @@ lint-sandbox-plan = { cmd = "pixi-sandbox plan --config .pixi-sandbox.toml", des
 # gate: it fails on a package whose build dependencies do not solve, before anything uploads.
 publish-plan = { cmd = "pixi publish --dry-run", description = "Resolve and print the publish set without building or uploading" }
 publish-dist = { cmd = "pixi publish --target-dir dist", description = "Build the publishable packages into dist/" }
-# The Python task makes native package artifacts with the locked Hatchling backend. The
-# TypeScript task compiles the client with Bun; npm packs that prepared directory only in the
-# release job because npm is required there for its OIDC Trusted Publishing implementation.
+# The Python task makes platform-native wheel artifacts with the locked maturin backend.
+# The TypeScript task compiles the client with Bun; npm packs that prepared directory only
+# in the release job because npm is required there for its OIDC Trusted Publishing implementation.
 py-dist = { cmd = "bun run dist", cwd = "python/geoquery", depends-on = [
   "bun-install",
 ], description = "Build the Python sdist and wheel into dist/pypi" }

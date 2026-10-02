@@ -1,57 +1,33 @@
-# The conda package for the Python SDK — the thing `pixi publish` builds.
+# The native Python package for geoquery — the wheel contains a PyO3 extension.
 #
-# A pure-Python package, so the artefact is `noarch: python` and the same file installs
-# on every platform: the SDK's job is to speak HTTP to a service, and a wheel built for
-# one interpreter build is a wheel that will not install on another.
-#
-# There is no `[workspace]` table here on purpose. A sub-manifest with one would be a
-# second pixi workspace with a second pixi.lock, and a package section needs no more
-# than the tables below to be discovered by the root workspace's `pixi publish`.
+# This is a platform package rather than noarch: the Rust extension is compiled by maturin
+# for the target Python ABI and links the same geoquery-core used by the CLI and service.
 
 [package]
 name = "geoquery"
 version = "0.1.0"
 publish = true
 license = "MIT OR Apache-2.0"
-description = "Python client for geoquery"
+description = "Native Python bindings for geoquery"
 readme = "README.md"
 repository = "https://github.com/Archont561/geoquery"
 homepage = "https://github.com/Archont561/geoquery"
 
 [package.build]
-# pixi-build-python runs the project's own build backend (hatchling, from
-# `[build-system]` in pyproject.toml) and installs the wheel into the conda prefix.
 backend = { name = "pixi-build-python", version = ">=0.8,<0.9", channels = [
   "https://prefix.dev/conda-forge",
 ] }
 
 [package.build.config]
-# A package with no compiled parts is noarch. Spelled out rather than left to the
-# default because the default is inferred: if a C extension ever arrives this has to
-# become false, and the day it does should be a diff in this file rather than a silent
-# switch from a platform package to a universal one.
-noarch = true
-# PyPI dependency mapping stays off (`ignore-pypi-mapping` defaults to true) because the
-# run dependencies are declared as conda packages below. Mapping would add httpx and
-# pydantic a second time, from a mapping service, for two well-known names.
+noarch = false
 ignore-pypi-mapping = true
 
 [package.build-dependencies]
-hatchling = ">=1.27,<2"
+maturin = ">=1.7,<2"
+rust = ">=1.98.1,<1.99"
 
 [package.host-dependencies]
-# The interpreter constraint goes here, not in build-dependencies: the backend adds
-# python to host and run itself, and a host spec is what propagates to the run
-# dependency of the published package. `requires-python` in pyproject.toml says the same
-# thing; this is the one the solver reads.
 python = ">=3.13,<3.14"
-hatchling = ">=1.27,<2"
 
 [package.run-dependencies]
 python = ">=3.13,<3.14"
-# The SDK's whole runtime surface. Kept as two packages rather than a pypi block,
-# because a conda package cannot satisfy a PyPI dependency at install time: a user on
-# `pixi add geoquery` gets the conda httpx this file names, resolved by the same solver
-# as everything else in their environment.
-httpx = ">=0.28,<0.29"
-pydantic = ">=2.12,<3"

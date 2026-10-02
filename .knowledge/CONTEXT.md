@@ -214,7 +214,7 @@ wrappers around `geoquery-core::execute(GeoQuery) → QueryResult`.
 | MCP | `geoquery-mcp` (`rmcp` 3.x) | `geo_query`, `geo_resource`, `geo_resolve` for AI agents |
 | TUI | `geoquery-tui` (`ratatui`) | Interactive terminal exploration |
 | TypeScript | `@geoquery/client` | Fluent builder, HTTP transport, WASM future |
-| Python | `geoquery` | GeoPandas integration, PyO3 future |
+| Python | `geoquery` | Native PyO3/maturin binding, GeoPandas integration |
 
 **Adding a new interface never requires modifying core.**
 
