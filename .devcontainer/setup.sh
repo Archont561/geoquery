@@ -26,5 +26,12 @@ pixi install --locked --all
 pixi run setup
 
 # Install the optional agent CLI and refresh its model catalogue, matching the
-# development environment used by pixi-sandbox.
-pixi run setup-opencode
+# development environment used by pixi-sandbox. This is container tooling rather
+# than a project dependency: the CLI is how the repository is worked on, not an
+# input its build needs, so it does not belong in the task graph every clone
+# resolves. Bun lives in the project environment, so reach it through `pixi run`
+# instead of assuming it is on this script's PATH.
+BUN_BIN="$(pixi run -e default bash -c 'bun pm bin -g')"
+pixi run -e default bun add -g opencode-ai@latest
+ln -sfn "$BUN_BIN/opencode" /usr/local/bin/opencode
+"$BUN_BIN/opencode" models --refresh

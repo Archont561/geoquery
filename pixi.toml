@@ -31,8 +31,8 @@
 # carries the interpreter, pip, pytest, ruff and maturin, so the native SDK build toolchain
 # is one `pixi.lock`. `py-install` uses pip's editable mode with the maturin backend; the
 # Rust dependencies are resolved by Cargo from the workspace lockfile rather than by pip.
-# It is `python -m pip`, not `pip`: PATH is not trustworthy inside a task (see the
-# opencode-install note), and conda-forge's interpreter is the one that must run it.
+# It is `python -m pip`, not `pip`: PATH is not trustworthy inside a task, and
+# conda-forge's interpreter is the one that must run it.
 #
 # `maturin` and the PyO3 bindings are deliberately absent. The Python SDK talks to the
 # HTTP API first (interfaces/python.md); a native binding is a Phase 6 decision, and a
@@ -381,12 +381,6 @@ docs-build = { cmd = "GEOQUERY_VERSION=\"$(bun \"$PIXI_PROJECT_ROOT/scripts/vers
 docs-preview = { cmd = "bun run preview", cwd = "apps/docs", depends-on = [
   "docs-build",
 ], description = "Serve the built documentation site as Pages will" }
-
-# ── agent tooling ──────────────────────────────────────────────────────────────
-opencode-install = 'BUN_BIN="$(bun pm bin -g)" && bun add -g opencode-ai@latest && (ln -sfn "$BUN_BIN/opencode" /usr/local/bin/opencode 2>/dev/null || (mkdir -p "$HOME/.local/bin" 2>/dev/null && ln -sfn "$BUN_BIN/opencode" "$HOME/.local/bin/opencode" 2>/dev/null) || echo "opencode installed to $BUN_BIN, which is not on PATH: neither /usr/local/bin nor ~/.local/bin is writable")'
-setup-opencode = { depends-on = [
-  "opencode-install",
-], cmd = "\"$(bun pm bin -g)/opencode\" models --refresh" }
 
 # ── sandbox transport (pixi-sandbox) ───────────────────────────────────────────
 # pack -> doctor -> publish, locally. `pixi-sandbox` is not a conda dependency; it is a
