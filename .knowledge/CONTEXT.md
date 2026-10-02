@@ -213,7 +213,7 @@ wrappers around `geoquery-core::execute(GeoQuery) → QueryResult`.
 | HTTP | `geoquery-http` (Axum) | REST API, SSE streaming |
 | MCP | `geoquery-mcp` (`rmcp` 3.x) | `geo_query`, `geo_resource`, `geo_resolve` for AI agents |
 | TUI | `geoquery-tui` (`ratatui`) | Interactive terminal exploration |
-| TypeScript | `@geoquery/client` | Fluent builder, HTTP transport, WASM future |
+| TypeScript | `@geoquery/client` | N-API addon in-process; HTTP and WASM deferred — see the divergence note in [interfaces/typescript](interfaces/typescript.md) |
 | Python | `geoquery` | Native PyO3/maturin binding, GeoPandas integration |
 
 **Adding a new interface never requires modifying core.**
@@ -451,7 +451,7 @@ Capabilities, Query, Result). Study its adapter boundaries.
 | GeoDataFrame conversion | `geopandas` (optional `[geo]` extra) |
 | Analytics | `duckdb` |
 | MCP | `FastMCP` or official `mcp` package |
-| Future native bindings | `pyo3` + `maturin` |
+| Native bindings | `pyo3` + `maturin` (Python), `napi-rs` (TypeScript) |
 
 ---
 

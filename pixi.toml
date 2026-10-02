@@ -42,10 +42,12 @@
 # thin: `geoquery-core` owns what a query means, and a binding that interpreted it would
 # give each SDK a second opinion. Neither interface speaks HTTP.
 #
-# The TypeScript side needs no conda toolchain of its own, because cargo already builds
-# the addon and the workspace lockfile already carries `napi`. That is the reason there is
-# no `@napi-rs/cli` here: a second build tool for a cdylib cargo can produce would be a
-# second thing to keep in step, and it would arrive as a binary fetched outside `pixi.lock`.
+# The TypeScript side needs no conda toolchain of its own, and `@napi-rs/cli` is a Bun
+# workspace dependency rather than a conda one for the reason every other JS tool here is:
+# conda-forge has no `biome`, no `turbo` and no `bunup`, so `package.json` and one lockfile
+# decide the linter and the version its schema names. What `napi` itself is *not* is
+# redundant — cargo builds the cdylib either way, and the CLI only names the artifact for
+# the target it compiled, which is the thing `src/native.ts` has to resolve.
 #
 # `convco`, `lefthook` and `actionlint` are conda dependencies, not npm ones: the git
 # hooks must work on a machine restored from the sandbox branch, and

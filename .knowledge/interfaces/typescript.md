@@ -26,36 +26,84 @@ The primary application-facing API for web and Node.js developers.
 
 | Option | Status | Use Case |
 |--------|--------|----------|
-| **HTTP Client** | MVP | Talks to `geoquery-http` (Rust/Axum) |
+| **NAPI** | Shipped first | In-process, via `napi-rs` |
+| **HTTP Client** | Deferred | Talks to `geoquery-http` (Rust/Axum) |
 | **WASM** | Phase 6 | In-browser/edge via `geoquery-wasm` |
-| **NAPI** | Future | Node.js native via `napi-rs` |
 
-**Start with HTTP.** It works everywhere and the HTTP API is already
-in the spec. WASM and NAPI can be added later without changing the
-TS API surface.
+> **Divergence (2026-10-02).** This file originally ranked the three transports HTTP (MVP),
+> WASM (Phase 6), NAPI (future), on the reasoning that "HTTP works everywhere and the HTTP
+> API is already in the spec". The implementation went the other way: `packages/client`
+> loads a N-API addon (`crates/node-native`, crate `geoquery-node-native`) over a
+> versioned JSON transport and holds no transport code of its own. Two reasons, neither of
+> which was in this table:
+>
+> 1. **The ordering was self-defeating for this repository.** The HTTP API is not
+>    implemented (`geoquery-http` is scaffolding), so an HTTP-first client would have had
+>    nothing to talk to and could not have been tested against anything real. The native
+>    boundary exposes the part of the engine that does exist — document parsing and protocol
+>    version — on day one.
+> 2. **The Python SDK had already taken this route.** `python/geoquery` crosses into Rust
+>    through PyO3 rather than HTTP, so a native TypeScript boundary keeps the two peer
+>    SDKs structurally identical rather than having one of them take a different path to
+>    the same engine.
+>
+> What this costs, and it is not free: an addon is a compiled, platform-specific binary, so
+> this client no longer runs in a browser, on Cloudflare Workers, or on any edge runtime
+> that cannot `dlopen` a shared library — the deployment targets listed in `CONTEXT.md`. It
+> also means the npm tarball is linux-64 only for now, and that `packages/client` gains a
+> build step that cannot be type-checked alone. The WASM path below is what would restore
+> those targets; HTTP remains the right answer for anything that is not a Node process.
+>
+> One constraint this exposed is worth keeping: `#[napi]` expands to unsafe code, and
+> `unsafe_code = "forbid"` cannot be overridden by any inner attribute. `geoquery-node-native`
+> therefore restates the workspace lints with `unsafe_code = "deny"` — see its `Cargo.toml`
+> for why, and note that it is the only member of the workspace that does not inherit
+> `[workspace.lints]`.
+>
+> **The wire is the interface, not the engine's function list.** `crates/protocol` defines
+> `{transportVersion, operation, payload}` in and `{transportVersion, ok, result}` out, and
+> both adapters export exactly one `invoke(String) -> String`. This is the single largest
+> departure from this file, which describes a typed client whose API surface is generated
+> from Rust. Generating signatures per operation would mean a new FFI signature, a new
+> generated `.d.ts` and a new addon release for every engine operation, and a binding
+> compiled before an operation existed would have no way to refuse one it lacks. The cost is
+> that `invoke`'s payload and result are JSON rather than generated types, so the TypeScript
+> mirrors of the Rust DTOs are hand-written and kept honest by round-tripping them through
+> the real addon in the test suite. The Python SDK has the same shape.
 
 ```
-Option A (MVP):  @geoquery/client  ──HTTP──▶  geoquery-http (Axum)
-Option B (future): @geoquery/client  ──WASM──▶  geoquery-wasm (.wasm)
-Option C (future): @geoquery/client  ──FFI───▶  geoquery-napi (napi-rs)
+Option A (shipped): @geoquery/client  ──FFI──▶  geoquery-node-native → geoquery-engine
+Option B (deferred): @geoquery/client  ──HTTP─▶  geoquery-http (Axum)
+Option C (future):   @geoquery/client  ──WASM─▶  geoquery-wasm (.wasm)
+
+        crates/protocol  ── versioned JSON envelope, shared by both SDKs ──┐
+        crates/engine    ── one dispatch arm per Operation ───────────────┤
+        crates/node-native   ┐                                          │
+        crates/python-native ┘── one `invoke` each, nothing else ─────────┘
 ```
 
----
-
-## Package Structure
+### Package Structure (as implemented)
 
 ```
+crates/protocol/             # geoquery-protocol — the envelope, no logic
+crates/engine/               # geoquery-engine   — one arm per Operation
+crates/node-native/          # geoquery-node-native — cdylib, `#[napi] invoke`
 packages/client/
-├── package.json
+├── package.json             # napi.binaryName + napi.targets name the artifact
 ├── tsconfig.json
 ├── src/
-│   ├── index.ts          # Public API
-│   ├── client.ts         # HTTP client implementation
-│   ├── types.ts          # Auto-generated from Rust (ts-rs)
-│   ├── query-builder.ts  # Fluent query builder
-│   └── mcp.ts            # MCP client helpers (optional)
-└── tests/
+│   ├── index.ts             # Public API — typed facade over `invoke`
+│   └── native.ts            # Loading the `.node` through createRequire
+├── test/
+│   ├── index.test.ts
+│   └── native.test.ts
+└── dist/                    # tsc output; published
 ```
+
+The addon lives under `crates/` with every other crate rather than inside the package that
+loads it. It is a workspace member either way, but a binding crate outside `crates/` had to
+be named in `members` by hand and was invisible to `scripts/version.ts`, whose sweep starts
+at `crates/`.
 
 ### `package.json`
 
@@ -85,6 +133,14 @@ packages/client/
 ---
 
 ## API Surface
+
+> **Not implemented.** Everything below is the shape the corpus intends for the client once
+> there is an engine to execute, and none of it exists yet — `geoquery query` still refuses
+> rather than returning an empty result. What ships today is `VERSION`, `invoke`,
+> `invokeRaw`, `ping()`, `protocolVersion()` and `parseDocument()`: the version and
+> document-parsing half of the boundary. The HTTP forms shown here assume a transport that is
+> deferred; under the native binding the same calls are in-process, and the builder and the
+> result types arrive with the executor.
 
 ### Initialization
 
