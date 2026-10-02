@@ -27,7 +27,7 @@ export interface GeoqueryAddon {
 // this particular `.node` implements. What stands in for the check is `test/protocol.test.ts`
 // calling every operation through the real addon, which fails if the two ever disagree.
 const addon = createRequire(import.meta.url)(
-  `../geoquery-node-native.linux-x64-gnu.node`,
+  `../geoquery-node-native.linux-x64-gnu.node`
 ) as unknown as GeoqueryAddon;
 
 export default addon;

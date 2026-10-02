@@ -62,7 +62,7 @@ export interface EngineResponse<TResult extends Record<string, unknown> = Record
  */
 export function invoke<TResult extends Record<string, unknown> = Record<string, unknown>>(
   operation: Operation,
-  payload: Record<string, unknown> = {},
+  payload: Record<string, unknown> = {}
 ): TResult {
   const response = invokeRaw<TResult>(operation, payload);
   if (!response.ok) {
@@ -79,7 +79,7 @@ export function invoke<TResult extends Record<string, unknown> = Record<string, 
  */
 export function invokeRaw<TResult extends Record<string, unknown> = Record<string, unknown>>(
   operation: Operation,
-  payload: Record<string, unknown> = {},
+  payload: Record<string, unknown> = {}
 ): EngineResponse<TResult> {
   const request: EngineRequest = { transportVersion: TRANSPORT_VERSION, operation, payload };
   // The addon's own JSON.parse, with no schema check, is the honest boundary: the addon

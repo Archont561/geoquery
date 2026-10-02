@@ -12,13 +12,13 @@ import { describe, expect, test } from "bun:test";
 
 import {
   EngineError,
-  TRANSPORT_VERSION,
-  VERSION,
   invoke,
   invokeRaw,
   parseDocument,
   ping,
   protocolVersion,
+  TRANSPORT_VERSION,
+  VERSION
 } from "../src/index.ts";
 
 describe("version", () => {

@@ -14,6 +14,15 @@ use napi_derive::napi;
 /// in what crosses the boundary, because a binding that did would be a second place where
 /// the wire format is written down.
 #[napi]
+#[must_use]
+// `&str` is the signature this function wants — the engine takes a slice and nothing here
+// owns the text — but napi-rs rejects it outright: a JavaScript string is primitive and
+// cannot be lent to Rust. `String` is the only signature that compiles, so the lint is
+// silenced here rather than in `[workspace.lints]`, where turning it off would also silence
+// it for every crate that has a real ownership mistake. `allow` rather than `expect`
+// because rustc counts the lint as suppressed rather than triggered when an expectation is
+// in place, and `unfulfilled_lint_expectations` is a warning here too.
+#[allow(clippy::needless_pass_by_value)]
 pub fn invoke(request: String) -> String {
     geoquery_engine::invoke(&request)
 }

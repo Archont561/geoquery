@@ -25,7 +25,7 @@ use serde_json::{Value, json};
 #[must_use]
 pub fn invoke(request_json: &str) -> String {
     let response = match serde_json::from_str::<EngineRequest>(request_json) {
-        Ok(request) if request.transport_version == TRANSPORT_VERSION => run(request),
+        Ok(request) if request.transport_version == TRANSPORT_VERSION => run(&request),
         Ok(request) => failure(json!({
             "error": "unsupported transport version",
             "supported": TRANSPORT_VERSION,
@@ -40,7 +40,7 @@ pub fn invoke(request_json: &str) -> String {
 }
 
 /// Dispatch one request whose transport version has already been accepted.
-fn run(request: EngineRequest) -> EngineResponse {
+fn run(request: &EngineRequest) -> EngineResponse {
     match request.operation {
         // The payload is echoed rather than interpreted, which is the whole test: a string
         // that survives the round trip is proof the boundary did not truncate, re-encode or
@@ -78,7 +78,11 @@ fn parse_document(payload: &Value) -> EngineResponse {
 
 /// A response whose operation succeeded.
 fn success(result: Value) -> EngineResponse {
-    EngineResponse { transport_version: TRANSPORT_VERSION, ok: true, result }
+    EngineResponse {
+        transport_version: TRANSPORT_VERSION,
+        ok: true,
+        result,
+    }
 }
 
 /// A response whose operation did not.
@@ -87,5 +91,9 @@ fn success(result: Value) -> EngineResponse {
 /// answering rather than refusing, and a binding that cannot parse a response is a bug
 /// worth distinguishing from one that rejected the caller's query.
 fn failure(result: Value) -> EngineResponse {
-    EngineResponse { transport_version: TRANSPORT_VERSION, ok: false, result }
+    EngineResponse {
+        transport_version: TRANSPORT_VERSION,
+        ok: false,
+        result,
+    }
 }

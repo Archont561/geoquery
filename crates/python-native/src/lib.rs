@@ -1,4 +1,4 @@
-//! PyO3 adapter for the Python SDK.
+//! `PyO3` adapter for the Python SDK.
 //!
 //! One function, taking and returning JSON, and for the same reason as the Node adapter:
 //! every operation the engine has is an `Operation` in `geoquery-protocol`. Exposing them
@@ -13,6 +13,7 @@ use pyo3::prelude::*;
 /// Public so `tests/lib.rs` can drive the adapter without an interpreter attached; the
 /// crate is `publish = false`, so this is not an API anyone else is committing to.
 #[pyfunction]
+#[must_use]
 pub fn invoke(request: &str) -> String {
     geoquery_engine::invoke(request)
 }

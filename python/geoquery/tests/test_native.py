@@ -26,7 +26,7 @@ def test_transport_version_is_the_one_rust_speaks() -> None:
     # The envelope version is written down in two languages. Nothing keeps those two numbers
     # in step except this assertion, so it is the test that catches a Rust bump the Python
     # side never heard about.
-    assert geoquery.TRANSPORT_VERSION == geoquery.invoke_raw("ping")["transport_version"]
+    assert geoquery.invoke_raw("ping").transport_version == geoquery.TRANSPORT_VERSION
 
 
 def test_parse_document_uses_the_rust_parser() -> None:
@@ -71,9 +71,7 @@ def test_a_future_transport_version_is_refused_rather_than_guessed_at() -> None:
     # dataclass — the assertion that matters is that Rust *refused*, which the client's own
     # version constant would otherwise prevent anyone from observing.
     response = json.loads(
-        _native.invoke(
-            json.dumps({"transportVersion": 999, "operation": "ping", "payload": {}})
-        )
+        _native.invoke(json.dumps({"transportVersion": 999, "operation": "ping", "payload": {}}))
     )
     assert response["ok"] is False
     assert response["result"] == {

@@ -13,14 +13,14 @@
 use serde_json::{Value, json};
 
 /// Send a request through the adapter and read the response back.
-fn invoke(request: Value) -> Value {
+fn invoke(request: &Value) -> Value {
     let text = serde_json::to_string(&request).expect("a request serializes");
     serde_json::from_str(&geoquery_node_native::invoke(text)).expect("a response deserializes")
 }
 
 #[test]
 fn a_request_reaches_the_engine_and_its_answer_comes_back() {
-    let response = invoke(json!({ "transportVersion": 1, "operation": "ping", "payload": {} }));
+    let response = invoke(&json!({ "transportVersion": 1, "operation": "ping", "payload": {} }));
 
     assert_eq!(response["ok"], json!(true));
     assert_eq!(response["result"]["echo"], json!({}));
@@ -32,7 +32,7 @@ fn the_adapter_does_not_reinterpret_a_failed_response() {
     // response like any other, carrying the engine's wording. A binding that threw here would
     // have to restate the error to throw it, and every such restatement is a second place
     // the wording can drift.
-    let response = invoke(json!({
+    let response = invoke(&json!({
         "transportVersion": 1,
         "operation": "parseDocument",
         "payload": { "document": "[]" },
@@ -52,7 +52,7 @@ fn the_payload_is_not_rewritten_on_the_way_through() {
     // Non-ASCII text is the cheapest way to catch an adapter that round-tripped through a
     // different encoding, since it would arrive as escapes in one direction and literals in
     // the other — a difference invisible to an ASCII-only test.
-    let response = invoke(json!({
+    let response = invoke(&json!({
         "transportVersion": 1,
         "operation": "ping",
         "payload": { "message": "naïve" },
@@ -67,7 +67,8 @@ fn the_returned_value_is_a_string_rather_than_a_parsed_object() {
     // there is nothing for a caller to catch except a string it has to decode itself. The
     // engine is what guarantees serialisability, and returning `EngineResponse` here would
     // have meant each binding decided how to cross the boundary on its own.
-    let returned = geoquery_node_native::invoke(r#"{"transportVersion":1,"operation":"ping"}"#.to_string());
+    let returned =
+        geoquery_node_native::invoke(r#"{"transportVersion":1,"operation":"ping"}"#.to_string());
 
     assert!(returned.starts_with('{'), "the response is JSON text");
 }

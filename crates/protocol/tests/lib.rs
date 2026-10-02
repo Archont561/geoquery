@@ -34,7 +34,10 @@ fn a_response_is_camel_cased_on_the_wire_too() {
 
     let text = serde_json::to_string(&response).expect("a response serializes");
 
-    assert_eq!(text, r#"{"transportVersion":1,"ok":true,"result":{"keys":[]}}"#);
+    assert_eq!(
+        text,
+        r#"{"transportVersion":1,"ok":true,"result":{"keys":[]}}"#
+    );
 }
 
 #[test]

@@ -21,9 +21,8 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from importlib.metadata import PackageNotFoundError as _PackageNotFoundError
-from importlib.metadata import version as _package_version
-from typing import Any, Literal, TypeVar, cast
+from importlib.metadata import PackageNotFoundError, version
+from typing import Any, Literal, cast
 
 from ._native import invoke as _invoke
 
@@ -42,7 +41,7 @@ __all__ = [
 ]
 
 try:
-    __version__ = _package_version("geoquery-sdk")
+    __version__ = version("geoquery-sdk")
 except PackageNotFoundError:  # pragma: no cover
     __version__ = "0.0.0+unknown"
 
@@ -57,8 +56,6 @@ TRANSPORT_VERSION = 1
 
 #: Everything the engine can be asked to do. Mirrors ``Operation`` in ``geoquery-protocol``.
 Operation = Literal["ping", "protocolVersion", "parseDocument"]
-
-_T = TypeVar("_T")
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,6 +76,7 @@ class EngineError(Exception):
     """
 
     def __init__(self, detail: dict[str, Any]) -> None:
+        """Keep the engine's explanation, which is the whole of what can be said about it."""
         self.detail = detail
         message = detail.get("error")
         super().__init__(message if isinstance(message, str) else json.dumps(detail))
@@ -131,12 +129,18 @@ def invoke(
 
 
 def ping(message: str = "python") -> str:
-    """Check that the extension answers, and that it echoes this client's payload intact."""
-    return cast("str", invoke("ping", {"message": message})["echo"])
+    """Check that the extension answers, and that it echoes this client's payload intact.
+
+    ``message`` in and the same string out, because that is the shape of the smallest
+    possible round trip — the payload is ``{"message"}``, so returning ``echo`` whole would
+    hand the caller a dict they had to unwrap to learn the one thing they asked.
+    """
+    echoed = invoke("ping", {"message": message})["echo"]
+    return cast("str", echoed["message"])
 
 
 def protocol_version() -> dict[str, Any]:
-    """This build's version, the query protocol version it speaks, and its user-agent."""
+    """Report this build's version, the query protocol version it speaks, and its user-agent."""
     return invoke("protocolVersion")
 
 
