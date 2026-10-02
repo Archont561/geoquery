@@ -1,0 +1,9 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc e71fb42ae2fa30cd7bdb8b386f4011699c49f6cc6f1c926786fc27006ca71f3e # shrinks to payload = Array [Object {"": Number(382121883.11384124)}]
+cc 9b8dfddd934dfcedc2c520c1412d8217ff750f40808954bae6883bb68d68b3fe # shrinks to operation = Ping, payload = Object {"": Array [Number(432288997.76023203)]}
+cc c433ae5993e882408853ae0cf387b9eee72d58fcee198e589407256a8227ba48 # shrinks to ok = false, result = Array [Number(418234812.77246237)]

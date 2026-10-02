@@ -136,6 +136,17 @@ napi = ">=3.14,<4"
 napi-derive = ">=3.6,<4"
 napi-build = ">=2.6,<3"
 
+# Test-only, and `[workspace.dependencies]` is where a version range is stated once rather
+# than per crate — but only the crates that use it name it, and always under
+# `[dev-dependencies]`, so neither ends up in a published dependency graph.
+#
+# `rstest` for `#[fixture]` (the Rust name for a value a suite sets up per test) and
+# `proptest` for property tests. Both are dev-only: nothing in `src/` may depend on a test
+# framework, because a crate that needs proptest to build is a crate whose consumers need
+# proptest too.
+proptest = ">=1.6,<2"
+rstest = ">=0.24,<0.26"
+
 # Geospatial. .knowledge/research/rust-crates.md pins geo 0.29, geojson 0.24 and
 # rstar 0.12; the current releases are geo 0.33, geojson 1.0 and rstar 0.13. The corpus is
 # a design document and its versions were current when it was written; the lockfile is
@@ -155,7 +166,17 @@ rstar = ">=0.13,<0.14"
 serde = { version = ">=1.0.229,<2", features = [
   "derive",
 ] }
-serde_json = ">=1.0.151,<2"
+# `float_roundtrip` because the default is not exact, and this project found out why the hard
+# way: `ping` exists to prove the transport passes a value through unchanged, and with the
+# default feature it does not. serde_json writes `432288997.760232` for a double whose exact
+# value is `432288997.76023203`, and re-parses that text to a *different* double; its parser
+# likewise rounds `4.188295992926135e-215` one ULP away from what Rust's own
+# `str::parse::<f64>()` produces. A geospatial engine whose payloads carry coordinates cannot
+# have either: a coordinate that goes out and comes back a unit in the last place away is not
+# the coordinate it sent. The feature makes float serialisation round-trip; the property tests
+# in `crates/protocol/tests/lib.rs` and `packages/client/test/property/` are what would notice
+# if it were dropped.
+serde_json = { version = ">=1.0.151,<2", features = ["float_roundtrip"] }
 serde_norway = ">=0.9.42,<0.10"
 chrono = { version = ">=0.4.45,<0.5", features = [
   "serde",
