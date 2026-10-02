@@ -54,8 +54,8 @@
 # `cargo build --workspace`, not in `Cargo.lock`, and not in the licence report `pixi run
 # deny` produces. Adding a crate is now one edit, in the crate's own directory, and the
 # workspace notices it without being told.
-# Every crate is under `crates/`, including the FFI adapters and the transport they speak.
-# They used to sit beside the packages that load them — `python/geoquery/native` and
+# Every crate is under `crates/`, including the two FFI adapters and the transport they
+# speak. They used to sit beside the packages that load them — `python/geoquery/native` and
 # `packages/client/native` — which meant naming each one here as well, and meant the
 # adapters were invisible to `scripts/version.ts`, whose sweep starts at `crates/`. A
 # binding crate has no more reason to live inside a Python or JavaScript package than the
@@ -121,10 +121,20 @@ geoquery-engine = { path = "crates/engine" }
 # one can reach the core except through the wire, which is what keeps the Python and
 # TypeScript SDKs on one interpretation of a query rather than two.
 geoquery-python-native = { path = "crates/python-native" }
-# The Python wheel is built by maturin, but the extension stays in this lockfile rather
-# than resolving its own dependencies, so the versions it was tested against are the
-# versions in `Cargo.lock`.
+geoquery-node-native = { path = "crates/node-native" }
+# The Python wheel and the Node addon are built from those two crates — by maturin and by
+# cargo respectively — but both stay in this lockfile rather than resolving their own
+# dependencies, so the versions they were tested against are the versions in `Cargo.lock`.
 pyo3 = { version = ">=0.24.2,<0.25", features = ["abi3-py313"] }
+# `napi`'s default features are `napi4` + `dyn-symbols`: N-API 4 is the ABI floor that
+# keeps the addon loadable by any modern Node, and dynamic symbol resolution is what lets
+# one compiled addon serve whichever Node loads it rather than pinning a link-time ABI.
+#
+# The three crates version independently — `napi` 3.14, `napi-derive` 3.6, `napi-build`
+# 2.6 — so each carries its own range rather than one shared number that does not exist.
+napi = ">=3.14,<4"
+napi-derive = ">=3.6,<4"
+napi-build = ">=2.6,<3"
 
 # Geospatial. .knowledge/research/rust-crates.md pins geo 0.29, geojson 0.24 and
 # rstar 0.12; the current releases are geo 0.33, geojson 1.0 and rstar 0.13. The corpus is

@@ -34,10 +34,18 @@
 # It is `python -m pip`, not `pip`: PATH is not trustworthy inside a task, and
 # conda-forge's interpreter is the one that must run it.
 #
-# `maturin` and the PyO3 bindings are deliberately absent. The Python SDK talks to the
-# HTTP API first (interfaces/python.md); a native binding is a Phase 6 decision, and a
-# 30 MB build backend in `pixi.lock` before anything uses it is a cost paid by every
-# sandbox restore for nothing.
+# Both SDKs cross into Rust in-process, and neither is a Phase 6 decision any more: the
+# PyO3 extension and the N-API addon are both in the workspace, and `maturin` is here
+# because the Python wheel is built with it. The rule that decided otherwise — a toolchain
+# nobody invokes is a download every sandbox restore pays for — now points the other way,
+# because both of these are invoked. What has *not* changed is the reason the bindings are
+# thin: `geoquery-core` owns what a query means, and a binding that interpreted it would
+# give each SDK a second opinion. Neither interface speaks HTTP.
+#
+# The TypeScript side needs no conda toolchain of its own, because cargo already builds
+# the addon and the workspace lockfile already carries `napi`. That is the reason there is
+# no `@napi-rs/cli` here: a second build tool for a cdylib cargo can produce would be a
+# second thing to keep in step, and it would arrive as a binary fetched outside `pixi.lock`.
 #
 # `convco`, `lefthook` and `actionlint` are conda dependencies, not npm ones: the git
 # hooks must work on a machine restored from the sandbox branch, and
@@ -105,8 +113,9 @@ actionlint = ">=1.7.12,<2"
 # developer ran. As conda dependencies they travel with `pixi.lock` in the `default`
 # environment that `.pixi-sandbox.toml` packs.
 #
-# No `maturin` and no `cross` yet, for the same reason as their absence from the Python
-# layer: a toolchain nobody has invoked is a download every restore pays for.
+# Still no `cross`. Cross-compiling is a toolchain nobody invokes: the addon and the wheel
+# are both built for the one platform this repository is locked to, and `cross` would add a
+# Docker requirement to a toolchain that deliberately has none.
 rust = { workspace = true }
 cargo-nextest = ">=0.9.144,<0.10"
 cargo-llvm-cov = ">=0.9.1,<0.10"

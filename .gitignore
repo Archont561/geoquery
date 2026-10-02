@@ -34,6 +34,11 @@ dist/
 *.tsbuildinfo
 # Astro's generated types and build cache for apps/docs, rewritten on every build.
 .astro/
+# The compiled N-API addon, named for the Rust target triple it was built for. Ignored
+# rather than committed because the name is platform-dependent, so committing one would
+# either pin a platform or make the tree disagree with whatever cargo last built. It is
+# listed in the client's turbo `outputs`, so a cache hit restores it.
+*.node
 
 # ── Python ─────────────────────────────────────────────────────────────────────
 __pycache__/
@@ -63,3 +68,9 @@ coverage.xml
 .DS_Store
 Thumbs.db
 *.swp
+# `@napi-rs/cli`'s CommonJS loader stubs for the addon, emitted next to it by `napi build
+# --platform`. This package is ESM and resolves the `.node` file directly through
+# `createRequire`, so nothing loads them and `files` does not publish them. Committing
+# them would add 800 lines of generated `require` plumbing that no code path reaches.
+packages/client/index.js
+packages/client/index.d.ts

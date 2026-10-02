@@ -19,6 +19,7 @@
   },
   "files": [
     "dist",
+    "*.node",
     "README.md",
     "LICENSE-APACHE",
     "LICENSE-MIT"
@@ -26,10 +27,21 @@
   "publishConfig": {
     "access": "public"
   },
+  "//": "Façade so turbo can see the TypeScript client as one node in the repo-wide task graph. `build:native` compiles the N-API addon from `crates/node-native` into this package's root, which is where `src/native.ts` looks for it; `build` is the addon and then tsc, because a `dist/` that type-checks but cannot load its own addon is not a build. `test` builds first for the same reason. Every script `cd ../..` to the repository root because cargo's target directory and the workspace manifest are resolved from there.",
   "scripts": {
-    "build": "tsc --project tsconfig.json",
-    "test": "bun test",
-    "typecheck": "tsc --noEmit --project tsconfig.json",
-    "cov": "bun test --coverage"
+    "build:native": "napi build --platform --release --manifest-path ../../crates/node-native/Cargo.toml --output-dir .",
+    "build": "bun run build:native && tsc --project tsconfig.json",
+    "test": "bun run build && bun test",
+    "typecheck": "bun run build:native && tsc --noEmit --project tsconfig.json",
+    "cov": "bun run build && bun test --coverage"
+  },
+  "napi": {
+    "binaryName": "geoquery-node-native",
+    "targets": ["x86_64-unknown-linux-gnu"]
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.4.1",
+    "@types/bun": "^1.3.11",
+    "typescript": "^5.9.0"
   }
 }

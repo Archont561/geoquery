@@ -1,7 +1,13 @@
 {
-  "$schema": "https://turborepo.com/schema.json",
+  "$schema": "https://turborepo.com/schema/schema.json",
   "extends": ["//"],
   "tasks": {
-    "cov": { "outputs": [] }
+    "build": {
+      "//#build": "The addon is an output of this package's build, not an input: a cached build restores both `dist/` and the `.node`, so a cache hit does not produce a package whose TypeScript exists and whose addon does not.",
+      "outputs": ["dist/**", "*.node"]
+    },
+    "test": { "dependsOn": ["build"] },
+    "typecheck": { "dependsOn": ["build"] },
+    "cov": { "dependsOn": ["build"], "outputs": [] }
   }
 }
