@@ -18,31 +18,28 @@ import fc from "fast-check";
 import { invoke, invokeRaw, parseDocument } from "../../src/index.ts";
 
 /**
- * A JSON value built only from things JSON represents exactly: strings, booleans, null,
- * integers, objects and arrays.
+ * Any JSON value, built the way the Rust side builds its generator.
  *
- * `undefined` is deliberately absent, and that is the generator's one non-obvious omission:
- * `JSON.stringify` drops an `undefined` array element and turns an `undefined` object value
- * into `null`, so a payload containing one is not the payload that was sent. A property over
- * undefined would be testing the serialiser's coercion table, which is not the transport's
- * contract.
+ * Floats are in here because getting them to be here is the point. `serde_json`'s default
+ * float handling is not round-trip exact in either direction: its serialiser wrote
+ * `432288997.760232` for a double whose exact value is `432288997.76023203`, and its parser
+ * rounded `4.188295992926135e-215` a unit in the last place away from the one Rust,
+ * JavaScript and Python all agree it is. `ping` promises the payload comes back unchanged,
+ * and in this project the payload is coordinates, so that promise has to be exact rather
+ * than nearly exact. `Cargo.toml` turns on serde_json's `float_roundtrip` feature to deliver
+ * it; these tests are what would notice it being turned off.
  *
- * Floats are excluded, and not because they are awkward. They are excluded because
- * `serde_json`'s parser is not correctly rounded: for `4.188295992926135e-215` it produces
- * a `f64` one unit in the last place away from the one Rust's own `str::parse::<f64>()`
- * produces, and from the one JavaScript and Python produce. The wire then reports a payload
- * that came in as one double and left as another.
- *
- * That is a property of the JSON library rather than of this transport, it is fixed by
- * serde_json's `arbitrary_precision` feature rather than by anything here, and it is
- * pinned as a canary below so that a serde_json upgrade which fixes it fails a test that
- * asks to be updated — at which point this generator can take floats back.
+ * `undefined` is deliberately absent: `JSON.stringify` drops an `undefined` array element and
+ * turns an `undefined` object value into `null`, so a payload containing one is not the
+ * payload that was sent. A property over `undefined` would be testing the serialiser's
+ * coercion table, which is not the transport's contract.
  */
-const exactJson = fc.letrec((tie) => ({
+const anyJson = fc.letrec((tie) => ({
   value: fc.oneof(
     { depthSize: "small" },
     fc.string(),
     fc.integer(),
+    fc.double({ noDefaultInfinity: true, noNaN: true }),
     fc.boolean(),
     fc.constant(null),
     tie("array"),
@@ -52,15 +49,19 @@ const exactJson = fc.letrec((tie) => ({
   object: fc.dictionary(fc.string(), tie("value"), { maxKeys: 4 })
 })).value;
 
-test("ping round-trips every payload JSON represents exactly", () => {
+test("ping round-trips any payload, floats included", () => {
   fc.assert(
-    fc.property(exactJson, (payload) => {
+    fc.property(anyJson, (payload) => {
       const echo = invoke<{ echo: unknown }>("ping", { payload }).echo;
 
       // Whole payload rather than one field: `ping` exists to prove the boundary passes
       // values and not just the shapes this client knows about, so asserting a single key
       // would pass against an adapter that dropped everything else.
-      expect(echo).toEqual({ payload });
+      //
+      // `toStrictEqual` rather than `toEqual` because `toEqual` says `-0` and `0` are the
+      // same number, and `fc.double` generates `-0`. The engine answers a round trip with a
+      // sign bit, and a sign bit on a coordinate is not nothing.
+      expect(echo).toStrictEqual({ payload });
     })
   );
 });
@@ -106,15 +107,14 @@ test("a document with one key reports that key", () => {
   );
 });
 
-test("canary: an f64 literal at an extreme exponent does not survive the round trip", () => {
-  // This test is expected to fail when serde_json's parser becomes correctly rounded, and
-  // that is the point of writing it. A test asserting a known bug is a claim about the
-  // world with a date on it; when the world changes, this fails and asks whether
-  // `exactJson` can take floats back yet.
-  //
-  // If it starts passing without anyone updating the comment above, the property test has
-  // been silently weaker than it reads for a release.
-  const payload = { value: 4.188295992926135e-215 };
-
-  expect(invoke<{ echo: unknown }>("ping", { payload }).echo).not.toEqual({ payload });
+test("the two floats that exposed serde_json's default handling still round-trip", () => {
+  // Named rather than generated, because generated floats prove the general case and these
+  // prove the specific defects are still fixed. This started life as a canary asserting the
+  // round trip was *not* exact; it became this when `float_roundtrip` made it exact, and it
+  // would start failing again if the feature were ever dropped from `Cargo.toml`.
+  for (const value of [4.188295992926135e-215, 432288997.76023203]) {
+    // `toBe` is `Object.is`, so this is a bit-for-bit comparison rather than an equality
+    // that would wave through a value one unit in the last place away.
+    expect(invoke<{ echo: { value: number } }>("ping", { value }).echo.value).toBe(value);
+  }
 });
