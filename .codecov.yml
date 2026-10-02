@@ -1,0 +1,31 @@
+codecov:
+  require_ci_to_pass: true
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+    patch:
+      default:
+        target: auto
+        threshold: 1%
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: false
+
+# Fixture files are test inputs, not code under test: measuring coverage of a JSON document
+# that exists to be parsed is a number that goes up when someone adds a test case and tells
+# you nothing about whether the engine handles it. `.knowledge/` is the design corpus and
+# `docs/` is the published site, neither of which any test imports.
+ignore:
+  - "crates/*/tests/fixtures/**"
+  - "docs/**"
+  - ".knowledge/**"
