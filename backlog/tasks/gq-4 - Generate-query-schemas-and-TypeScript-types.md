@@ -32,5 +32,5 @@ The Python and TypeScript surfaces must not hand-maintain a divergent copy of th
 - [ ] #1 cargo xtask codegen generates the agreed JSON Schema and TypeScript artifacts from the public query types.
 - [ ] #2 Generated artifacts are deterministic and checked into the repository at documented paths.
 - [ ] #3 A verification test or gate fails when generated artifacts are stale.
-- [ ] #4 The TypeScript client consumes or validates the generated query types without hand-copied equivalents.
+- [ ] #4 The TypeScript package consumes or validates the generated query types without hand-copied equivalents.
 <!-- AC:END -->

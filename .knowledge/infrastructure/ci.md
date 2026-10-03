@@ -135,7 +135,7 @@ allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 | **WASM build** | 6 | `wasm-pack build` for `geoquery-wasm` |
 | **Cross-compile** | 6 | `cross build --target aarch64-unknown-linux-gnu` |
 | **MSRV check** | 3 | Verify `rust-version = "1.85"` compiles |
-| **TypeScript tests** | 3 | `cd packages/client && npm test` |
+| **TypeScript tests** | 3 | `cd packages/geoquery && npm test` |
 | **Python tests** | 3 | `cd python/geoquery && pytest` |
 | **Docker build** | 5 | `docker build -t geoquery .` |
 | **Benchmarks** | 4 | `cargo bench --workspace` |

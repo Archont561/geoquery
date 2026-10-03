@@ -7,7 +7,7 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 authors.workspace = true
-description = "N-API transport adapter for the TypeScript client"
+description = "N-API transport adapter for the @archont561/geoquery TypeScript package"
 publish = false
 
 [lib]

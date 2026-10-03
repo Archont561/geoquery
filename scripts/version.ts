@@ -262,8 +262,8 @@ export function publishedVersions(startDir: string = process.cwd()): {
       { path: "pixi.toml", version: versionInTable(join(root, "pixi.toml"), "workspace") },
       { path: "package.json", version: npmVersion(join(root, "package.json")) },
       {
-        path: "packages/client/package.json",
-        version: npmVersion(join(root, "packages/client/package.json"))
+        path: "packages/geoquery/package.json",
+        version: npmVersion(join(root, "packages/geoquery/package.json"))
       },
       // Private, and still checked. The docs site prints this project's version on every
       // page, and a manifest carrying a number nothing compares is exactly the second
@@ -350,7 +350,7 @@ function setVersion(version: string, startDir: string = process.cwd()): void {
   setTomlVersion(join(root, "python/geoquery/pixi.toml"), "package", version);
   for (const relativePath of [
     "package.json",
-    "packages/client/package.json",
+    "packages/geoquery/package.json",
     "apps/docs/package.json"
   ]) {
     const path = join(root, relativePath);

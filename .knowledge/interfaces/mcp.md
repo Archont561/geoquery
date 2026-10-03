@@ -207,7 +207,7 @@ pub struct GeoQuery { ... }
 
 // xtask generates:
 // schemas/mcp/geo_query.json  → used by rmcp tool registration
-// packages/client/src/types/  → used by TypeScript SDK
+// packages/geoquery/src/types/  → used by TypeScript SDK
 ```
 
 This ensures 100% parity between the MCP tool schema, the HTTP API

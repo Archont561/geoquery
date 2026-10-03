@@ -213,7 +213,7 @@ wrappers around `geoquery-core::execute(GeoQuery) → QueryResult`.
 | HTTP | `geoquery-http` (Axum) | REST API, SSE streaming |
 | MCP | `geoquery-mcp` (`rmcp` 3.x) | `geo_query`, `geo_resource`, `geo_resolve` for AI agents |
 | TUI | `geoquery-tui` (`ratatui`) | Interactive terminal exploration |
-| TypeScript | `@geoquery/client` | N-API addon in-process; HTTP and WASM deferred — see the divergence note in [interfaces/typescript](interfaces/typescript.md) |
+| TypeScript | `@archont561/geoquery` | N-API/FFI package over the Rust core; not an HTTP client — see [interfaces/typescript](interfaces/typescript.md) |
 | Python | `geoquery` | Native PyO3/maturin binding, GeoPandas integration |
 
 **Adding a new interface never requires modifying core.**
@@ -430,9 +430,9 @@ Delivery phases, priorities, dependencies, and acceptance criteria are maintaine
 
 | Concern | Choice |
 |---------|--------|
-| HTTP client | `ofetch` |
+| Native binding | `napi-rs` through `geoquery-node-native` |
 | Type generation | `ts-rs` (from Rust) |
-| MCP client | **`@modelcontextprotocol/client` v2** (2026 spec) |
+| MCP client | **`@modelcontextprotocol/client` v2** only if a JS MCP client is added later |
 | Client-side geometry | `@turf/turf` (optional) |
 | Testing | `vitest` |
 
@@ -472,7 +472,7 @@ geoquery/
 │   ├── http/
 │   ├── mcp/
 │   └── tui/                    # terminal interface
-├── packages/client/            # @geoquery/client (TypeScript)
+├── packages/geoquery/            # @archont561/geoquery (TypeScript FFI package)
 ├── python/geoquery/            # geoquery (Python)
 ├── schemas/                    # Auto-generated JSON schemas
 └── .knowledge/                 # This knowledge base
@@ -499,7 +499,7 @@ Two distinct things share the word *codegen*:
 ```
 geoquery-types (Rust)
     │
-    ├── ts-rs annotations   → packages/client/src/types/ (TypeScript)
+    ├── ts-rs annotations   → packages/geoquery/src/types/ (TypeScript)
     ├── schemars annotations → schemas/mcp/*.json (MCP tool schemas)
     └── serde annotations    → JSON wire format (HTTP, MCP, CLI)
 ```

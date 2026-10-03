@@ -31,15 +31,20 @@ import { invoke, invokeRaw, parseDocument } from "../../src/index.ts";
  *
  * `undefined` is deliberately absent: `JSON.stringify` drops an `undefined` array element and
  * turns an `undefined` object value into `null`, so a payload containing one is not the
- * payload that was sent. A property over `undefined` would be testing the serialiser's
- * coercion table, which is not the transport's contract.
+ * payload that was sent. `-0` is absent for the same reason: JSON text has no signed-zero
+ * spelling, so it serialises as `0`. Properties over either would be testing the
+ * serialiser's coercion table, which is not the transport's contract.
  */
+const jsonNumber = fc
+  .double({ noDefaultInfinity: true, noNaN: true })
+  .filter((value) => !Object.is(value, -0));
+
 const anyJson = fc.letrec((tie) => ({
   value: fc.oneof(
     { depthSize: "small" },
     fc.string(),
     fc.integer(),
-    fc.double({ noDefaultInfinity: true, noNaN: true }),
+    jsonNumber,
     fc.boolean(),
     fc.constant(null),
     tie("array"),
@@ -55,12 +60,12 @@ test("ping round-trips any payload, floats included", () => {
       const echo = invoke<{ echo: unknown }>("ping", { payload }).echo;
 
       // Whole payload rather than one field: `ping` exists to prove the boundary passes
-      // values and not just the shapes this client knows about, so asserting a single key
+      // values and not just the shapes this package knows about, so asserting a single key
       // would pass against an adapter that dropped everything else.
       //
-      // `toStrictEqual` rather than `toEqual` because `toEqual` says `-0` and `0` are the
-      // same number, and `fc.double` generates `-0`. The engine answers a round trip with a
-      // sign bit, and a sign bit on a coordinate is not nothing.
+      // `toStrictEqual` rather than `toEqual` so arrays, objects, and numeric edge cases
+      // are compared without coercion. Values that JSON cannot spell, such as `-0`, are
+      // filtered out of the arbitrary above before they reach the transport.
       expect(echo).toStrictEqual({ payload });
     })
   );
@@ -74,7 +79,7 @@ test("ping round-trips strings the example tests would not have tried", () => {
   );
 });
 
-test("a response always carries the transport version this client speaks", () => {
+test("a response always carries the transport version this package speaks", () => {
   fc.assert(
     fc.property(fc.string(), (document) => {
       // `parseDocument` because it is the operation that most often fails, so this covers

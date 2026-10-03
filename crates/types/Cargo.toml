@@ -21,7 +21,7 @@ geo-types = { workspace = true }
 geojson = { workspace = true }
 thiserror = { workspace = true }
 # The TypeScript surface is derived, not written: `xtask codegen` reads these
-# annotations and emits `packages/client/src/generated`.
+# annotations and emits `packages/geoquery/src/generated`.
 ts-rs = { workspace = true }
 
 

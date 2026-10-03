@@ -74,7 +74,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add CHANGELOG.md Cargo.lock bun.lock pixi.lock \
             Cargo.toml pixi.toml package.json \
-            apps/docs/package.json packages/client/package.json \
+            apps/docs/package.json packages/geoquery/package.json \
             python/geoquery/pixi.toml python/geoquery/pyproject.toml
           git commit -m "chore(release): v${NEXT_VERSION}"
           git tag -a "v${NEXT_VERSION}" -m "geoquery v${NEXT_VERSION}"

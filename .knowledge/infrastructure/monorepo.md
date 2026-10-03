@@ -75,7 +75,7 @@ geoquery/
 │   ├── http/                   # geoquery-http
 │   └── mcp/                    # geoquery-mcp
 ├── packages/
-│   └── client/                 # @geoquery/client (TypeScript)
+│   └── client/                 # @archont561/geoquery (TypeScript FFI package)
 ├── python/
 │   └── geoquery/               # geoquery (Python)
 ├── schemas/                    # Generated JSON schemas

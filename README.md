@@ -54,11 +54,12 @@ be pushed down, what must run locally, and how results retain their provenance.
 | --- | --- | --- |
 | CLI | `geoquery-cli` | Canonical Rust command line; future TUI ships as `geoquery tui` |
 | Python | `geoquery` | Native PyO3/maturin Python SDK |
-| TypeScript | `@archont561/geoquery-client` | Fetch-based browser and server SDK |
+| TypeScript | `@archont561/geoquery` | N-API/FFI package that wraps the Rust core in-process |
 | Core | `geoquery-core` | Protocol-independent query model and execution contracts |
 
-The SDKs do not bundle or reimplement the Rust executable. Shared schemas and conformance
-fixtures keep the language surfaces compatible.
+The Python and TypeScript SDKs do not shell out to the CLI or call an HTTP service: they
+load native Rust bindings around the same core. Shared schemas and conformance fixtures
+keep the language surfaces compatible.
 
 ## 📦 Installation
 
@@ -184,7 +185,7 @@ pixi run test -- --filter=@geoquery/rust
 | `crates/http/`, `crates/mcp/`, `crates/tui/` | User-facing Rust interfaces |
 | `crates/cli/src/main.rs` | Canonical `geoquery` executable |
 | `python/geoquery/` | Python SDK and Conda package |
-| `packages/client/` | `@archont561/geoquery-client` TypeScript SDK |
+| `packages/geoquery/` | `@archont561/geoquery` TypeScript FFI package |
 | `apps/docs/` | Astro + Starlight documentation |
 | `pixi.toml` | Environment, task graph, and `geoquery-cli` package |
 | `scripts/version.ts` | Shared-version reader, validator, and updater |
@@ -206,7 +207,7 @@ The release process has two deliberately separate workflows:
 2. **Release** is triggered by that tag. It reruns the gates and builds immutable Conda,
    Python, and TypeScript artifacts. It then attempts each external distribution independently:
    prefix.dev through GitHub OIDC with attestations, PyPI through Trusted Publishing, npmjs
-   through npm Trusted Publishing, GitHub Packages for the TypeScript client, and crates.io
+   through npm Trusted Publishing, GitHub Packages for the TypeScript package, and crates.io
    for the public Rust core and CLI. The GitHub Release is required and is created last with
    every built artifact and a SHA-256 manifest, even if an optional registry upload failed.
    The Actions summary records every external publication result so a failed upload can be

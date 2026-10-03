@@ -77,5 +77,5 @@ Thumbs.db
 # --platform`. This package is ESM and resolves the `.node` file directly through
 # `createRequire`, so nothing loads them and `files` does not publish them. Committing
 # them would add 800 lines of generated `require` plumbing that no code path reaches.
-packages/client/index.js
-packages/client/index.d.ts
+packages/geoquery/index.js
+packages/geoquery/index.d.ts

@@ -58,7 +58,7 @@ Every way a user, application, or AI agent interacts with the engine.
 * [HTTP API](interfaces/http.md) - POST /query, resource CRUD, SSE streaming, OpenAPI spec.
 * [MCP Server for AI Agents](interfaces/mcp.md) - geo_query, geo_resource, geo_resolve tools; rmcp 3.x; 2026 spec.
 * [TUI — Interactive Terminal Interface](interfaces/tui.md) - ratatui TUI — result browser, source dashboard, ASCII map.
-* [TypeScript SDK — @geoquery/client](interfaces/typescript.md) - @geoquery/client, fluent builder, ts-rs codegen, WASM path.
+* [TypeScript SDK — @archont561/geoquery](interfaces/typescript.md) - Native N-API package over the Rust core; HTTP is a separate interface.
 * [Python SDK — geoquery](interfaces/python.md) - geoquery Python SDK, GeoPandas integration, PyO3 path.
 
 # Infrastructure

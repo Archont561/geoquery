@@ -195,7 +195,7 @@ directory at run time.
 
 ## Non-Goals
 
-- **Not a replacement for the SDKs.** `@geoquery/client` and the `geoquery`
+- **Not a replacement for the SDKs.** `@archont561/geoquery` and the `geoquery`
   Python package remain the federation interface. A generated client talks to
   one service; the SDKs talk to the engine.
 - **Not a server framework.** Geoquery generates clients, not service

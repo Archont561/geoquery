@@ -44,12 +44,12 @@ structure:
 - OAuth support included
 
 **Impact on Geoquery:**
-- `@geoquery/client` should depend on `@modelcontextprotocol/client` v2
-  for MCP connectivity
-- If a TypeScript MCP server is needed (alternative to Rust `rmcp`),
-  use `@modelcontextprotocol/server` v2
-- The Rust `rmcp` server is the primary MCP implementation; TS is for
-  client-side only
+- `@archont561/geoquery` is the native FFI package and should not take an MCP dependency by
+  default.
+- If a separate TypeScript MCP client is needed, use `@modelcontextprotocol/client` v2.
+- If a TypeScript MCP server is needed (alternative to Rust `rmcp`), use
+  `@modelcontextprotocol/server` v2.
+- The Rust `rmcp` server is the primary MCP implementation; TypeScript remains optional.
 
 ---
 
@@ -141,9 +141,9 @@ operations. `rbush` for optional client-side result filtering.
 | `better-sqlite3` | SQLite (Node.js) | Local metadata index for Node |
 | `libsql` | libSQL client | Edge-compatible SQLite |
 
-**Decision:** For the MVP TS SDK, no local storage — HTTP to the Rust
-server only. In Phase 6, evaluate `@duckdb/duckdb-wasm` for browser-
-based GeoParquet queries.
+**Decision:** For the MVP TypeScript package, no local storage and no HTTP transport. The
+package calls the Rust core in-process through N-API. In Phase 6, evaluate
+`@duckdb/duckdb-wasm` for browser-based GeoParquet queries alongside a WASM engine path.
 
 ---
 
@@ -162,15 +162,19 @@ for offline/WASM mode in Phase 6.
 
 ## HTTP / Federation
 
+The published `@archont561/geoquery` package is not the HTTP/federation layer; it is an
+in-process wrapper over the Rust core. HTTP utilities belong either inside Rust adapters
+(`reqwest`) or in a future separate browser/remote client.
+
 | Package | Purpose | Notes |
 |---------|---------|-------|
-| `ofetch` | HTTP client | **Primary choice** — retry, timeout, interceptors |
-| `ky` | HTTP client | Alternative to ofetch, lighter |
-| `p-limit` | Concurrency limiter | Bounded parallel API calls |
-| `AbortController` | Request cancellation | Native, for per-source timeouts |
+| `ofetch` | Future remote HTTP client | Retry, timeout, interceptors if a browser/remote package is added |
+| `ky` | Future remote HTTP client | Alternative to ofetch, lighter |
+| `p-limit` | Future JS concurrency limiter | Only needed if JS ever coordinates multiple remote calls itself |
+| `AbortController` | Request cancellation | Native, for per-source timeouts in HTTP-facing code |
 
-**Decision:** `ofetch` for the TS SDK HTTP client. Clean API, built-in
-retry and timeout, works in Node and browser.
+**Decision:** No HTTP dependency in `@archont561/geoquery`. Keep federation in Rust and keep
+HTTP as a separate server/client boundary.
 
 ---
 
@@ -184,25 +188,28 @@ retry and timeout, works in Node and browser.
 
 **Finding:** The TS ecosystem lacks dominant STAC/OGC client SDKs.
 This is fine for Geoquery because:
-1. The TS SDK talks to the Rust HTTP server, not directly to STAC/OGC
-2. If direct access is needed, raw `ofetch` + type definitions suffice
+1. The TypeScript package talks to the Rust core through N-API, not directly to STAC/OGC.
+2. Remote protocol access remains in Rust adapters; if a future generated browser client
+   needs direct access, raw `ofetch` + type definitions can be evaluated then.
 
 ---
 
 ## Recommended TS Stack
 
 ```
-@geoquery/client
-├── ofetch                    # HTTP to Rust server
-├── @types/geojson            # Type safety
-├── @turf/turf                # Client-side spatial (optional)
-└── @modelcontextprotocol/client  # MCP connectivity (optional)
+@archont561/geoquery
+├── geoquery-node-native      # N-API addon built from crates/node-native
+└── (generated types from cargo xtask codegen, as they land)
 
 Dev:
 ├── typescript
-├── vitest
-└── (auto-generated types from cargo xtask codegen)
+├── bun test
+├── @napi-rs/cli
+└── fast-check                # transport/property tests
 ```
+
+Optional browser/remote packages may use `ofetch`, Turf, or MCP client libraries later, but
+those dependencies do not belong in the native FFI package by default.
 
 ---
 

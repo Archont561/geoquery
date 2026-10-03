@@ -56,7 +56,7 @@
 # workspace notices it without being told.
 # Every crate is under `crates/`, including the two FFI adapters and the transport they
 # speak. They used to sit beside the packages that load them — `python/geoquery/native` and
-# `packages/client/native` — which meant naming each one here as well, and meant the
+# `packages/geoquery/native` — which meant naming each one here as well, and meant the
 # adapters were invisible to `scripts/version.ts`, whose sweep starts at `crates/`. A
 # binding crate has no more reason to live inside a Python or JavaScript package than the
 # engine it binds has; the packages load a compiled artifact, and where cargo puts the
@@ -174,7 +174,7 @@ serde = { version = ">=1.0.229,<2", features = [
 # `str::parse::<f64>()` produces. A geospatial engine whose payloads carry coordinates cannot
 # have either: a coordinate that goes out and comes back a unit in the last place away is not
 # the coordinate it sent. The feature makes float serialisation round-trip; the property tests
-# in `crates/protocol/tests/lib.rs` and `packages/client/test/property/` are what would notice
+# in `crates/protocol/tests/lib.rs` and `packages/geoquery/test/property/` are what would notice
 # if it were dropped.
 serde_json = { version = ">=1.0.151,<2", features = ["float_roundtrip"] }
 serde_norway = ">=0.9.42,<0.10"
@@ -234,10 +234,11 @@ ratatui = ">=0.30,<0.31"
 crossterm = ">=0.29,<0.30"
 
 # Types across the language boundary. ts-rs derives the TypeScript definitions for
-# @archont561/geoquery-client from the same Rust types the engine uses, so the SDK cannot describe a
+# @archont561/geoquery from the same Rust types the engine uses, so the SDK cannot describe a
 # query shape the engine would reject.
 ts-rs = { version = ">=12.0,<13", features = [
   "serde-json-impl",
+  "chrono-impl",
 ] }
 
 # Errors and logs. thiserror where the error is part of a type's contract, anyhow where it

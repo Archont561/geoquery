@@ -59,7 +59,7 @@ jobs:
 
       # Turbo owns the cross-package cache for the TypeScript workspace. The Rust and Python
       # turbo nodes are `cache: false` — cargo (above) and the instrumented coverage run own
-      # their output — so this cache is the client/docs task replay. Newest restore wins.
+      # their output — so this cache is the TypeScript/docs task replay. Newest restore wins.
       - name: Cache turbo
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:

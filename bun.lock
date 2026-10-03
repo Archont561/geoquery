@@ -24,8 +24,8 @@
     "crates": {
       "name": "@geoquery/rust",
     },
-    "packages/client": {
-      "name": "@archont561/geoquery-client",
+    "packages/geoquery": {
+      "name": "@archont561/geoquery",
       "version": "0.1.0",
       "devDependencies": {
         "@geoquery/utils": "workspace:*",
@@ -48,7 +48,7 @@
     },
   },
   "packages": {
-    "@archont561/geoquery-client": ["@archont561/geoquery-client@workspace:packages/client"],
+    "@archont561/geoquery": ["@archont561/geoquery@workspace:packages/geoquery"],
 
     "@astrojs/compiler-binding": ["@astrojs/compiler-binding@0.5.1", "", { "optionalDependencies": { "@astrojs/compiler-binding-android-arm64": "0.5.1", "@astrojs/compiler-binding-darwin-arm64": "0.5.1", "@astrojs/compiler-binding-darwin-x64": "0.5.1", "@astrojs/compiler-binding-linux-arm64-gnu": "0.5.1", "@astrojs/compiler-binding-linux-arm64-musl": "0.5.1", "@astrojs/compiler-binding-linux-x64-gnu": "0.5.1", "@astrojs/compiler-binding-linux-x64-musl": "0.5.1", "@astrojs/compiler-binding-wasm32-wasi": "0.5.1", "@astrojs/compiler-binding-win32-arm64-msvc": "0.5.1", "@astrojs/compiler-binding-win32-x64-msvc": "0.5.1" } }, "sha512-oczyolLUl9mNrtuBuNjuvn5thpHrFLXAHAWGTRg0JDHQ8cGVsVeFekOu2uSoQGgainJIi+A3/9m0DyYwz3Nlnw=="],
 
