@@ -1,7 +1,8 @@
 /**
- * The public API of the geoquery TypeScript client.
+ * The public API of the geoquery TypeScript package.
  *
- * This client speaks to the engine in-process, over a versioned JSON transport defined in
+ * This package is an FFI wrapper around the Rust core. It speaks to the engine in-process,
+ * over a versioned JSON transport defined in
  * Rust at `crates/protocol`: `{transportVersion, operation, payload}` in,
  * `{transportVersion, ok, result}` out. It builds requests and reads responses, and
  * interprets nothing.
@@ -15,16 +16,17 @@
  * The one thing read from `package.json` rather than from the engine is {@link VERSION},
  * and it is read rather than hard-coded because a hand-maintained copy is a number that is
  * wrong after the first release nobody remembers to update. See `../../scripts/version.ts`.
+ * No HTTP service is involved in this package's runtime path.
  */
 
 import addon from "./native.js";
 
 const pkg = (await import("../package.json", { with: { type: "json" } })).default;
 
-/** The client's version, and the query-protocol version it implements. */
+/** The package version, and the query-protocol version it implements. */
 export const VERSION: string = pkg.version;
 
-/** The envelope version this client speaks. Must equal `TRANSPORT_VERSION` in Rust. */
+/** The envelope version this package speaks. Must equal `TRANSPORT_VERSION` in Rust. */
 export const TRANSPORT_VERSION = 1;
 
 /** Everything the engine can be asked to do. Mirrors `Operation` in `geoquery-protocol`. */
@@ -106,7 +108,7 @@ export class EngineError extends Error {
 }
 
 /**
- * Check that the addon answers, and that it echoes this client's payload back intact.
+ * Check that the addon answers, and that it echoes this package's payload back intact.
  *
  * `message` in and the same string out, because that is the shape of the smallest possible
  * round trip — the payload is `{message}`, so returning `echo` whole would hand the caller

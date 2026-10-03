@@ -376,14 +376,14 @@ lint-sandbox-plan = { cmd = "pixi-sandbox plan --config .pixi-sandbox.toml", des
 publish-plan = { cmd = "pixi publish --dry-run", description = "Resolve and print the publish set without building or uploading" }
 publish-dist = { cmd = "pixi publish --target-dir dist", description = "Build the publishable packages into dist/" }
 # The Python task makes platform-native wheel artifacts with the locked maturin backend.
-# The TypeScript task compiles the client with Bun; npm packs that prepared directory only
-# in the release job because npm is required there for its OIDC Trusted Publishing implementation.
+# The TypeScript task compiles the FFI package with Bun; npm packs that prepared directory
+# only in the release job because npm is required there for its OIDC Trusted Publishing implementation.
 py-dist = { cmd = "bun run dist", cwd = "python/geoquery", depends-on = [
   "bun-install",
 ], description = "Build the Python sdist and wheel into dist/pypi" }
-client-dist = { cmd = "bun run build", cwd = "packages/client", depends-on = [
+ts-dist = { cmd = "bun run build", cwd = "packages/geoquery", depends-on = [
   "bun-install",
-], description = "Build the TypeScript client distribution directory" }
+], description = "Build the @archont561/geoquery TypeScript package distribution directory" }
 
 # ── documentation site (astro + starlight) ─────────────────────────────────────
 # `apps/docs` is built by `turbo run build` along with everything else; these tasks exist

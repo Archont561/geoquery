@@ -71,8 +71,8 @@ jobs:
         run: pixi run py-dist
 
       # npm Trusted Publishing needs npm >=11.5.1 and Node >=22.14. Bun remains the project
-      # runtime and compiles the client below; this isolated npm CLI is necessary because Bun
-      # does not yet support npm's GitHub Actions OIDC exchange. Do not add an npm token.
+      # runtime and compiles the TypeScript package below; this isolated npm CLI is necessary
+      # because Bun does not yet support npm's GitHub Actions OIDC exchange. Do not add an npm token.
       - name: Install npm CLI for trusted publishing
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
@@ -91,9 +91,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pixi run client-dist
+          pixi run ts-dist
           mkdir -p dist/npm
-          (cd packages/client && npm pack --pack-destination ../../dist/npm)
+          (cd packages/geoquery && npm pack --pack-destination ../../dist/npm)
 
       - name: Write checksums
         shell: bash

@@ -282,8 +282,8 @@ geoquery-core::execute(GeoQuery) -> QueryResult
     ├── geoquery-http     (axum → core)
     ├── geoquery-mcp      (rmcp → core)
     ├── geoquery-wasm     (wasm-bindgen → core)
-    ├── @geoquery/client  (HTTP → geoquery-http)
-    └── geoquery (Python) (PyO3 → geoquery-core)
+    ├── @archont561/geoquery (N-API → geoquery-engine → core)
+    └── geoquery (Python) (PyO3 → geoquery-engine → core)
 ```
 
 Adding a new interface never requires modifying core.

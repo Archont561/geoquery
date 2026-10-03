@@ -8,7 +8,7 @@
 //! This is a Rust test rather than a JavaScript one on purpose: it covers the same line
 //! `src/lib.rs` contains without needing Node to load a cdylib. What it cannot cover is
 //! whether Node's `require` can load the artifact at all, which is what
-//! `packages/client/test/native.test.ts` is for. Neither test replaces the other.
+//! `packages/geoquery/test/native.test.ts` is for. Neither test replaces the other.
 
 use serde_json::{Value, json};
 

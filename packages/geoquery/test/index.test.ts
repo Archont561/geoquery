@@ -1,8 +1,8 @@
 /**
- * Tests for the client's public surface, through the real addon.
+ * Tests for the TypeScript package's public surface, through the real addon.
  *
- * These assert the boundary, not the addon's internals: the point of the client is that it
- * is the *same* language as the CLI and the Python SDK, so what is worth checking is that
+ * These assert the boundary, not the addon's internals: the point of the package is that it
+ * reaches the *same* Rust core as the CLI and the Python SDK, so what is worth checking is that
  * the numbers agree with each other and that a document is judged by the Rust parser. A
  * test that reimplemented the key ordering here would pass whether or not the addon was
  * loaded at all — and loading it is the thing that can break.
@@ -29,7 +29,7 @@ describe("version", () => {
   test("reaches the engine unchanged", () => {
     // Containment rather than equality because the user-agent also carries the query
     // protocol version, which is allowed to diverge from the package version later. What
-    // is asserted here is that this client's number reaches the engine, not that the
+    // is asserted here is that this package's number reaches the engine, not that the
     // user-agent has exactly one number in it — a test that froze the full string would
     // fail on the day the two versions legitimately part company.
     expect(protocolVersion().userAgent).toContain(VERSION);
@@ -37,7 +37,7 @@ describe("version", () => {
 
   test("the engine and this package report the same build", () => {
     // The version gate compares manifests; this compares the built artifact to them. A
-    // published client whose `VERSION` is right and whose embedded engine is stale is a
+    // published package whose `VERSION` is right and whose embedded engine is stale is a
     // failure no manifest check would catch.
     expect(protocolVersion().version).toBe(VERSION);
   });
@@ -59,7 +59,7 @@ describe("ping", () => {
 
   test("round-trips a payload rather than one field of it", () => {
     // The payload is returned whole, so a caller can prove the boundary passes values and
-    // not just the shapes this client happens to know about.
+    // not just the shapes this package happens to know about.
     const payload = { nested: { list: [1, 2, 3] }, message: "héllo" };
 
     expect(invoke<{ echo: unknown }>("ping", payload).echo).toEqual(payload);

@@ -369,8 +369,8 @@ geoquery-core::execute(GeoQuery) -> QueryResult
     ├── geoquery-http     (axum → core)
     ├── geoquery-mcp      (rmcp → core)
     ├── geoquery-wasm     (wasm-bindgen → core)
-    ├── @geoquery/client  (HTTP → geoquery-http)
-    ├── geoquery (Python) (HTTP → geoquery-http)
+    ├── @archont561/geoquery (N-API → geoquery-engine → core)
+    ├── geoquery (Python) (PyO3 → geoquery-engine → core)
     └── geoquery-grpc     (tonic → core)  ← future
 ```
 

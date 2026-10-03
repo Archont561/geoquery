@@ -5,7 +5,7 @@ supplies a value. Mixing the two in one parameter would pass a function where an
 `Arbitrary` is expected, so the strategies live here and the fixtures live in `conftest.py`.
 
 They are the Python half of a trio — `arb_json` in `crates/protocol/tests/lib.rs` and
-`anyJson` in `packages/client/test/property/index.property.test.ts` — and the three have to
+`anyJson` in `packages/geoquery/test/property/index.property.test.ts` — and the three have to
 agree about what "any JSON value" means, or the property tests stop describing the same
 protocol and start describing three.
 """

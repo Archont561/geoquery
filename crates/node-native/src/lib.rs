@@ -1,4 +1,4 @@
-//! N-API adapter for the TypeScript client.
+//! N-API adapter for the `@archont561/geoquery` TypeScript package.
 //!
 //! One function, taking and returning JSON. That is the whole surface on purpose: every
 //! operation the engine has is an `Operation` in `geoquery-protocol`, so adding one is a

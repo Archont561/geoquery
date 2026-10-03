@@ -104,7 +104,7 @@ Run tests via `cargo-nextest` (falls back to `cargo test`).
 | Output | Source | Target |
 |--------|--------|--------|
 | MCP tool JSON schemas | `GeoQuery`, `GeoResult` types | `schemas/mcp/*.json` |
-| TypeScript type definitions | All public types via `ts-rs` | `packages/client/src/types/` |
+| TypeScript type definitions | All public types via `ts-rs` | `packages/geoquery/src/types/` |
 | Resource manifest JSON Schema | `ResourceDescriptor` | `schemas/resource-manifest.json` |
 | OpenAPI spec (future) | HTTP route types | `schemas/openapi.json` |
 
@@ -137,7 +137,7 @@ generation automatically:
 ```rust
 // In geoquery-types
 #[derive(Serialize, Deserialize, TS)]
-#[ts(export, export_to = "../../packages/client/src/types/")]
+#[ts(export, export_to = "../../packages/geoquery/src/types/")]
 pub struct GeoQuery { ... }
 ```
 

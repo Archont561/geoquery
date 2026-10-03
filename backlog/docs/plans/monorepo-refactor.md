@@ -33,15 +33,15 @@ against by a constraint this repository cannot remove.
 ## 2. The one real gap: two task graphs that cannot see each other
 
 Pixi's `depends-on` graph and Turbo's `dependsOn` graph both exist, and neither knows
-about the other. Turbo sees only `packages/client` and `apps/docs`; every Rust and Python
+about the other. Turbo sees only `packages/geoquery` and `apps/docs`; every Rust and Python
 edge is expressed as a pixi `depends-on`, which has no caching, no `--filter`, and no way
 to express "this TypeScript package is stale because a Rust crate changed".
 
 Nothing is broken today because no such edge exists yet. Two arrive in Phase 1:
 
-- **`xtask codegen`**: `crates/types` → `packages/client/src/generated`. The TypeScript
+- **`xtask codegen`**: `crates/types` → `packages/geoquery/src/generated`. The TypeScript
   definitions are derived from the Rust types by `ts-rs`. Today nothing would rebuild the
-  client when a Rust type changes, and nothing would fail if the generated files were
+  TypeScript package when a Rust type changes, and nothing would fail if the generated files were
   stale — the worst kind of edge, because it is invisible and wrong rather than missing.
 - **The Python SDK's build**: `test-py` depends on `py-install`, which is an editable
   install. That is `maturin develop && pytest` in a different costume — the guide's §13
@@ -53,7 +53,7 @@ adds no dependency resolution of its own; it exists so Turbo can see an edge.
 
 ```
 crates/types/package.json        @geoquery/codegen   build = pixi run codegen
-packages/client/package.json     @geoquery/client    depends on @geoquery/codegen
+packages/geoquery/package.json     @archont561/geoquery    depends on @geoquery/codegen
 python/geoquery/package.json     @geoquery/python    build = pixi run py-install
 ```
 
@@ -63,7 +63,7 @@ geoquery-types (cargo)
       ▼
 @geoquery/codegen#build
       ▼
-@geoquery/client#build ──► @geoquery/client#test
+@archont561/geoquery#build ──► @archont561/geoquery#test
 ```
 
 Rules that keep the façade from becoming a second dependency system:
@@ -77,7 +77,7 @@ Rules that keep the façade from becoming a second dependency system:
    internal crates stay Cargo-only. `crates/*` does **not** go in the Bun workspace globs.
 4. `outputs` are artefacts, never `target/**`. Turbo would tar a multi-gigabyte
    incremental build directory that Cargo already caches better; the outputs worth
-   declaring are `packages/client/src/generated/**`, `dist/**`, `*.whl`, `*.node`.
+   declaring are `packages/geoquery/src/generated/**`, `dist/**`, `*.whl`, `*.node`.
 
 Then `gates` shrinks from twelve hand-ordered pixi tasks to one Turbo invocation plus the
 checks that are genuinely repository-global (`deny`, `version-check`, `lint-actions`,
@@ -129,8 +129,8 @@ Land them *with* `xtask codegen`, not before: a façade whose build script gener
 nothing is a moving part with no job.
 
 - `crates/types/package.json` → `@geoquery/codegen`, `build = pixi run codegen`,
-  outputs `../../packages/client/src/generated/**`.
-- `packages/client` depends on `@geoquery/codegen`; its `test` gains `dependsOn: ["build"]`.
+  outputs `../../packages/geoquery/src/generated/**`.
+- `packages/geoquery` depends on `@geoquery/codegen`; its `test` gains `dependsOn: ["build"]`.
 - `python/geoquery/package.json` → `@geoquery/python`, `build = pixi run py-install`,
   `test = pixi run test-py`. The editable install stops being a hidden prerequisite of the
   test task and becomes an edge Turbo orders and caches.
@@ -146,7 +146,7 @@ crates/core/          the language; knows nothing about Python or Node
 crates/pyo3/          cdylib, `_native`, depends on core          + package.json façade
 crates/napi/          cdylib, node addon, depends on core         + package.json façade
 python/geoquery/      the public Python API; `_native` is an implementation detail
-packages/client/      the public TypeScript API
+packages/geoquery/      the public TypeScript FFI package
 ```
 
 Two things the current repository already gets right and must keep: the binding crates

@@ -73,8 +73,8 @@ The next native layers are:
 4. add optional GeoPandas, Shapely, and PyArrow adapters without making them core runtime
    dependencies.
 
-The HTTP crate remains a server/interface for remote applications, TypeScript, and clients
-that cannot load a native wheel. It is not the Python SDK transport.
+The HTTP crate remains a server/interface for remote applications and clients that cannot
+load native bindings. It is not the Python SDK or TypeScript package transport.
 
 ## Related files
 

@@ -90,8 +90,9 @@ items = wfs.collection_items("hydrography", bbox=[14.1, 49.0, 24.2, 54.8])
 - No built-in CQL2 JSON construction
 - Async support is limited
 
-**Decision:** `OWSLib` for direct OGC access in the Python SDK's
-fallback mode. Primary mode uses the Rust HTTP server.
+**Decision:** `OWSLib` remains research input for direct OGC access, but the Python SDK
+should not own a fallback protocol client. Primary mode uses the Rust core in-process
+through PyO3.
 
 ---
 
@@ -123,7 +124,7 @@ gdf.plot(column="cloud_cover", legend=True)
 ```
 
 Under the hood:
-1. Query results arrive as GeoJSON from the Rust HTTP server
+1. Query results arrive from the Rust core through the PyO3 extension
 2. `to_geopandas()` converts to GeoDataFrame via `geopandas.GeoDataFrame.from_features()`
 3. CRS is set to EPSG:4326
 4. Temporal fields are converted to `datetime64`
@@ -283,9 +284,9 @@ gdf = table.to_geopandas()  # GeoArrow → GeoPandas
 
 ```
 geoquery (base)
-├── httpx              # HTTP to Rust server
-├── pydantic           # Type validation
-└── geojson            # GeoJSON types
+├── geoquery-python-native  # PyO3 extension built from crates/python-native
+├── pydantic                # Type validation, if a typed Python facade is added
+└── geojson                 # GeoJSON convenience types
 
 geoquery[geo]
 ├── geopandas          # GeoDataFrame conversion

@@ -1,12 +1,12 @@
 {
-  "name": "@archont561/geoquery-client",
+  "name": "@archont561/geoquery",
   "version": "0.1.0",
   "license": "MIT OR Apache-2.0",
-  "description": "TypeScript client for geoquery",
+  "description": "TypeScript FFI wrapper for Geoquery's Rust core",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Archont561/geoquery.git",
-    "directory": "packages/client"
+    "directory": "packages/geoquery"
   },
   "type": "module",
   "main": "./dist/index.js",
@@ -27,7 +27,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "//": "Fa\u00e7ade so turbo can see the TypeScript client as one node in the repo-wide task graph. `build:native` compiles the N-API addon from `crates/node-native` into this package's root, which is where `src/native.ts` looks for it; `build` is the addon and then tsc, because a `dist/` that type-checks but cannot load its own addon is not a build. `test` builds first for the same reason. `*.node` is in the turbo `outputs` because the addon is an output of this task, not an input: a cache hit has to restore both `dist/` and the addon, or it produces a package whose TypeScript exists and whose addon does not. Every script `cd ../..` to the repository root because cargo's target directory and the workspace manifest are resolved from there.",
+  "//": "Façade so turbo can see the TypeScript FFI package as one node in the repo-wide task graph. `build:native` compiles the N-API addon from `crates/node-native` into this package's root, which is where `src/native.ts` looks for it; `build` is the addon and then tsc, because a `dist/` that type-checks but cannot load its own addon is not a build. `test` builds first for the same reason. `*.node` is in the turbo `outputs` because the addon is an output of this task, not an input: a cache hit has to restore both `dist/` and the addon, or it produces a package whose TypeScript exists and whose addon does not. Every script `cd ../..` to the repository root because cargo's target directory and the workspace manifest are resolved from there.",
   "scripts": {
     "build:native": "napi build --platform --release --manifest-path ../../crates/node-native/Cargo.toml --output-dir .",
     "build": "bun run build:native && tsc --project tsconfig.json",

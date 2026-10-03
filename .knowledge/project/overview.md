@@ -121,7 +121,7 @@ The same query engine must be accessible through:
 | TUI | `geoquery-tui` | Interactive exploration |
 | HTTP API | `geoquery-http` | Applications, microservices |
 | MCP Server | `geoquery-mcp` | AI agents |
-| TypeScript SDK | `@geoquery/client` | Web/Node applications |
+| TypeScript SDK | `@archont561/geoquery` | Node.js applications via N-API over the Rust core |
 | Python SDK | `geoquery` | Data science, GIS workflows |
 | WASM (future) | `geoquery-wasm` | Browser, edge |
 

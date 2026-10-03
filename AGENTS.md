@@ -70,7 +70,7 @@ commands is a second thing to keep in step.
 `bun run` / `bun x`, never through a `node_modules/.bin` path: those entries carry a `node`
 shebang, and no environment here provides `node`. The tagged-release workflow is the sole
 exception: npm Trusted Publishing requires the upstream npm CLI, so that one isolated
-GitHub-hosted step installs Node 24 after Bun has built the client tarball. Likewise
+GitHub-hosted step installs Node 24 after Bun has built the TypeScript package tarball. Likewise
 `python -m pip`, never a bare `pip`: PATH is not trustworthy inside a task.
 
 ## Conventions that gates enforce
@@ -142,7 +142,7 @@ Two Conda packages are built by `pixi publish`:
 - `geoquery` (`python/geoquery/pixi.toml`) — the Python SDK, `noarch: python`.
 
 The tag release also builds the `geoquery-sdk` PyPI distribution, the
-`@archont561/geoquery-client` npm/GitHub Packages tarball, and the `geoquery-core` plus
+`@archont561/geoquery` npm/GitHub Packages tarball, and the `geoquery-core` plus
 `geoquery-cli` crates.io packages. All third-party uploads are optional after an artifact has
 been built: the GitHub Release is the required, checksummed fallback. PyPI and npmjs use OIDC
 Trusted Publishing; GitHub Packages uses `GITHUB_TOKEN`; crates.io receives only the protected
