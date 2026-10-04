@@ -11,10 +11,15 @@ coverage:
       default:
         target: auto
         threshold: 1%
+    # An explicit number rather than `auto`. `auto` means "the coverage this project already
+    # has", which is a ratchet that tightens every time it is satisfied: at 100% it demands
+    # 99% of every future diff, so one unhit line in a hundred fails a build and the way to
+    # go green is to write a test for a line nobody needed tested. The project status above
+    # is the ratchet, and it is the one worth having — it fails when a change *drops*
+    # coverage. This one only has to say what a new diff owes on its own.
     patch:
       default:
-        target: auto
-        threshold: 1%
+        target: 90%
 
 comment:
   layout: "reach,diff,flags,files"
