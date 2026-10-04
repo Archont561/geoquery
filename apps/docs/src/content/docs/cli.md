@@ -14,7 +14,7 @@ Reads a JSON query document, reports what it contains, and contacts nothing.
 
 ```console
 $ geoquery check query.json
-query.json is a query document: 2 keys: execution, limit
+query.json is a query object with 2 keys: execution, limit
 ```
 
 An empty object is accepted. `{}` is a degenerate query, not a malformed one, and
@@ -27,7 +27,8 @@ Parses the document, then declines to execute it:
 
 ```console
 $ geoquery query --service https://example.org --query query.json
-no engine yet — https://example.org was not contacted.
+geoquery: no engine yet — https://example.org was not contacted. geoquery 0.1.0 reads
+query documents; executing them arrives with the query engine.
 ```
 
 The document is checked *before* the refusal, because a malformed document is worth

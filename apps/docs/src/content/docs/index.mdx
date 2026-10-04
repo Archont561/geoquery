@@ -23,8 +23,11 @@ be described can be federated behind one.
 
 ## Where it actually is
 
-Phase 0. The environment, the layout, the query-document reader and the two publishable
-packages are real. The engine is not.
+Phase 1, partway. The query *language* is real — the canonical AST, CQL2-compatible
+filter expressions, the resource/service/result data model, and the contracts an adapter
+implements to report what a source can do and what had to be done locally instead. The
+engine that would drive those contracts against a live service is not built, and no
+adapter contacts anything yet.
 
 `geoquery query` therefore refuses, with exit code 3, rather than returning empty
 results. That refusal is the feature: a client that silently answered nothing until the
@@ -33,6 +36,11 @@ engine landed would be worse than one that declines and says so.
 What works today:
 
 - reading a query document and saying what is wrong with it, offline, with no service;
+- constructing and validating a full query — filters, spatial and temporal predicates,
+  sorting, paging — as a typed document, with every problem reported rather than the
+  first;
+- a capability report that distinguishes *pushed down*, *approximated*, *run locally* and
+  *refused*, so an answer can say how it was obtained and not merely what it was;
 - a version number that every published surface is checked against;
 - an environment that restores on a machine with no network at all.
 

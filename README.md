@@ -21,9 +21,11 @@
 ---
 
 > [!IMPORTANT]
-> **Geoquery is in Phase 0.** The workspace, query-document reader, SDK foundations, CI,
-> offline environment, and release packaging are real. The federation engine is not built
-> yet. `geoquery query` exits with code `3` rather than pretending to contact a service.
+> **Phase 1 is in progress.** The query language itself is real and tested: the canonical
+> AST, CQL2-compatible filter expressions, the resource/service/result data model, and the
+> adapter, capability and execution contracts. The federation engine behind them is not
+> built, and no adapter contacts a live service yet — `geoquery query` exits with code `3`
+> rather than pretending otherwise.
 
 Geoquery sits above STAC, OGC API, WFS, ArcGIS, CMR, and similar protocols. Applications
 express intent once; adapters negotiate source capabilities and the planner decides what can
@@ -55,7 +57,9 @@ be pushed down, what must run locally, and how results retain their provenance.
 | CLI | `geoquery-cli` | Canonical Rust command line; future TUI ships as `geoquery tui` |
 | Python | `geoquery` | Native PyO3/maturin Python SDK |
 | TypeScript | `@archont561/geoquery` | N-API/FFI package that wraps the Rust core in-process |
-| Core | `geoquery-core` | Protocol-independent query model and execution contracts |
+| Language | `geoquery-types` | The query AST, filters and data model every other surface is generated from |
+| Core | `geoquery-core` | Protocol-independent adapter, capability and execution contracts |
+| Transport | `geoquery-protocol` | The wire contract the SDKs cross, and the number domain it guarantees |
 
 The Python and TypeScript SDKs do not shell out to the CLI or call an HTTP service: they
 load native Rust bindings around the same core. Shared schemas and conformance fixtures
@@ -151,10 +155,17 @@ TypeScript.
 ```bash
 pixi install       # restore the locked toolchain
 pixi run setup     # install Bun workspace, editable Python SDK, and Git hooks
-pixi run gates     # reproduce the required CI checks
+pixi run gates     # the commit gate: everything that must pass before a commit lands
+pixi run ci-checks # what the CI checks job runs: gates plus instrumented coverage
 pixi run fmt       # format every package
-pixi run ci        # gates plus all publishable artifacts
+pixi run ci        # ci-checks plus all publishable artifacts
 ```
+
+CI calls these same task definitions rather than restating the steps, so the only way a
+local run and a CI run can disagree is if pixi resolved a different environment — which
+`pixi install --locked` exists to prevent. The one exception is the `msrv` job, which
+builds on the toolchain named by `rust-version` while the pixi environment pins a newer
+one.
 
 Useful tasks:
 
@@ -163,9 +174,11 @@ Useful tasks:
 | `build` / `test` | Build or test every package through Turbo |
 | `lint` / `typecheck` / `fmt` | Run Clippy, cargo-deny, Ruff, Biome, and language type checkers |
 | `cov` | Produce Rust, Python, and TypeScript coverage |
-| `gates` | Required tests, lint, version checks, workflow lint, and publish-plan validation |
+| `gates` | Required tests, lint, version and layout checks, workflow lint, and publish-plan validation |
+| `ci-checks` | Exactly what the CI `checks` job runs: `gates` plus instrumented coverage |
 | `docs-dev` / `docs-build` | Serve or build the Astro + Starlight documentation |
 | `version-check` | Assert every published manifest carries the workspace version |
+| `layout-check` | Assert the workspace layout matches `.knowledge/infrastructure/monorepo.md` |
 | `version-set X.Y.Z` | Update every manifest that owns a literal release version |
 | `publish-plan` | Resolve the package set without uploading anything |
 | `publish-dist` | Build `dist/*.conda` locally |
@@ -180,15 +193,23 @@ pixi run test -- --filter=@geoquery/rust
 
 | Path | Purpose |
 | --- | --- |
-| `crates/core/` | Query documents, versions, and protocol-independent types |
-| `crates/adapter-{native,ogc,stac}/` | Execution adapters |
-| `crates/http/`, `crates/mcp/`, `crates/tui/` | User-facing Rust interfaces |
-| `crates/cli/src/main.rs` | Canonical `geoquery` executable |
+| `crates/types/` | The query AST, CQL2 filters, and the resource/service/result data model |
+| `crates/core/` | Query documents, versions, and the adapter/capability/execution contracts |
+| `crates/protocol/` | The FFI wire contract shared by the Python and TypeScript bindings |
+| `crates/engine/` | Request dispatch across the protocol boundary |
+| `crates/adapter-{native,ogc,stac}/` | Execution adapters (scaffolded; Phase 1–2) |
+| `crates/http/`, `crates/mcp/`, `crates/tui/` | User-facing Rust interfaces (scaffolded) |
+| `crates/{node,python}-native/` | N-API and PyO3 bindings over `geoquery-engine` |
+| `crates/cli/src/main.rs` | Canonical `geoquery` executable; its manifest is the root `Cargo.toml` |
+| `crates/xtask/` | Code generation only — not the task runner |
 | `python/geoquery/` | Python SDK and Conda package |
 | `packages/geoquery/` | `@archont561/geoquery` TypeScript FFI package |
+| `packages/utils/` | Shared internal TypeScript helpers |
 | `apps/docs/` | Astro + Starlight documentation |
 | `pixi.toml` | Environment, task graph, and `geoquery-cli` package |
 | `scripts/version.ts` | Shared-version reader, validator, and updater |
+| `scripts/layout.ts` | Asserts the workspace matches the documented layout |
+| `backlog/` | Tasks, milestones, and the phase plan |
 | `.pixi-sandbox.toml` | Reviewed offline-environment publication plan |
 | `.knowledge/` | Architecture, query model, interfaces, decisions, and roadmap |
 
@@ -253,11 +274,17 @@ vendored dependencies.
 | Phase | Outcome | Status |
 | ---: | --- | --- |
 | 0 | Environment, repository structure, document reader, publishable packages | ✅ Done |
-| 1 | Query AST, filters, CQL2, and code generation | 🚧 Next |
-| 2 | STAC and OGC adapters, planner, and federation engine | Planned |
+| 1 | Query AST, filters, CQL2, adapter contracts, code generation, single-source STAC | 🚧 In progress |
+| 2 | Federated multi-source queries, planner, and result merging | Planned |
 | 3 | HTTP service and SDK integration | Planned |
-| 4 | MCP tools for agents | Planned |
+| 4 | MCP tools and semantic discovery for agents | Planned |
 | 5 | Interactive TUI | Planned |
+| 6–7 | Scale, deployment targets, and the extension platform | Planned |
+
+Phase 1 so far: the foundation types, the canonical AST, CQL2-compatible filters, and the
+adapter, capability and execution contracts are implemented and tested. Still open are
+code generation, the local source registry, and the first STAC adapter that makes those
+contracts do real work.
 
 See [`backlog/milestones/`](backlog/milestones/) for the full plan and
 [`.knowledge/CONTEXT.md`](.knowledge/CONTEXT.md) for a compact project briefing.
