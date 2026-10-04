@@ -17,7 +17,8 @@
     "build": "tsc --noEmit --project tsconfig.json",
     "test": "bun test",
     "typecheck": "tsc --noEmit --project tsconfig.json",
-    "lint": "biome check src test"
+    "lint": "biome check src test",
+    "cov": "cd ../.. && bun test packages/utils --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-dir=packages/utils/coverage"
   },
   "devDependencies": {
     "@types/bun": "^1.3.11",

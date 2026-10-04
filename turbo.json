@@ -37,9 +37,12 @@
     "lint": {
       "outputs": []
     },
+    // `coverage/**` alongside `coverage.xml`: pytest-cov writes the second, bun writes an
+    // lcov report into the first, and cargo-llvm-cov writes outside the package entirely
+    // (`target/lcov.info`), which is why the Rust node declares no output at all.
     "cov": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage.xml"]
+      "outputs": ["coverage.xml", "coverage/**"]
     },
     "fmt": {
       "cache": false
