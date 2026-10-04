@@ -399,11 +399,19 @@ pub struct TemporalPredicate {
     /// The predicate to apply.
     pub op: TemporalOperation,
     /// Inclusive start of the query interval.
-    #[serde(default, skip_serializing_if = "Option::is_none", with = "instant")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "crate::instant::optional"
+    )]
     #[ts(type = "string")]
     pub start: Option<DateTime<Utc>>,
     /// Inclusive end of the query interval.
-    #[serde(default, skip_serializing_if = "Option::is_none", with = "instant")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "crate::instant::optional"
+    )]
     #[ts(type = "string")]
     pub end: Option<DateTime<Utc>>,
 }
@@ -558,59 +566,4 @@ fn crs_is_recognised(crs: &str) -> bool {
         return !code.is_empty() && code.bytes().all(|digit| digit.is_ascii_digit());
     }
     matches!(lowercase.as_str(), "crs84" | "ogc:crs84")
-}
-
-/// Instants on the wire: an RFC 3339 timestamp, or a plain `YYYY-MM-DD` date.
-///
-/// Both appear in real query documents, and a date is the more common of the two by far,
-/// so refusing it would make the format worse at the thing people write by hand. A date is
-/// read as midnight UTC and *written back* as a timestamp: one shape on output is what
-/// makes a round trip stable, and the alternative — remembering which form each bound
-/// arrived in — would be state kept solely to reproduce the caller's typing.
-mod instant {
-    use chrono::{DateTime, NaiveDate, SecondsFormat, Utc};
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-    // `&Option<T>` rather than the `Option<&T>` clippy prefers: serde hands `with` a
-    // reference to the field, so the signature belongs to serde and not to this module.
-    // Rendering to `Option<String>` and letting serde serialize that keeps the `None`
-    // case in serde's own impl, where it is already written and already correct — and in
-    // practice it never runs, because both bounds are `skip_serializing_if`.
-    #[allow(clippy::ref_option)]
-    pub(super) fn serialize<S>(
-        value: &Option<DateTime<Utc>>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        value
-            .as_ref()
-            .map(|instant| instant.to_rfc3339_opts(SecondsFormat::Secs, true))
-            .serialize(serializer)
-    }
-
-    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<Option<DateTime<Utc>>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let Some(text) = Option::<String>::deserialize(deserializer)? else {
-            return Ok(None);
-        };
-        read(&text).map(Some).ok_or_else(|| {
-            serde::de::Error::custom(format!(
-                "`{text}` is neither an RFC 3339 timestamp nor a YYYY-MM-DD date"
-            ))
-        })
-    }
-
-    fn read(text: &str) -> Option<DateTime<Utc>> {
-        if let Ok(instant) = DateTime::parse_from_rfc3339(text) {
-            return Some(instant.with_timezone(&Utc));
-        }
-        NaiveDate::parse_from_str(text, "%Y-%m-%d")
-            .ok()?
-            .and_hms_opt(0, 0, 0)
-            .map(|naive| naive.and_utc())
-    }
 }

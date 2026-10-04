@@ -19,6 +19,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 use ts_rs::TS;
 
+mod instant;
+
 /// A JSON object used for protocol metadata, source properties, and extension fields.
 pub type JsonObject = Map<String, Value>;
 
@@ -474,10 +476,20 @@ pub struct SpatialExtent {
 #[ts(optional_fields)]
 pub struct TemporalExtent {
     /// Inclusive start instant.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "instant::optional"
+    )]
+    #[ts(type = "string")]
     pub start: Option<DateTime<Utc>>,
     /// Inclusive end instant.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "instant::optional"
+    )]
+    #[ts(type = "string")]
     pub end: Option<DateTime<Utc>>,
 }
 
@@ -562,7 +574,12 @@ pub struct SourceMetadata {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub protocol: Option<ServiceType>,
     /// Time at which the descriptor was fetched.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "instant::optional"
+    )]
+    #[ts(type = "string")]
     pub fetched_at: Option<DateTime<Utc>>,
     /// Additional source-specific metadata.
     #[serde(default, skip_serializing_if = "Map::is_empty")]
@@ -947,6 +964,8 @@ pub struct Provenance {
     /// Native query sent to the source after translation.
     pub query: JsonObject,
     /// Time at which the query was executed.
+    #[serde(with = "instant::required")]
+    #[ts(type = "string")]
     pub timestamp: DateTime<Utc>,
     /// Duration of the native request in milliseconds.
     #[serde(default, skip_serializing_if = "Option::is_none")]
