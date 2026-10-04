@@ -63,18 +63,25 @@ macro_rules! open_string_enum {
                 }
             }
 
-            fn from_wire(value: &str) -> Self {
+            /// The wire table, written once. `from_wire` and `from_string` differ only in
+            /// who owns the string they fall back to, so stating the mapping in each of
+            /// them would be two copies that a new variant could be added to one of.
+            fn named(value: &str) -> Option<Self> {
                 match value {
-                    $($wire => Self::$variant,)+
-                    other => Self::Custom(other.to_owned()),
+                    $($wire => Some(Self::$variant),)+
+                    _ => None,
                 }
             }
 
+            fn from_wire(value: &str) -> Self {
+                Self::named(value).unwrap_or_else(|| Self::Custom(value.to_owned()))
+            }
+
             fn from_string(value: String) -> Self {
-                match value.as_str() {
-                    $($wire => Self::$variant,)+
-                    _ => Self::Custom(value),
-                }
+                // `unwrap_or_else` rather than `unwrap_or`: the fallback moves `value`, and
+                // building it eagerly would hand the allocation away on the path that does
+                // not need it.
+                Self::named(&value).unwrap_or_else(|| Self::Custom(value))
             }
         }
 
