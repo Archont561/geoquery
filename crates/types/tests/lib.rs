@@ -1,21 +1,15 @@
-//! Integration tests for the public `geoquery-types` surface.
+//! Integration tests for the `geoquery-types` crate root.
 //!
-//! The two representative documents live in `fixtures/` rather than inline. They are a
-//! hundred lines between them, which is a hundred lines of a test body that is not the
-//! test — and `include_str!` still reads them at compile time, so a malformed fixture is
-//! a build failure rather than something a run discovers.
+//! The crate root is a namespace: four type aliases and the re-exports that let a
+//! dependent write `geoquery_types::GeoResult` rather than naming a module. What belongs
+//! here is the test that builds something out of all three halves of the data model at
+//! once; per-module behaviour lives in the file named after the module, and the list of
+//! compose, and the list of names the crate root exports — which is a different question
+//! from whether they compose, and the one that breaks dependents when it changes.
 
 use chrono::{DateTime, Utc};
-use geoquery_types::{
-    CapabilitySet, GeoResult, JsonObject, Provenance, ResourceDescriptor, ResourceType,
-    ServiceDescriptor, ServiceType, SourceMetadata, SpatialOperation, TemporalExtent,
-};
 use pretty_assertions::assert_eq;
-use serde_json::{Value, json};
-
-fn instant(text: &str) -> DateTime<Utc> {
-    text.parse().expect("a test timestamp is valid")
-}
+use serde_json::Value;
 
 #[test]
 fn foundation_types_are_available_from_the_public_crate_surface() {
@@ -48,221 +42,83 @@ fn foundation_types_are_available_from_the_public_crate_surface() {
     assert_eq!(result.provenance.protocol, ServiceType::Stac);
 }
 
+// The crate root re-exports every public name, so a dependent writes
+// `geoquery_types::GeoResult` and never names a module. Moving a type between modules is
+// therefore free and moving one *out of the root* breaks every caller — and in a diff of
+// the file that was split, the two look identical. A glob would compile against any
+// surface at all, so the point is to name them.
+use geoquery_types::{
+    Asset, AuthDescriptor, AuthType, AxisOrder, BoundingBox, CapabilitySet, CompareOp,
+    ContextReference, CrsDescriptor, DimensionDescriptor, DimensionType, DistanceUnit,
+    ExecutionMode, ExecutionOptions, ExtensionMap, FieldDescriptor, FieldType, FilterExpr,
+    FilterValidationError, FilterValue, GeoQuery, GeoResult, IncludeOptions, JsonObject, License,
+    Link, MAX_FILTER_DEPTH, PagingDescriptor, PagingStyle, Provenance, Provider, QueryScope,
+    QueryValidationError, RelationshipType, ResourceDescriptor, ResourceRef, ResourceRelationship,
+    ResourceType, ResultType, ScaleRange, SchemaDescriptor, Selection, ServiceDescriptor,
+    ServiceRef, ServiceType, SortDirection, SortExpression, SourceMetadata, SpatialExtent,
+    SpatialOperation, SpatialPredicate, TemporalExtent, TemporalOperation, TemporalPredicate,
+};
+
+/// Each name used in type position, so an import that silently resolves to something
+/// else — a module, a re-exported trait — still fails here.
 #[test]
-fn extensible_enums_preserve_unrecognised_wire_values() {
-    let resource: ResourceDescriptor = serde_json::from_value(json!({
-        "id": "urn:geoquery:analysis-ready-cube",
-        "type": "analysis-ready-data-cube"
-    }))
-    .expect("resource descriptor with a custom type deserializes");
-    assert_eq!(
-        resource.r#type,
-        ResourceType::Custom("analysis-ready-data-cube".to_owned())
-    );
-    assert_eq!(
-        serde_json::to_value(&resource).expect("resource descriptor serializes")["type"],
-        "analysis-ready-data-cube"
-    );
+fn every_name_still_resolves_from_the_crate_root() {
+    fn assert_is_a_type<T>() {}
 
-    let service: ServiceDescriptor = serde_json::from_value(json!({
-        "type": "sentinel-hub",
-        "url": "https://services.example.test/sentinel"
-    }))
-    .expect("service descriptor with a custom service type deserializes");
-    assert_eq!(
-        service.r#type,
-        ServiceType::Custom("sentinel-hub".to_owned())
-    );
-    assert_eq!(
-        serde_json::to_value(&service).expect("service descriptor serializes")["type"],
-        "sentinel-hub"
-    );
+    assert_is_a_type::<Asset>();
+    assert_is_a_type::<AuthDescriptor>();
+    assert_is_a_type::<AuthType>();
+    assert_is_a_type::<AxisOrder>();
+    assert_is_a_type::<BoundingBox>();
+    assert_is_a_type::<CapabilitySet>();
+    assert_is_a_type::<CompareOp>();
+    assert_is_a_type::<ContextReference>();
+    assert_is_a_type::<CrsDescriptor>();
+    assert_is_a_type::<DimensionDescriptor>();
+    assert_is_a_type::<DimensionType>();
+    assert_is_a_type::<DistanceUnit>();
+    assert_is_a_type::<ExecutionMode>();
+    assert_is_a_type::<ExecutionOptions>();
+    assert_is_a_type::<ExtensionMap>();
+    assert_is_a_type::<FieldDescriptor>();
+    assert_is_a_type::<FieldType>();
+    assert_is_a_type::<FilterExpr>();
+    assert_is_a_type::<FilterValidationError>();
+    assert_is_a_type::<FilterValue>();
+    assert_is_a_type::<GeoQuery>();
+    assert_is_a_type::<GeoResult>();
+    assert_is_a_type::<IncludeOptions>();
+    assert_is_a_type::<JsonObject>();
+    assert_is_a_type::<License>();
+    assert_is_a_type::<Link>();
+    assert_is_a_type::<PagingDescriptor>();
+    assert_is_a_type::<PagingStyle>();
+    assert_is_a_type::<Provenance>();
+    assert_is_a_type::<Provider>();
+    assert_is_a_type::<QueryScope>();
+    assert_is_a_type::<QueryValidationError>();
+    assert_is_a_type::<RelationshipType>();
+    assert_is_a_type::<ResourceDescriptor>();
+    assert_is_a_type::<ResourceRef>();
+    assert_is_a_type::<ResourceRelationship>();
+    assert_is_a_type::<ResourceType>();
+    assert_is_a_type::<ResultType>();
+    assert_is_a_type::<ScaleRange>();
+    assert_is_a_type::<SchemaDescriptor>();
+    assert_is_a_type::<Selection>();
+    assert_is_a_type::<ServiceDescriptor>();
+    assert_is_a_type::<ServiceRef>();
+    assert_is_a_type::<ServiceType>();
+    assert_is_a_type::<SortDirection>();
+    assert_is_a_type::<SortExpression>();
+    assert_is_a_type::<SourceMetadata>();
+    assert_is_a_type::<SpatialExtent>();
+    assert_is_a_type::<SpatialOperation>();
+    assert_is_a_type::<SpatialPredicate>();
+    assert_is_a_type::<TemporalExtent>();
+    assert_is_a_type::<TemporalOperation>();
+    assert_is_a_type::<TemporalPredicate>();
 
-    let capabilities: CapabilitySet = serde_json::from_value(json!({
-        "spatial": ["relate-mask", "bbox"]
-    }))
-    .expect("capability set with a custom spatial operation deserializes");
-    assert_eq!(
-        capabilities.spatial,
-        vec![
-            SpatialOperation::Custom("relate-mask".to_owned()),
-            SpatialOperation::Bbox,
-        ]
-    );
-    assert_eq!(
-        serde_json::to_value(&capabilities).expect("capability set serializes"),
-        json!({"spatial": ["relate-mask", "bbox"]})
-    );
-}
-
-#[test]
-fn resource_descriptors_round_trip_without_losing_extensions() {
-    let descriptor_json: Value =
-        serde_json::from_str(include_str!("fixtures/resource-descriptor.json"))
-            .expect("the fixture is JSON");
-
-    let descriptor: ResourceDescriptor = serde_json::from_value(descriptor_json.clone())
-        .expect("representative descriptor deserializes");
-
-    assert_eq!(descriptor.services[0].r#type, ServiceType::Stac);
-    assert_eq!(
-        descriptor.extensions["lineage"],
-        json!({"process": "harmonized"})
-    );
-    assert_eq!(
-        serde_json::to_value(&descriptor).expect("descriptor serializes"),
-        descriptor_json
-    );
-}
-
-#[test]
-fn geo_results_round_trip_without_losing_provenance_or_raw_payloads() {
-    let result_json: Value = serde_json::from_str(include_str!("fixtures/geo-result.json"))
-        .expect("the fixture is JSON");
-
-    let result: GeoResult =
-        serde_json::from_value(result_json.clone()).expect("representative result deserializes");
-
-    assert_eq!(result.provenance.protocol, ServiceType::Stac);
-    assert_eq!(result.provenance.query["datetime"], "2026-01-01/2026-01-31");
-    assert_eq!(
-        serde_json::to_value(&result).expect("result serializes"),
-        result_json
-    );
-}
-
-#[test]
-fn open_enums_decode_the_same_from_borrowed_and_owned_json_strings() {
-    // `from_str` hands the visitor a borrowed `&str` and `from_value` hands it an owned
-    // `String`, and the two are backed by separate match statements over the same wire
-    // table. A variant added to one and not the other would decode one way from a document
-    // read off disk and another way from one built in memory, which is the kind of
-    // divergence no caller would think to look for.
-    let borrowed: ResourceDescriptor =
-        serde_json::from_str(r#"{"id":"urn:geoquery:borrowed","type":"feature-collection"}"#)
-            .expect("a descriptor parses from JSON text");
-    let owned: ResourceDescriptor = serde_json::from_value(json!({
-        "id": "urn:geoquery:borrowed",
-        "type": "feature-collection"
-    }))
-    .expect("a descriptor parses from a JSON value");
-
-    assert_eq!(borrowed.r#type, ResourceType::FeatureCollection);
-    assert_eq!(borrowed, owned);
-
-    let unrecognised: ResourceDescriptor =
-        serde_json::from_str(r#"{"id":"urn:geoquery:cube","type":"analysis-ready-data-cube"}"#)
-            .expect("an unrecognised type parses from JSON text");
-    assert_eq!(
-        unrecognised.r#type,
-        ResourceType::Custom("analysis-ready-data-cube".to_owned())
-    );
-}
-
-#[test]
-fn open_enums_convert_from_both_owned_and_borrowed_strings() {
-    assert_eq!(ResourceType::from("catalog"), ResourceType::Catalog);
-    assert_eq!(ServiceType::from("wfs".to_owned()), ServiceType::Wfs);
-    assert_eq!(
-        ResourceType::from("star-chart".to_owned()),
-        ResourceType::Custom("star-chart".to_owned())
-    );
-    assert_eq!(
-        SpatialOperation::from("relate-mask"),
-        SpatialOperation::Custom("relate-mask".to_owned())
-    );
-}
-
-#[test]
-fn open_enums_display_the_wire_value_they_would_serialize() {
-    // `Display` and `AsRef` are what a caller reaches for when building a URL or a log
-    // line. A value that printed differently from the string it serializes to would send
-    // a reader grepping for a token that never appears in the document.
-    assert_eq!(ServiceType::OgcFeatures.to_string(), "ogc-features");
-    assert_eq!(ServiceType::OgcFeatures.as_ref(), "ogc-features");
-
-    let custom = ServiceType::Custom("sentinel-hub".to_owned());
-    assert_eq!(custom.to_string(), "sentinel-hub");
-    assert_eq!(custom.as_ref(), "sentinel-hub");
-}
-
-#[test]
-fn an_open_enum_names_itself_when_the_value_is_not_a_string() {
-    let error =
-        serde_json::from_value::<ResourceType>(json!(7)).expect_err("a number is not a type");
-    assert!(
-        error
-            .to_string()
-            .contains("a string containing a ResourceType value"),
-        "the error should name the type it expected: {error}"
-    );
-}
-
-#[test]
-fn every_instant_on_the_wire_accepts_a_bare_date() {
-    // A date is what a hand-written `resource.yaml` or a fixture carries, and the query
-    // AST already reads one. A descriptor that refused the same string would mean the
-    // dialect depended on which struct the field happened to sit in.
-    let extent: TemporalExtent = serde_json::from_value(json!({ "start": "2026-01-01" }))
-        .expect("an extent takes a bare date");
-    assert_eq!(extent.start, Some(instant("2026-01-01T00:00:00Z")));
-
-    let source: SourceMetadata = serde_json::from_value(json!({ "fetchedAt": "2026-01-01" }))
-        .expect("a fetch time takes a bare date");
-    assert_eq!(source.fetched_at, Some(instant("2026-01-01T00:00:00Z")));
-
-    let provenance: Provenance = serde_json::from_value(json!({
-        "source": "fixture",
-        "service": "https://example.test/stac",
-        "protocol": "stac",
-        "query": {},
-        "timestamp": "2026-01-01"
-    }))
-    .expect("a provenance timestamp takes a bare date");
-    assert_eq!(provenance.timestamp, instant("2026-01-01T00:00:00Z"));
-}
-
-#[test]
-fn sub_second_precision_survives_a_round_trip() {
-    // Normalising to one output format must not round the value on the way through: a
-    // fetch time recorded to the millisecond is a different instant from the second it
-    // falls in, and two results ordered by it would silently tie.
-    let source: SourceMetadata =
-        serde_json::from_value(json!({ "fetchedAt": "2026-01-05T10:00:00.123Z" }))
-            .expect("a millisecond instant parses");
-
-    assert_eq!(
-        serde_json::to_value(&source).expect("it serializes"),
-        json!({ "fetchedAt": "2026-01-05T10:00:00.123Z" })
-    );
-}
-
-#[test]
-fn an_instant_that_is_neither_form_is_refused_the_same_way_everywhere() {
-    // One dialect means one complaint. A caller that mistyped a date should not have to
-    // learn which struct it was in to find out what the field would have accepted.
-    for document in [
-        json!({ "start": "the first of January" }),
-        json!({ "end": "01/01/2026" }),
-    ] {
-        let error =
-            serde_json::from_value::<TemporalExtent>(document.clone()).expect_err("not an instant");
-        assert!(
-            error.to_string().contains("RFC 3339"),
-            "{document} produced {error}"
-        );
-    }
-
-    // And a bound the document must carry, not only the ones it may leave out. Serde
-    // types `with` against the field, so an `Option` field and a bare one are read by
-    // different functions — "the same way everywhere" is the claim, so both are asserted.
-    let error = serde_json::from_value::<Provenance>(json!({
-        "source": "fixture",
-        "service": "https://example.test/stac",
-        "protocol": "stac",
-        "query": {},
-        "timestamp": "the first of January"
-    }))
-    .expect_err("not an instant");
-    assert!(error.to_string().contains("RFC 3339"), "{error}");
+    // The one item that is a value rather than a type.
+    let _: usize = MAX_FILTER_DEPTH;
 }

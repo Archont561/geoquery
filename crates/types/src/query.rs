@@ -24,6 +24,8 @@ use serde_json::Value;
 use thiserror::Error;
 use ts_rs::TS;
 
+use crate::macros::open_string_enum;
+
 use crate::filter::{FilterExpr, FilterValidationError};
 use crate::{BoundingBox, ResourceType, SpatialOperation};
 
