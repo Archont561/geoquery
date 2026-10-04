@@ -8,7 +8,15 @@ repository.workspace = true
 homepage.workspace = true
 authors.workspace = true
 description = "The geoquery data model: the canonical query AST, descriptors and results"
-publish = false
+keywords = ["geospatial", "stac", "ogc", "query", "gis"]
+categories = ["science::geo"]
+# Published because `geoquery-core` is, and the adapter contracts core exposes are
+# written in these types: a `ServiceAdapter` takes a `GeoQuery` and returns
+# `GeoResult`s. A crate cannot be published with a dependency that is not, so the
+# moment core named this one, this one joined the release. GQ-2 and GQ-3 are what
+# made that safe: the query AST is settled, which is the bar the other internal
+# crates have not cleared yet.
+publish = ["crates-io"]
 
 [lints]
 workspace = true

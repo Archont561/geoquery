@@ -107,7 +107,7 @@ authors = ["Archont561 <142521648+Archont561@users.noreply.github.com>"]
 # Cargo removes this path while packaging the CLI, then resolves the exact release version
 # from crates.io. `scripts/version.ts` keeps the literal in step with workspace.version.
 geoquery-core = { path = "crates/core", version = "0.1.0" }
-geoquery-types = { path = "crates/types" }
+geoquery-types = { path = "crates/types", version = "0.1.0" }
 geoquery-adapter-stac = { path = "crates/adapter-stac" }
 geoquery-adapter-ogc = { path = "crates/adapter-ogc" }
 geoquery-adapter-native = { path = "crates/adapter-native" }

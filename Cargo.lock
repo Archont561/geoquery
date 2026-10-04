@@ -860,7 +860,12 @@ dependencies = [
 name = "geoquery-core"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
+ "geoquery-types",
+ "pretty_assertions",
+ "serde",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]

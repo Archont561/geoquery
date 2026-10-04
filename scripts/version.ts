@@ -300,6 +300,13 @@ export function publishedVersions(startDir: string = process.cwd()): {
         path: "Cargo.toml [workspace.dependencies].geoquery-core",
         version: workspaceDependencyVersion(join(root, "Cargo.toml"), "geoquery-core")
       },
+      // And the same for the data model, which geoquery-core reaches the same way. Core
+      // is published, so everything it names has to be, and the version it names has to
+      // be this release rather than whatever was on crates.io last.
+      {
+        path: "Cargo.toml [workspace.dependencies].geoquery-types",
+        version: workspaceDependencyVersion(join(root, "Cargo.toml"), "geoquery-types")
+      },
       ...cargoManifests(root)
         .filter((manifest) => manifest !== join(root, "Cargo.toml"))
         .map((manifest) => ({
@@ -346,6 +353,7 @@ function setVersion(version: string, startDir: string = process.cwd()): void {
   setTomlVersion(join(root, "pixi.toml"), "workspace", version);
   setTomlVersion(join(root, "Cargo.toml"), "workspace.package", version);
   setWorkspaceDependencyVersion(join(root, "Cargo.toml"), "geoquery-core", version);
+  setWorkspaceDependencyVersion(join(root, "Cargo.toml"), "geoquery-types", version);
   setTomlVersion(join(root, "python/geoquery/pyproject.toml"), "project", version);
   setTomlVersion(join(root, "python/geoquery/pixi.toml"), "package", version);
   for (const relativePath of [

@@ -10,9 +10,25 @@
 //! execute anything: reading a document, and saying what is wrong with one. That is the
 //! half of a query language that never goes stale, and it is what lets a client
 //! validate a document today against a server that arrives later.
+//!
+//! Alongside it this crate owns the *contracts* the engine is built from — what an
+//! adapter is ([`adapter`]), what it may be asked to do ([`capability`]) and what an
+//! execution across several of them amounts to ([`execution`]) — without owning a single
+//! implementation of them. The dependency arrow runs one way, from adapters to here, so
+//! that an adapter can be written against this crate alone and the engine can hold one
+//! without knowing which protocol it speaks.
 
+pub mod adapter;
+pub mod capability;
 pub mod document;
+pub mod execution;
 pub mod version;
 
+pub use adapter::{
+    AdapterError, Confidence, ConfidenceOutOfRange, Detection, Endpoint, QueryResult,
+    ServiceAdapter,
+};
+pub use capability::{CapabilityFinding, CapabilityReport, Cause, QueryFeature, Support};
 pub use document::{QueryDocument, QueryDocumentError};
+pub use execution::{ExecutionOutcome, ExecutionStatus, SourceOutcome, SourceStatus};
 pub use version::{PROTOCOL_VERSION, VERSION, user_agent};
