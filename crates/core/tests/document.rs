@@ -8,6 +8,7 @@
 
 use serde_json::json;
 
+use geoquery_core::document::json_type_name;
 use geoquery_core::{QueryDocument, QueryDocumentError};
 
 #[test]
@@ -102,4 +103,40 @@ fn reading_and_parsing_agree() {
     let read = QueryDocument::read(&path).expect("the same document from disk");
     std::fs::remove_file(&path).ok();
     assert_eq!(document, read);
+}
+
+#[test]
+fn a_failure_hands_over_the_error_underneath_it() {
+    // `source` is the chain every error reporter walks to print "caused by". The two
+    // failures that wrap something else have to hand it over, or the operating system's
+    // reason and the parser's position stop at this crate's boundary; the one this crate
+    // classified itself has to not invent a cause it does not have.
+    use std::error::Error as _;
+
+    let unreadable = QueryDocument::read(std::path::Path::new("/nonexistent/geoquery/query.json"))
+        .expect_err("there is no file there");
+    assert!(
+        unreadable.source().is_some(),
+        "the operating system said why: {unreadable}"
+    );
+
+    let invalid = QueryDocument::parse(r#"{"limit": 25"#).expect_err("truncated JSON");
+    assert!(
+        invalid.source().is_some(),
+        "the parser said where: {invalid}"
+    );
+
+    let not_an_object = QueryDocument::parse("[]").expect_err("an array is not a document");
+    assert!(
+        not_an_object.source().is_none(),
+        "nothing underlies a shape this crate classified itself: {not_an_object}"
+    );
+}
+
+#[test]
+fn an_object_is_named_like_every_other_json_type() {
+    // The other five names are reached through `NotAnObject`; this one cannot be, because
+    // an object is the case that succeeds. It is still the answer the function owes a
+    // caller that asks about a value nothing rejected.
+    assert_eq!(json_type_name(&json!({})), "an object");
 }
