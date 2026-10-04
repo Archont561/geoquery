@@ -6,17 +6,14 @@
 //! struct definitions. A test that builds an `EngineRequest` and compares it to another
 //! would pass if every attribute on this crate were deleted.
 //!
-//! Two tools, two jobs. `proptest` generates the values, for the properties that must hold
-//! for *any* JSON and cannot be checked one example at a time. `rstest`'s `#[fixture]`
-//! builds the requests, for the examples: a fixture is the Rust name for a value a suite
-//! sets up per test, and it is what keeps four call sites from spelling out the same
-//! envelope by hand and drifting apart.
+//! `proptest` generates the values, for the properties that must hold for *any* JSON and
+//! cannot be checked one example at a time. The examples use plain helpers. `request()`
+//! was an `rstest` `#[fixture]` and has stopped being one: a fixture is only ever passed
+//! to a test annotated `#[rstest]`, no test here is, so the attribute and the dependency
+//! behind it were doing nothing that a function does not already do.
 
 use geoquery_protocol::{EngineRequest, EngineResponse, Operation, TRANSPORT_VERSION};
 use proptest::prelude::*;
-// `fixture` rather than `rstest`: in rstest 0.24 a fixture is declared with `#[fixture]`
-// directly, and importing the test macro alongside it is what older versions wanted.
-use rstest::fixture;
 
 /// Any JSON value, assembled from proptest's own strategies.
 ///
@@ -48,13 +45,11 @@ fn arb_json() -> impl Strategy<Value = serde_json::Value> {
     })
 }
 
-/// A well-formed request, assembled rather than written out.
+/// A well-formed request, built rather than written out as JSON.
 ///
-/// The point of a fixture here is that the envelope is spelled once. Four tests below
-/// assert on the response, and each of them needs a valid request; writing the literal four
-/// times is four chances to fix a typo in one of them and spend an afternoon on why one
-/// test behaves differently from the other three.
-#[fixture]
+/// Building it from the struct is what makes the assertion below mean something: the test
+/// compares the serialised text to a literal, so the field names it checks come from the
+/// serde attributes under test rather than from a string the test also wrote.
 fn request() -> EngineRequest {
     EngineRequest {
         transport_version: TRANSPORT_VERSION,

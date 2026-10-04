@@ -1,9 +1,9 @@
 """Fixtures shared by the Python suite.
 
 Python's word for the value a suite sets up per test is a fixture, and this module is where
-the ones several suites need are written once. It is the same idea as `#[fixture]` in
-`crates/protocol/tests/lib.rs` and `createFixture` in `packages/utils`: the envelope is
-spelled in one place so that four call sites cannot drift apart.
+the ones several suites need are written once. `createFixture` in `packages/utils` is the
+same idea for the TypeScript suite: the envelope is spelled in one place so that several
+call sites cannot drift apart.
 
 The generators are not here. A strategy is not a fixture — `@given` takes an arbitrary and a
 fixture supplies a value — so those live in `strategies.py`.
