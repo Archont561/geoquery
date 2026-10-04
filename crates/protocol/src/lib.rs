@@ -7,6 +7,14 @@
 //! binding that was compiled against an older version still parses a request it does not
 //! understand an `operation` for.
 //!
+//! Numbers on this wire are 64-bit: a signed integer, an unsigned integer, or a double.
+//! JSON itself bounds neither the magnitude nor the precision of a number, so that is a
+//! promise of this transport rather than of the format, and it is the strongest promise
+//! the transport can make — JavaScript's `JSON.parse` rounds an integer past 2^53 before
+//! a request reaches the engine, so an exactness the TypeScript binding cannot honour
+//! would not be one contract but three. [`EngineRequest::payload`] says what happens at
+//! the edge, and `the_number_domain` in `tests/lib.rs` pins it.
+//!
 //! Two versions exist in this project and they are not the same thing, so they are not
 //! given the same name. [`TRANSPORT_VERSION`] is this envelope's shape, below. The query
 //! protocol's version is `geoquery_core::PROTOCOL_VERSION`, a semver string meaning "which
@@ -38,6 +46,13 @@ pub struct EngineRequest {
     pub operation: Operation,
     /// The operation's arguments. Defaults to null so an argument-less operation is a
     /// request with one omitted field rather than a special-cased one.
+    ///
+    /// Any JSON value, within the 64-bit number domain described above. An integer too
+    /// large for `i64` or `u64` is carried as the nearest double rather than refused:
+    /// `serde_json` parses it that way, and the alternative — the `arbitrary_precision`
+    /// feature — was measured and declined, because it makes every number a
+    /// heap-allocated string including every coordinate of every geometry, to buy
+    /// exactness for magnitudes no geospatial payload contains.
     #[serde(default)]
     pub payload: Value,
 }

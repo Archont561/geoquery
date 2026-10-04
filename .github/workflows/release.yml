@@ -148,10 +148,13 @@ jobs:
           EOF
           NPM_CONFIG_USERCONFIG="$config" npm publish --registry https://npm.pkg.github.com dist/npm/*.tgz
 
-      # The CLI package needs geoquery-core in crates.io first. Cargo replaces the local path
-      # with the checked-in core version when packaging the CLI. An earlier attempt can leave
-      # core published while the CLI waits for index propagation, so do not let that immutable
-      # duplicate stop a later retry of the CLI upload.
+      # Dependency order, and it matters twice. Cargo replaces each local path with the
+      # checked-in version when packaging, so a crate cannot be uploaded before the one it
+      # names is already in the index: geoquery-types, then geoquery-core, then
+      # geoquery-cli. And the index needs a moment to serve what it has just accepted,
+      # which is what the retry is for. An earlier attempt can leave an upstream crate
+      # published while a later one is still waiting, so an immutable duplicate must not
+      # stop a retry of the rest — only the last upload decides whether the step failed.
       - name: Publish Rust crates to crates.io
         id: crates
         continue-on-error: true
@@ -160,16 +163,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if ! cargo publish --locked --package geoquery-core --token "$CARGO_REGISTRY_TOKEN"; then
-            echo "::warning title=geoquery-core was not uploaded::It may already exist from an earlier attempt; continuing with the CLI upload."
-          fi
-          for attempt in 1 2 3 4 5 6; do
-            if cargo publish --locked --package geoquery-cli --token "$CARGO_REGISTRY_TOKEN"; then
-              exit 0
+          publish_with_retry() {
+            for attempt in 1 2 3 4 5 6; do
+              if cargo publish --locked --package "$1" --token "$CARGO_REGISTRY_TOKEN"; then
+                return 0
+              fi
+              test "$attempt" = 6 && return 1
+              sleep 10
+            done
+          }
+          for package in geoquery-types geoquery-core; do
+            if ! publish_with_retry "$package"; then
+              echo "::warning title=$package was not uploaded::It may already exist from an earlier attempt; continuing with the crates that depend on it."
             fi
-            test "$attempt" = 6 && exit 1
-            sleep 10
           done
+          publish_with_retry geoquery-cli
 
       # Failures above are intentionally visible without making the verified GitHub release
       # disappear. A release maintainer can retry one service from this immutable tag.

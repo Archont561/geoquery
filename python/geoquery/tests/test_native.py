@@ -81,3 +81,34 @@ def test_a_future_transport_version_is_refused_rather_than_guessed_at() -> None:
     }
     # The answer is in this engine's dialect even though the question was not.
     assert response["transportVersion"] == 1
+
+
+def test_the_edges_of_the_number_domain_survive_exactly() -> None:
+    """The transport carries 64-bit numbers, and these are the corners of that.
+
+    Pinned from Python because Python is the only binding whose `int` is unbounded, so it
+    is the only one that can tell the difference between a value that fits and one that
+    does not. A database bigint, a snowflake id and a 64-bit hash all live in here.
+    """
+    edges = [-(2**63), -1, 0, 1, 2**63 - 1, 2**64 - 1]
+
+    assert geoquery.invoke("ping", {"payload": edges})["echo"] == {"payload": edges}
+
+
+def test_an_integer_past_the_domain_comes_back_as_the_nearest_double() -> None:
+    """A documented limitation, pinned so it stays documented.
+
+    `serde_json` parses an integer too large for `i64` or `u64` as an `f64`. Widening the
+    domain is one feature flag away and was measured and declined: it makes every number
+    a heap-allocated string, coordinates included, to buy an exactness the TypeScript
+    binding could not honour anyway — JavaScript rounds past 2**53 in its own `JSON.parse`.
+
+    If this test ever fails because the value came back exact, the domain was widened and
+    the docstring on `EngineRequest::payload` needs to say so.
+    """
+    beyond = -(2**63) - 1
+
+    echoed = geoquery.invoke("ping", {"payload": beyond})["echo"]["payload"]
+
+    assert echoed == pytest.approx(float(beyond))
+    assert isinstance(echoed, float)

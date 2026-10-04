@@ -1,9 +1,10 @@
 ---
 id: GQ-5
 title: 'Define adapter, planning, and execution contracts'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-09-30 14:35'
+updated_date: '2026-10-04 19:34'
 labels:
   - phase-1
   - core
@@ -28,8 +29,8 @@ Adapters need a stable, protocol-neutral boundary before any STAC HTTP code is w
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 geoquery-core exposes public adapter and execution contracts with clear ownership and async boundaries.
-- [ ] #2 The contracts accept GeoQuery and return normalized GeoResult values with source-level provenance.
-- [ ] #3 Capability reporting makes unsupported query features explicit instead of silently dropping them.
-- [ ] #4 A fake adapter proves the contracts can be used by an external crate.
+- [x] #1 geoquery-core exposes public adapter and execution contracts with clear ownership and async boundaries.
+- [x] #2 The contracts accept GeoQuery and return normalized GeoResult values with source-level provenance.
+- [x] #3 Capability reporting makes unsupported query features explicit instead of silently dropping them.
+- [x] #4 A fake adapter proves the contracts can be used by an external crate.
 <!-- AC:END -->

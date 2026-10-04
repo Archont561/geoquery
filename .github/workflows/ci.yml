@@ -1,10 +1,12 @@
 name: ci
 
-# Each check is one `pixi run <task>` step. The task list in pixi.toml is the source of
-# truth for what a check *is*; this file says when, in what order, and with which caches.
-# The package-specific work fans out through turbo (Rust via cargo, TypeScript via bun,
-# Python via pytest/ruff), so a single verb — `pixi run test` — runs every language at once
-# and the steps below read as the gate, top to bottom.
+# The checks job runs one command: `pixi run ci-checks`. pixi.toml is the source of truth
+# for what the gate *is* — this file says when it runs, on what, and with which caches.
+# Listing the individual checks here instead would be a second list, and a second list is
+# a list that drifts: a check added to `gates` would pass locally and never run in CI,
+# which is the failure mode that looks like a green build. The package-specific work fans
+# out through turbo (Rust via cargo, TypeScript via bun, Python via pytest/ruff), and pixi
+# prints a header per task, so a failure still names the check that failed.
 #
 # Three caches, one per tool that owns build output, keep repeat runs cheap and independent:
 #   - the pixi environment  (setup-pixi, keyed on pixi.lock) — the toolchain itself
@@ -74,22 +76,15 @@ jobs:
       - name: Install the locked environment
         run: pixi install --locked
 
-      # The gate, one verb per step. Each fans out across every language through turbo.
-      - name: Lint
-        run: pixi run lint
-
-      - name: Type-check
-        run: pixi run typecheck
-
-      - name: Test
-        run: pixi run test
-
-      # Coverage runs the suites under instrumentation and writes target/lcov.info (Rust,
-      # cargo-llvm-cov) and python/geoquery/coverage.xml (Python, pytest-cov). It is a
-      # separate step from Test on purpose: doctests are not measured by llvm-cov on stable,
-      # so they stay gated by the Test step above rather than being dropped here.
-      - name: Coverage
-        run: pixi run cov
+      # The gate. One command, because pixi.toml already holds the list.
+      #
+      # `ci-checks` is `gates` plus `cov`: everything that must pass before a commit
+      # lands, then the suites again under instrumentation to produce the reports the
+      # next step uploads. Coverage is separate from the test run on purpose — doctests
+      # are not measured by llvm-cov on stable, so they stay gated by `gates` rather than
+      # being dropped here.
+      - name: Run the CI checks
+        run: pixi run ci-checks
 
       # Uploaded whether or not CODECOV_TOKEN is set (tokenless works for a public repo);
       # `fail_ci_if_error: false` keeps a Codecov outage from failing a green build.
@@ -97,18 +92,15 @@ jobs:
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./target/lcov.info,./python/geoquery/coverage.xml
+          # Every report `ci-checks` produces. A path missing from this list is a
+          # package whose lines are measured and then silently dropped from the project
+          # total, which is worse than not measuring it: the number still looks complete.
+          files: >-
+            ./target/lcov.info,
+            ./python/geoquery/coverage.xml,
+            ./packages/geoquery/coverage/lcov.info,
+            ./packages/utils/coverage/lcov.info
           fail_ci_if_error: false
-
-      # The repository-global checks that have no package to belong to.
-      - name: Version check
-        run: pixi run version-check
-
-      - name: Lint GitHub Actions
-        run: pixi run lint-actions
-
-      - name: Publish plan (dry-run)
-        run: pixi run publish-plan
 
   packages:
     name: packages

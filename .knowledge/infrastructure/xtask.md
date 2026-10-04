@@ -6,13 +6,36 @@ tags: [xtask, codegen, ts-rs, schemars, fixtures, automation, xshell]
 status: draft
 generated: { by: agent/geoquery-kb-generator, at: 2025-07-11T00:00:00Z }
 created: 2025-07-11T00:00:00Z
-updated: 2026-09-17T00:00:00Z
+updated: 2026-10-04T00:00:00Z
 id: infrastructure/xtask
 category: infrastructure
 refs: [infrastructure/monorepo, infrastructure/ci, interfaces/mcp, interfaces/typescript, project/data-model]
 ---
 
 # xtask — Task Runner & Code Generation
+
+## Divergence from the build
+
+This document is the design. xtask is not the task runner in this repository, and most of
+the commands below do not exist:
+
+- **Pixi is the task runner.** Every command a hook, a workflow or a contributor runs is
+  `pixi run <task>`, and the task list in `pixi.toml` is the only one. A second task
+  runner over the same commands is a second list to keep in step, and the one that drifts
+  is whichever one CI does not use.
+- **`cargo xtask ci`, `fmt`, `lint` and `test` do not exist.** They are `pixi run ci`,
+  `pixi run lint`, `pixi run test` and so on. The CI workflow calls `pixi run ci-checks`;
+  see [infrastructure/ci](ci.md).
+- **There is no `.cargo/config.toml` alias in the repository.** The one that appears on a
+  restored machine is written by the offline sandbox and is ignored.
+- **The crate is `crates/xtask/`, not a root `xtask/`,** because a workspace member has to
+  be inside the workspace.
+- **It keeps exactly one job: code generation.** That is the one thing that cannot be a
+  task — deriving the TypeScript definitions and JSON schemas needs the workspace's own
+  types loaded in memory, and a task runs a command rather than being the thing that
+  defines it. `codegen` and `fixtures` below are the sections still worth reading.
+
+---
 
 ## Why xtask Over Justfile
 
@@ -229,7 +252,7 @@ fn main() -> anyhow::Result<()> {
 ## Related Files
 
 - [infrastructure/monorepo](monorepo.md) — Workspace layout
-- [infrastructure/ci](ci.md) — CI calls `cargo xtask ci`
+- [infrastructure/ci](ci.md) — the pipeline, which calls `pixi run ci-checks`
 - [interfaces/mcp](../interfaces/mcp.md) — MCP schema generation consumer
 - [interfaces/typescript](../interfaces/typescript.md) — TypeScript type generation consumer
 - [project/data-model](../project/data-model.md) — Types being generated from

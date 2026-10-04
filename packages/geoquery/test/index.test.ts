@@ -119,3 +119,33 @@ describe("failure", () => {
     expect(detail).toMatchObject({ error: expect.stringContaining("document") });
   });
 });
+
+/**
+ * The edges of the transport's number domain, from the side that bounds it tightest.
+ *
+ * The engine carries 64-bit numbers, but JavaScript cannot observe all of them: a `number`
+ * is a double, so integers above `Number.MAX_SAFE_INTEGER` lose precision in this runtime's
+ * own `JSON.parse` before a request reaches the engine and after a response leaves it. That
+ * is why the transport promises a bounded domain rather than exact integers — an exactness
+ * Rust and Python could honour and this binding could not would be three contracts, not one.
+ */
+test("integers JavaScript can represent exactly survive the round trip", () => {
+  const edges = [-Number.MAX_SAFE_INTEGER, -1, 0, 1, Number.MAX_SAFE_INTEGER];
+
+  expect(invoke<{ echo: unknown }>("ping", { payload: edges }).echo).toStrictEqual({
+    payload: edges
+  });
+});
+
+test("past 2^53 it is JavaScript that rounds, not the engine", () => {
+  // `9007199254740993` is the first integer a double cannot hold. The literal below is
+  // already the rounded value by the time this file is parsed, which is the whole point:
+  // the engine never sees the number that was written, so no engine-side change could
+  // make this exact.
+  expect(Number("9007199254740993")).toBe(9007199254740992);
+
+  const rounded = Number("9007199254740993");
+  expect(invoke<{ echo: unknown }>("ping", { payload: rounded }).echo).toStrictEqual({
+    payload: 9007199254740992
+  });
+});

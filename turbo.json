@@ -11,6 +11,16 @@
     "deny.toml"
   ],
   "globalEnv": ["GEOQUERY_VERSION"],
+  // Strict environment mode passes a task only the variables named here, in `globalEnv`, or
+  // in turbo's built-in OS list. Pixi's activation is what points cargo at the restored
+  // sandbox: `CARGO_HOME` holds the vendored source replacement and `CARGO_TARGET_*_LINKER`
+  // names the conda linker. Stripped, every cargo command in the fan-out — fmt, clippy, deny,
+  // nextest, llvm-cov — falls back to `~/.cargo`, finds no vendored crates, and reaches for
+  // crates.io, so an offline `pixi run gates` fails at dependency resolution before it runs a
+  // single check. Passthrough rather than `globalEnv` because the path is a property of the
+  // machine and not an input: the Rust and Python nodes are `cache: false` regardless, and
+  // hashing it would only stop a sandbox and CI from ever sharing a cache entry.
+  "globalPassThroughEnv": ["CARGO_*"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -27,9 +37,12 @@
     "lint": {
       "outputs": []
     },
+    // `coverage/**` alongside `coverage.xml`: pytest-cov writes the second, bun writes an
+    // lcov report into the first, and cargo-llvm-cov writes outside the package entirely
+    // (`target/lcov.info`), which is why the Rust node declares no output at all.
     "cov": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage.xml"]
+      "outputs": ["coverage.xml", "coverage/**"]
     },
     "fmt": {
       "cache": false

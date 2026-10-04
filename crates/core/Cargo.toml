@@ -20,16 +20,28 @@ categories = ["science::geo"]
 publish = ["crates-io"]
 
 [dependencies]
-# serde_json brings serde with it; nothing here names serde directly, so nothing here
-# names it directly. The bound lives in one place for the whole workspace.
+# The data model the contracts are written in. A `ServiceAdapter` takes a `GeoQuery` and
+# returns `GeoResult`s, so this crate cannot describe the boundary without naming them.
+geoquery-types = { workspace = true }
+serde = { workspace = true }
 serde_json = { workspace = true }
+# `async fn` in a trait is stable but not dyn-compatible, and the engine holds its
+# adapters as `Box<dyn ServiceAdapter>` so a user can register one at runtime. That is
+# what `async-trait` buys: a boxed future in the signature, and an object-safe trait.
+async-trait = { workspace = true }
 
 [dev-dependencies]
 # The tests live in `tests/`, one file per module in `src/`, so they link the crate the
 # way a dependent does and reach nothing a dependent cannot. That is what makes serde_json
 # a dev-dependency as well as a dependency: `json!` is used to write the expected values,
-# and an integration test does not inherit the crate's own dependency list.
+# and an integration test does not inherit the crate's own dependency list. The same
+# applies to geoquery-types, and it is what makes the fake adapter in `tests/adapter.rs`
+# a real proof: it sees exactly the surface an out-of-tree adapter crate would see.
+geoquery-types = { workspace = true }
 serde_json = { workspace = true }
+pretty_assertions = { workspace = true }
+# The adapter contract is async, so exercising it needs something to run a future on.
+tokio = { workspace = true }
 
 [lints]
 workspace = true

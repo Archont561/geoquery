@@ -27,6 +27,14 @@ def any_json(*, max_leaves: int = 8) -> st.SearchStrategy[Any]:
     as `NaN`, `Infinity` and `-Infinity` anyway, which is a Python extension that every other
     reader rejects — a property over them would be testing a dialect that does not exist.
 
+    Integers are bounded to the transport's 64-bit domain, and that bound is the whole
+    reason this argument exists. `st.integers()` is unbounded because Python's `int` is,
+    and Python is the only one of the three languages that can build a value larger than
+    the wire carries — so an unbounded strategy here does not test the protocol more
+    thoroughly, it tests a protocol the other two bindings cannot speak. The engine parses
+    an integer past these bounds as the nearest double; `the_number_domain` in
+    `crates/protocol/tests/lib.rs` pins that, and `test_native.py` pins it from this side.
+
     The recursion is bounded rather than left to Hypothesis to bound, because each example
     crosses a C ABI twice: an unbounded tree in a suite that pays for every node in two
     languages is a suite that eventually times out rather than fails.
@@ -34,7 +42,7 @@ def any_json(*, max_leaves: int = 8) -> st.SearchStrategy[Any]:
     leaves = st.one_of(
         st.none(),
         st.booleans(),
-        st.integers(),
+        st.integers(min_value=-(2**63), max_value=2**64 - 1),
         st.floats(allow_nan=False, allow_infinity=False),
         st.text(),
     )

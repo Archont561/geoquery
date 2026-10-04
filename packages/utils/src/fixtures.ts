@@ -1,5 +1,5 @@
 /**
- * Test fixtures for `bun test`, the TypeScript half of `rstest`'s `#[fixture]`.
+ * Test fixtures for `bun test`.
  *
  * A fixture is a value a suite needs set up before a test and torn down after it: a
  * built addon, a temporary directory, a scripted transport. Writing that wiring by hand

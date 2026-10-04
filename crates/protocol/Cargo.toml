@@ -22,6 +22,3 @@ workspace = true
 # arbitrary for — so proptest is what makes "any payload at all" expressible. The point of
 # the property tests in `tests/lib.rs` is precisely the payloads the examples do not reach.
 proptest.workspace = true
-# For `#[fixture]`, which is this repository's word for a value a suite sets up per test. It
-# is dev-only: a `src/` that needs rstest to compile would put it in every consumer's build.
-rstest.workspace = true

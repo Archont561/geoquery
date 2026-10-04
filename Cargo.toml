@@ -107,7 +107,7 @@ authors = ["Archont561 <142521648+Archont561@users.noreply.github.com>"]
 # Cargo removes this path while packaging the CLI, then resolves the exact release version
 # from crates.io. `scripts/version.ts` keeps the literal in step with workspace.version.
 geoquery-core = { path = "crates/core", version = "0.1.0" }
-geoquery-types = { path = "crates/types" }
+geoquery-types = { path = "crates/types", version = "0.1.0" }
 geoquery-adapter-stac = { path = "crates/adapter-stac" }
 geoquery-adapter-ogc = { path = "crates/adapter-ogc" }
 geoquery-adapter-native = { path = "crates/adapter-native" }
@@ -140,12 +140,10 @@ napi-build = ">=2.6,<3"
 # than per crate — but only the crates that use it name it, and always under
 # `[dev-dependencies]`, so neither ends up in a published dependency graph.
 #
-# `rstest` for `#[fixture]` (the Rust name for a value a suite sets up per test) and
-# `proptest` for property tests. Both are dev-only: nothing in `src/` may depend on a test
+# `proptest` for property tests. Dev-only: nothing in `src/` may depend on a test
 # framework, because a crate that needs proptest to build is a crate whose consumers need
 # proptest too.
 proptest = ">=1.6,<2"
-rstest = ">=0.24,<0.26"
 
 # Geospatial. .knowledge/research/rust-crates.md pins geo 0.29, geojson 0.24 and
 # rstar 0.12; the current releases are geo 0.33, geojson 1.0 and rstar 0.13. The corpus is
@@ -259,7 +257,6 @@ clap = { version = ">=4.5,<5", features = [
 # so the bound is the same everywhere.
 pretty_assertions = ">=1.4.1,<2"
 wiremock = ">=0.6.5,<0.7" # a fake OGC/STAC endpoint, so adapter tests never touch a network
-insta = ">=1.48,<2" # snapshot tests for the query AST's JSON shape
 tempfile = ">=3.27,<4"
 toml = ">=1.1.6,<2"
 

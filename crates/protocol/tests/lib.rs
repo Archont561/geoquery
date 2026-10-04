@@ -6,17 +6,14 @@
 //! struct definitions. A test that builds an `EngineRequest` and compares it to another
 //! would pass if every attribute on this crate were deleted.
 //!
-//! Two tools, two jobs. `proptest` generates the values, for the properties that must hold
-//! for *any* JSON and cannot be checked one example at a time. `rstest`'s `#[fixture]`
-//! builds the requests, for the examples: a fixture is the Rust name for a value a suite
-//! sets up per test, and it is what keeps four call sites from spelling out the same
-//! envelope by hand and drifting apart.
+//! `proptest` generates the values, for the properties that must hold for *any* JSON and
+//! cannot be checked one example at a time. The examples use plain helpers. `request()`
+//! was an `rstest` `#[fixture]` and has stopped being one: a fixture is only ever passed
+//! to a test annotated `#[rstest]`, no test here is, so the attribute and the dependency
+//! behind it were doing nothing that a function does not already do.
 
 use geoquery_protocol::{EngineRequest, EngineResponse, Operation, TRANSPORT_VERSION};
 use proptest::prelude::*;
-// `fixture` rather than `rstest`: in rstest 0.24 a fixture is declared with `#[fixture]`
-// directly, and importing the test macro alongside it is what older versions wanted.
-use rstest::fixture;
 
 /// Any JSON value, assembled from proptest's own strategies.
 ///
@@ -29,7 +26,12 @@ fn arb_json() -> impl Strategy<Value = serde_json::Value> {
         Just(serde_json::Value::Null),
         any::<bool>().prop_map(serde_json::Value::from),
         any::<String>().prop_map(serde_json::Value::from),
+        // Both halves of the integer domain, not just the signed one: the wire carries
+        // `u64` too, and everything above `i64::MAX` is reachable only through it. Python's
+        // generator covers the same span, which is what makes the two suites describe one
+        // protocol rather than two.
         any::<i64>().prop_map(serde_json::Value::from),
+        any::<u64>().prop_map(serde_json::Value::from),
         // Floats are generated, not excluded. `serde_json`'s parser is not correctly rounded
         // — see the canary in the TypeScript property tests — so this is the property most
         // likely to find that again, and the range is bounded because `Value::from(f64)`
@@ -48,13 +50,11 @@ fn arb_json() -> impl Strategy<Value = serde_json::Value> {
     })
 }
 
-/// A well-formed request, assembled rather than written out.
+/// A well-formed request, built rather than written out as JSON.
 ///
-/// The point of a fixture here is that the envelope is spelled once. Four tests below
-/// assert on the response, and each of them needs a valid request; writing the literal four
-/// times is four chances to fix a typo in one of them and spend an afternoon on why one
-/// test behaves differently from the other three.
-#[fixture]
+/// Building it from the struct is what makes the assertion below mean something: the test
+/// compares the serialised text to a literal, so the field names it checks come from the
+/// serde attributes under test rather than from a string the test also wrote.
 fn request() -> EngineRequest {
     EngineRequest {
         transport_version: TRANSPORT_VERSION,
@@ -188,5 +188,86 @@ proptest! {
 
         prop_assert!(text.contains(r#""transportVersion":1"#), "{text}");
         prop_assert!(text.contains(r#""operation":"#), "{text}");
+    }
+}
+
+/// The edges of the transport's number domain, pinned as values rather than described.
+///
+/// `geoquery-protocol` carries JSON numbers in the 64-bit domain: a signed integer, an
+/// unsigned integer, or a double. JSON itself places no limit on an integer's magnitude,
+/// so the domain is a property of this transport and not of the format, and these are the
+/// tests that make it a stated one.
+mod the_number_domain {
+    use super::{EngineRequest, Operation, TRANSPORT_VERSION};
+
+    fn round_trip(payload: serde_json::Value) -> serde_json::Value {
+        let text = serde_json::to_string(&EngineRequest {
+            transport_version: TRANSPORT_VERSION,
+            operation: Operation::Ping,
+            payload,
+        })
+        .expect("a request serializes");
+        serde_json::from_str::<EngineRequest>(&text)
+            .expect("a request decodes")
+            .payload
+    }
+
+    #[test]
+    fn the_extremes_of_the_domain_survive_exactly() {
+        // The values a caller is most likely to reach with a real identifier: a database
+        // bigint, a snowflake id, a 64-bit hash. All three are inside the domain and all
+        // three have to come back bit-for-bit, not merely close.
+        for extreme in [
+            serde_json::json!(i64::MIN),
+            serde_json::json!(i64::MAX),
+            serde_json::json!(u64::MAX),
+            serde_json::json!(0),
+            serde_json::json!(-1),
+        ] {
+            assert_eq!(round_trip(extreme.clone()), extreme);
+        }
+    }
+
+    #[test]
+    fn an_integer_one_step_outside_the_domain_is_carried_as_a_double() {
+        // This test documents a limitation rather than a guarantee, and it exists so the
+        // limitation has a name and a place. `serde_json` parses an integer too large for
+        // `i64` or `u64` as an `f64`, so it comes back as the nearest double.
+        //
+        // Widening the domain is a one-line change — `arbitrary_precision` on the
+        // `serde_json` dependency — and it was measured and declined: it makes every
+        // `Number` a heap-allocated string, including every coordinate in every geometry,
+        // for roughly a seventh of the time of a large payload. It would also buy an
+        // exactness the TypeScript binding cannot honour, because `JSON.parse` in
+        // JavaScript rounds an integer past 2^53 before the engine is ever reached. A
+        // transport that is exact in two bindings and lossy in the third is a worse
+        // contract than one that is bounded in all three.
+        let beyond = "-9223372036854775809";
+        let payload: serde_json::Value =
+            serde_json::from_str(beyond).expect("JSON permits any magnitude");
+
+        assert!(
+            payload.as_i64().is_none() && payload.as_u64().is_none(),
+            "the point of the example is that it does not fit"
+        );
+        assert_eq!(
+            round_trip(payload).to_string(),
+            "-9.223372036854776e+18",
+            "outside the domain the value is a double, and the round trip is stable"
+        );
+    }
+
+    #[test]
+    fn a_double_outside_the_integer_domain_is_still_exact() {
+        // Leaving the *integer* domain is not leaving the number domain. Coordinates are
+        // doubles and `float_roundtrip` is enabled for them, so magnitudes far beyond any
+        // integer still survive unchanged.
+        for coordinate in [
+            serde_json::json!(1.0e300),
+            serde_json::json!(4.188_295_992_926_135e-215),
+            serde_json::json!(432_288_997.760_232_03),
+        ] {
+            assert_eq!(round_trip(coordinate.clone()), coordinate);
+        }
     }
 }

@@ -1,0 +1,74 @@
+{
+  "id": "sentinel-2-l2a:item-1",
+  "resource": {
+    "id": "https://example.test/resources/poland-flood-risk",
+    "title": "Poland flood risk"
+  },
+  "service": {
+    "id": "planetary-computer",
+    "url": "https://planetarycomputer.microsoft.com/api/stac/v1",
+    "type": "stac"
+  },
+  "type": "feature",
+  "title": "Sentinel-2 scene",
+  "description": "A normalized feature result.",
+  "geometry": {
+    "type": "Point",
+    "coordinates": [21.0122, 52.2297]
+  },
+  "bbox": [21.0, 52.2, 21.1, 52.3],
+  "temporal": {
+    "start": "2026-01-05T10:00:00Z",
+    "end": "2026-01-05T10:10:00Z"
+  },
+  "properties": {
+    "eo:cloud_cover": 7.5,
+    "platform": "sentinel-2a"
+  },
+  "assets": [
+    {
+      "href": "https://example.test/assets/B04.tif",
+      "mediaType": "image/tiff; application=geotiff",
+      "title": "Band 4",
+      "roles": ["data"],
+      "metadata": {
+        "band": "red"
+      }
+    }
+  ],
+  "links": [
+    {
+      "href": "https://example.test/items/item-1",
+      "rel": "self",
+      "mediaType": "application/geo+json",
+      "title": "Native item"
+    }
+  ],
+  "relevance": 0.92,
+  "provenance": {
+    "source": "planetary-computer",
+    "service": "https://planetarycomputer.microsoft.com/api/stac/v1",
+    "protocol": "stac",
+    "collection": "sentinel-2-l2a",
+    "query": {
+      "bbox": [14.1, 49.0, 24.2, 54.8],
+      "datetime": "2026-01-01/2026-01-31",
+      "filter": {
+        "op": "<",
+        "args": [
+          {
+            "property": "eo:cloud_cover"
+          },
+          10
+        ]
+      }
+    },
+    "timestamp": "2026-10-04T12:00:00Z",
+    "duration_ms": 234
+  },
+  "raw": {
+    "type": "Feature",
+    "id": "native-item-1",
+    "collection": "sentinel-2-l2a"
+  }
+}

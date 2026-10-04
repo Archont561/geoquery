@@ -33,7 +33,7 @@
     "build": "bun run build:native && tsc --project tsconfig.json",
     "test": "bun run build && bun test",
     "typecheck": "bun run build:native && tsc --noEmit --project tsconfig.json",
-    "cov": "bun run build && bun test --coverage"
+    "cov": "bun run build && cd ../.. && bun test packages/geoquery --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-dir=packages/geoquery/coverage"
   },
   "napi": {
     "binaryName": "geoquery-node-native",
