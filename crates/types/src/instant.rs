@@ -22,8 +22,15 @@
 
 use chrono::{DateTime, NaiveDate, SecondsFormat, Utc};
 
-/// What a caller is told when a string is neither accepted form.
-const EXPECTED: &str = "neither an RFC 3339 timestamp nor a YYYY-MM-DD date";
+/// The complaint for a string that is neither accepted form.
+///
+/// Shared by both codecs rather than written in each: one dialect should produce one
+/// complaint, and two copies of a message are two messages waiting to disagree.
+fn unreadable<E: serde::de::Error>(text: &str) -> E {
+    E::custom(format!(
+        "`{text}` is neither an RFC 3339 timestamp nor a YYYY-MM-DD date"
+    ))
+}
 
 /// Read either accepted form, or nothing.
 fn read(text: &str) -> Option<DateTime<Utc>> {
@@ -74,12 +81,9 @@ pub(crate) mod optional {
         let Some(text) = Option::<String>::deserialize(deserializer)? else {
             return Ok(None);
         };
-        super::read(&text).map(Some).ok_or_else(|| {
-            serde::de::Error::custom(format!(
-                "`{text}` is {expected}",
-                expected = super::EXPECTED
-            ))
-        })
+        super::read(&text)
+            .map(Some)
+            .ok_or_else(|| super::unreadable(&text))
     }
 }
 
@@ -100,11 +104,6 @@ pub(crate) mod required {
         D: Deserializer<'de>,
     {
         let text = String::deserialize(deserializer)?;
-        super::read(&text).ok_or_else(|| {
-            serde::de::Error::custom(format!(
-                "`{text}` is {expected}",
-                expected = super::EXPECTED
-            ))
-        })
+        super::read(&text).ok_or_else(|| super::unreadable(&text))
     }
 }

@@ -252,4 +252,17 @@ fn an_instant_that_is_neither_form_is_refused_the_same_way_everywhere() {
             "{document} produced {error}"
         );
     }
+
+    // And a bound the document must carry, not only the ones it may leave out. Serde
+    // types `with` against the field, so an `Option` field and a bare one are read by
+    // different functions — "the same way everywhere" is the claim, so both are asserted.
+    let error = serde_json::from_value::<Provenance>(json!({
+        "source": "fixture",
+        "service": "https://example.test/stac",
+        "protocol": "stac",
+        "query": {},
+        "timestamp": "the first of January"
+    }))
+    .expect_err("not an instant");
+    assert!(error.to_string().contains("RFC 3339"), "{error}");
 }
