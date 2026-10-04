@@ -43,6 +43,28 @@ owner repositories:
 Use the skills CLI to add or update skills rather than copying files manually, so the lock
 file remains the source of truth for skill provenance.
 
+### Two skills are not optional
+
+Before changing anything under a `src/`, read `.agents/skills/tdd/SKILL.md` and
+`.agents/skills/refactor/SKILL.md`, and work the way they describe:
+
+- **New behaviour is test-first.** Write the failing test, watch it fail, then write only
+  enough to pass it. A test written after the code is a test written against what the code
+  does, rather than against what it owed.
+- **Changed behaviour is a refactor, and a refactor needs a green suite on both sides of
+  it.** Without tests you are not refactoring, you are editing.
+- **They are separate steps.** Do not refactor inside a red-green cycle, and do not change
+  behaviour inside a refactor. One commit should be one of the two.
+- **Agree the seams before writing a test.** A seam is the public boundary the test
+  observes from; naming it up front is what keeps the effort on the paths that matter
+  instead of on every reachable edge case.
+
+Every anti-pattern those skills name has been found in this repository at least once: a
+test that rebuilt its expected value with the same `format!` the implementation used, a
+test written only to reach a branch nothing can reach, a fixture framework that no test
+was using, and a coverage number measured over a denominator that silently excluded an
+entire language. They are much easier to avoid than to find.
+
 ## How to run anything
 
 ```console
@@ -100,9 +122,12 @@ structure. Failure paths deserve the same attention as success paths — the int
 assertion in `check_distinguishes_a_missing_file_from_a_bad_one` is that the path is
 named once, because it was named twice and nobody would have noticed.
 
-Rust tests run under `cargo nextest`, so each test needs its own files: use the
-process-id-plus-name convention in `crates/cli/tests/main.rs` rather than a fixed
-`tests/fixtures/` path that parallel tests would share.
+Rust tests run under `cargo nextest`, so each test that *writes* a file needs its own:
+use the process-id-plus-name convention in `crates/cli/tests/main.rs` rather than a fixed
+path two tests could be writing at the same time. Fixtures a test only reads are the other
+case and do belong in `tests/fixtures/` — `crates/types/tests/lib.rs` pulls its two
+representative documents in with `include_str!`, so they are shared, immutable, and parsed
+at compile time rather than discovered to be malformed during a run.
 
 Tests mirror sources. Every crate and package has a `tests/` (`test/`, for the TypeScript
 client) directory beside `src/`, with one test file per source file — `src/document.rs` is
