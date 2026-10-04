@@ -28,9 +28,9 @@ fn warsaw_polygon() -> serde_json::Value {
 
 #[test]
 fn the_documented_query_round_trips_through_the_ast() {
-    // `.knowledge/query/query-model.md`, minus the `filters` member that arrives with
-    // GQ-3. Every other field of that example is modelled here, which is the claim this
-    // test exists to keep true.
+    // `.knowledge/query/query-model.md`, minus the `filters` member, which has a round
+    // trip of its own in `tests/filter.rs`. Every other field of that example is modelled
+    // here, which is the claim this test exists to keep true.
     let document = json!({
         "semantic": "flood risk",
         "spatial": { "op": "intersects", "geometry": warsaw_polygon() },
@@ -254,17 +254,17 @@ fn a_bare_identifier_is_not_a_selection() {
 
 #[test]
 fn a_field_this_version_does_not_model_is_refused_rather_than_dropped() {
-    // `filters` is GQ-3. Until it exists, a query carrying one must fail: silently
-    // ignoring a predicate widens the result set, and a caller who asked for cloud cover
-    // below ten would get everything back and no reason to doubt it.
+    // `rank` is in the corpus and not yet in the AST. A query carrying one must fail:
+    // silently ignoring a member widens or reorders the result set, and a caller who
+    // asked to rank by relevance would get arrival order and no reason to doubt it.
     let error = serde_json::from_value::<GeoQuery>(json!({
         "spatial": { "op": "bbox", "bbox": [14.1, 49.0, 24.2, 54.8] },
-        "filters": { "and": [] }
+        "rank": { "by": "relevance" }
     }))
     .expect_err("an unmodelled member is refused");
 
     assert!(
-        error.to_string().contains("filters"),
+        error.to_string().contains("rank"),
         "the error should name the member it could not take: {error}"
     );
 }

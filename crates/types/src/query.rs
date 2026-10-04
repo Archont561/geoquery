@@ -11,9 +11,9 @@
 //! pushes down as far as its service allows. CQL2 solves the second and has nothing to say
 //! about the first, which is the whole reason this AST exists rather than a CQL2 document.
 //!
-//! Attribute filters are deliberately absent: they are GQ-3, and the filter AST is large
-//! enough to be its own design. `deny_unknown_fields` on [`GeoQuery`] means a document that
-//! sends `filters` today is refused rather than silently answered without them.
+//! Attribute filters live next door in [`crate::filter`] rather than here, because the
+//! expression tree is a design of its own and this file is already the widest in the crate.
+//! What sits here is the member that carries one.
 
 use std::fmt;
 
@@ -24,6 +24,7 @@ use serde_json::Value;
 use thiserror::Error;
 use ts_rs::TS;
 
+use crate::filter::{FilterExpr, FilterValidationError};
 use crate::{BoundingBox, ResourceType, SpatialOperation};
 
 open_string_enum! {
@@ -99,6 +100,9 @@ pub struct GeoQuery {
     /// Time predicate pushed down to each source that supports it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub temporal: Option<TemporalPredicate>,
+    /// Attribute predicate pushed down to each source whose queryables cover it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub filters: Option<FilterExpr>,
     /// Result ordering, most significant key first.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub sort: Vec<SortExpression>,
@@ -134,6 +138,15 @@ impl GeoQuery {
         }
         if let Some(temporal) = self.temporal.as_ref() {
             temporal.collect_problems(&mut problems);
+        }
+        if let Some(filters) = self.filters.as_ref() {
+            let mut filter_problems = Vec::new();
+            filters.collect_problems(1, &mut filter_problems);
+            problems.extend(
+                filter_problems
+                    .into_iter()
+                    .map(QueryValidationError::Filter),
+            );
         }
         if problems.is_empty() {
             Ok(())
@@ -538,6 +551,13 @@ pub enum QueryValidationError {
         /// The end as written.
         end: DateTime<Utc>,
     },
+    /// The attribute filter cannot be compiled.
+    ///
+    /// Transparent rather than prefixed: the filter errors are already written for the
+    /// person who will read them, and a caller listing a query's problems should not have
+    /// to unwrap two layers to find out that one of them came from the filter.
+    #[error(transparent)]
+    Filter(#[from] FilterValidationError),
 }
 
 /// Read a value as a `GeoJSON` geometry, reporting why it is not one.

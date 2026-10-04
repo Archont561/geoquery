@@ -26,3 +26,7 @@ ts-rs = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
+# Also a normal dependency. Declared again so the integration tests can read back the
+# TypeScript the derives will emit, which is the only way to check the hand-written
+# overrides against the Rust types they stand for.
+ts-rs = { workspace = true }

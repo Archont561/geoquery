@@ -159,8 +159,12 @@ macro_rules! open_string_enum {
 // `macro_rules!` macro: it is in scope for the rest of this module and its children only
 // from the point of definition onwards, and `query` uses it. Moving this line above the
 // macro breaks the build with an unresolved-macro error that does not mention ordering.
+// `filter` has no such constraint and is declared alongside it anyway, so there is one
+// place to look for the submodules rather than two. GQ-31 removes the workaround.
+pub mod filter;
 pub mod query;
 
+pub use filter::{CompareOp, FilterExpr, FilterValidationError, FilterValue, MAX_FILTER_DEPTH};
 pub use query::{
     DistanceUnit, ExecutionMode, ExecutionOptions, GeoQuery, IncludeOptions, QueryScope,
     QueryValidationError, Selection, SortDirection, SortExpression, SpatialPredicate,
