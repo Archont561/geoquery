@@ -295,3 +295,70 @@ fn geo_results_round_trip_without_losing_provenance_or_raw_payloads() {
         result_json
     );
 }
+
+#[test]
+fn open_enums_decode_the_same_from_borrowed_and_owned_json_strings() {
+    // `from_str` hands the visitor a borrowed `&str` and `from_value` hands it an owned
+    // `String`, and the two are backed by separate match statements over the same wire
+    // table. A variant added to one and not the other would decode one way from a document
+    // read off disk and another way from one built in memory, which is the kind of
+    // divergence no caller would think to look for.
+    let borrowed: ResourceDescriptor =
+        serde_json::from_str(r#"{"id":"urn:geoquery:borrowed","type":"feature-collection"}"#)
+            .expect("a descriptor parses from JSON text");
+    let owned: ResourceDescriptor = serde_json::from_value(json!({
+        "id": "urn:geoquery:borrowed",
+        "type": "feature-collection"
+    }))
+    .expect("a descriptor parses from a JSON value");
+
+    assert_eq!(borrowed.r#type, ResourceType::FeatureCollection);
+    assert_eq!(borrowed, owned);
+
+    let unrecognised: ResourceDescriptor =
+        serde_json::from_str(r#"{"id":"urn:geoquery:cube","type":"analysis-ready-data-cube"}"#)
+            .expect("an unrecognised type parses from JSON text");
+    assert_eq!(
+        unrecognised.r#type,
+        ResourceType::Custom("analysis-ready-data-cube".to_owned())
+    );
+}
+
+#[test]
+fn open_enums_convert_from_both_owned_and_borrowed_strings() {
+    assert_eq!(ResourceType::from("catalog"), ResourceType::Catalog);
+    assert_eq!(ServiceType::from("wfs".to_owned()), ServiceType::Wfs);
+    assert_eq!(
+        ResourceType::from("star-chart".to_owned()),
+        ResourceType::Custom("star-chart".to_owned())
+    );
+    assert_eq!(
+        SpatialOperation::from("relate-mask"),
+        SpatialOperation::Custom("relate-mask".to_owned())
+    );
+}
+
+#[test]
+fn open_enums_display_the_wire_value_they_would_serialize() {
+    // `Display` and `AsRef` are what a caller reaches for when building a URL or a log
+    // line. A value that printed differently from the string it serializes to would send
+    // a reader grepping for a token that never appears in the document.
+    assert_eq!(ServiceType::OgcFeatures.to_string(), "ogc-features");
+    assert_eq!(ServiceType::OgcFeatures.as_ref(), "ogc-features");
+
+    let custom = ServiceType::Custom("sentinel-hub".to_owned());
+    assert_eq!(custom.to_string(), "sentinel-hub");
+    assert_eq!(custom.as_ref(), "sentinel-hub");
+}
+
+#[test]
+fn an_open_enum_names_itself_when_the_value_is_not_a_string() {
+    let error =
+        serde_json::from_value::<ResourceType>(json!(7)).expect_err("a number is not a type");
+    assert!(
+        error
+            .to_string()
+            .contains("a string containing a ResourceType value"),
+        "the error should name the type it expected: {error}"
+    );
+}
