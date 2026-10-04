@@ -434,8 +434,21 @@ gates = { description = "Every check that must pass before a commit lands", depe
 ] }
 # `gates` plus the built artefacts. `build` (turbo) covers the Rust binary and the TS
 # workspace; `publish-dist` proves the conda packages a user installs still build.
-ci = { description = "`gates` plus the built artefacts", depends-on = [
+# What the CI `checks` job runs, as one verb. The job calls this instead of listing the
+# steps, so there is no list in a workflow file that can drift from the list here: a check
+# added to `gates` is a check CI runs, with no second edit and no way to forget one.
+# `cov` is the one addition — it reruns the suites under instrumentation to produce the
+# reports the Codecov upload step consumes, which is a thing CI does and a commit gate
+# has no reason to.
+ci-checks = { description = "Exactly what the CI checks job runs: the commit gate plus instrumented coverage", depends-on = [
   "gates",
+  "cov",
+] }
+
+# Everything CI runs that a developer can run locally. The MSRV job is the deliberate
+# exception: it needs a second Rust toolchain, and the pixi environment pins exactly one.
+ci = { description = "`ci-checks` plus the built artefacts", depends-on = [
+  "ci-checks",
   "build",
   "publish-dist",
 ] }
