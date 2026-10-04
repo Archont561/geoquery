@@ -163,9 +163,7 @@ pixi run ci        # ci-checks plus all publishable artifacts
 
 CI calls these same task definitions rather than restating the steps, so the only way a
 local run and a CI run can disagree is if pixi resolved a different environment — which
-`pixi install --locked` exists to prevent. The one exception is the `msrv` job, which
-builds on the toolchain named by `rust-version` while the pixi environment pins a newer
-one.
+`pixi install --locked` exists to prevent.
 
 Useful tasks:
 

@@ -445,8 +445,8 @@ ci-checks = { description = "Exactly what the CI checks job runs: the commit gat
   "cov",
 ] }
 
-# Everything CI runs that a developer can run locally. The MSRV job is the deliberate
-# exception: it needs a second Rust toolchain, and the pixi environment pins exactly one.
+# Everything CI runs. There is no check CI performs that this does not, because the
+# workflow calls these same tasks rather than restating them.
 ci = { description = "`ci-checks` plus the built artefacts", depends-on = [
   "ci-checks",
   "build",

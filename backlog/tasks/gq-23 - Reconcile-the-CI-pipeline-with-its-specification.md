@@ -1,10 +1,10 @@
 ---
 id: GQ-23
 title: Reconcile the CI pipeline with its specification
-status: Done
+status: In Progress
 assignee: []
 created_date: '2026-09-30 20:41'
-updated_date: '2026-10-04 20:28'
+updated_date: '2026-10-04 20:46'
 labels:
   - ci
   - infrastructure
@@ -27,7 +27,7 @@ The knowledge base still describes a cargo xtask CI pipeline while the workflows
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 The CI concept records the implemented pixi and turbo pipeline, or records the divergence in the file it diverges from, per the repository convention.
-- [x] #2 The MSRV check runs in CI so the resolver-3 rust-version claim is verified rather than asserted in a manifest.
+- [ ] #2 The MSRV check runs in CI so the resolver-3 rust-version claim is verified rather than asserted in a manifest.
 - [x] #3 Every job in the future-job table names the phase that owns it and the trigger that introduces it.
 - [x] #4 A single local command reproduces the CI checks, and the workflows call it instead of restating the steps.
 <!-- AC:END -->
@@ -35,15 +35,11 @@ The knowledge base still describes a cargo xtask CI pipeline while the workflows
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-AC4 first, because it decides the shape of the rest. The checks job now runs one command, pixi run ci-checks, instead of seven named steps. ci-checks is gates plus cov. The point is not brevity: a list of checks in a workflow file is a second list, and the way a second list fails is that a check added to gates passes locally and never runs in CI, which looks exactly like a green build. There is now one list, in pixi.toml. pixi prints a header per task, so a failure still names the check that failed.
+UPDATE - the MSRV job was removed at the maintainers request after its first CI run, so AC2 is unchecked again and this task is back In Progress with 3 of 4 done.
 
-AC2 found a real gap. Cargo.toml declares rust-version 1.88 and the pixi environment pins rust 1.98.1, so every job built on a toolchain that could not possibly notice the promise being broken. Under resolver 3 the number is not decorative - it participates in dependency version selection - so it was a claim about the graph that nothing compiled. Added an msrv job: it reads the version out of Cargo.toml rather than hardcoding it, installs that toolchain with rustup, and runs cargo check --workspace --all-targets --locked. It is the one job that cannot go through pixi, because the environment pins exactly one Rust.
+What the one run established is worth keeping. The job read rust-version out of Cargo.toml, installed 1.88 with rustup and cached successfully - every mechanical step passed. The final step, cargo check --workspace --all-targets --locked, failed. So the workspace does not build on the version its own manifest promises, and rust-version = 1.88 is not merely unverified, it is wrong. Under resolver 3 the number also drives dependency version selection, so it is a claim about the resolved graph and not only about the source.
 
-Worth flagging: this job has never run. There is no network here and no 1.88 toolchain, so it is unverifiable locally by construction. If it fails on its first CI run that is the check doing its job - the answer is then to raise rust-version to the truth, not to delete the job.
+The right sequence is therefore the reverse of what was attempted: find the real minimum first, declare that, and only then add a job to hold it there. Adding the job before correcting the number means adding a job that fails on day one, which is what happened. The divergence is now recorded in ci.md, and MSRV check is back in the future-job table with phase 1 and the trigger being rust-version corrected to a version the workspace actually builds on.
 
-A first draft of that job pinned dtolnay/rust-toolchain to a commit SHA I had invented, which would have failed at action resolution. Replaced with rustup, which the runner already has: no third-party action to pin, and the version stays a variable rather than becoming a third place the MSRV is written down.
-
-AC1 follows the monorepo.md convention: a Divergence from the build section at the top, design body left intact below it. ci.md gained one - the design describes five cargo jobs, dtolnay and Swatinem actions, a cargo-deny action and RUSTFLAGS in the workflow environment, and none of that is what runs. xtask.md gained one too, since it still told a reader that CI calls cargo xtask ci and documented four commands that do not exist. Local CI Reproduction said cargo xtask ci and now names the three real entry points plus the one check they cannot reproduce.
-
-AC3: the future-job table had commands in the Trigger column rather than triggers, and listed three jobs that already run. Trigger now names the event that has to become true before the job is worth adding. TypeScript tests and Python tests left the table because they run inside pixi run test via turbo, and MSRV check left it because it is now a job - the design had scheduled it for phase 3 against rust-version 1.85, and both the phase and the number had moved.
+AC1, AC3 and AC4 are unaffected and remain done: the divergence sections in ci.md and xtask.md, the rewritten future-job table, and the single command the workflow calls instead of restating the steps.
 <!-- SECTION:NOTES:END -->

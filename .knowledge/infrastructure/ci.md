@@ -27,7 +27,7 @@ would be reading a workflow this repository does not have:
   CI runs. Listing the steps in the workflow would be a second list, and the way a second
   list fails is that a new check passes locally and never runs in CI, which looks exactly
   like a green build.
-- **Four jobs: `checks`, `msrv`, `packages`, `sandbox plan`** — not `check`, `fmt`,
+- **Three jobs: `checks`, `packages`, `sandbox plan`** — not `check`, `fmt`,
   `clippy`, `test`, `deny`. Formatting, clippy and cargo-deny are inside `pixi run lint`,
   which also runs Biome over the JavaScript and Ruff over the Python; `pixi run test`
   likewise fans out to nextest, bun and pytest through turbo. The split is by *what a
@@ -45,10 +45,15 @@ would be reading a workflow this repository does not have:
 - **Coverage and Codecov are in the pipeline**, which the design did not anticipate:
   `ci-checks` reruns the suites under instrumentation and the job uploads the Rust,
   Python and TypeScript reports together.
-- **The MSRV check is a job, not a future job.** It is the one job that cannot go through
-  pixi: the environment pins a single Rust and it is far newer than `rust-version`, so the
-  job installs the declared MSRV with rustup and runs `cargo check --locked` on it. It
-  reads the version out of `Cargo.toml` rather than hardcoding it.
+- **`rust-version = "1.88"` is asserted and not compiled, and it is wrong.** The pixi
+  environment pins rust 1.98.1, so every job builds on a toolchain ten releases newer
+  than the declared minimum. A job that installed 1.88 with rustup and ran
+  `cargo check --workspace --all-targets --locked` was added, run once in CI, and
+  removed: it failed, which means the workspace does not in fact build on the version its
+  manifest promises. Under resolver 3 that number also participates in dependency version
+  selection, so it is a claim about the resolved graph and not only about the source.
+  Verifying it is tracked as a future job below; the fix is to find the real minimum and
+  declare that, not to delete the claim.
 - **Local reproduction is `pixi run ci`, not `cargo xtask ci`.** xtask is not the task
   runner here; see [infrastructure/xtask](xtask.md).
 
@@ -177,15 +182,15 @@ here.
 
 | Job | Phase | Trigger |
 |-----|-------|---------|
+| **MSRV check** | 1 | `rust-version` is corrected to a version the workspace actually builds on |
 | **Benchmarks** | 4 | the engine has an implementation whose performance can regress |
 | **Docker build** | 5 | a container image becomes something the project ships |
 | **WASM build** | 6 | the first crate targeting `wasm32-unknown-unknown` lands |
 | **Cross-compile** | 6 | the release workflow starts shipping a non-`x86_64` binary |
 
-Three rows left this table by being built. **TypeScript tests** and **Python tests** run
+Two rows left this table by being built: **TypeScript tests** and **Python tests** run
 inside `pixi run test`, which fans out to every language through turbo rather than giving
-each one a job. **MSRV check** is the `msrv` job; the design scheduled it for phase 3 and
-pinned it to `rust-version = "1.85"`, and both the phase and the number moved.
+each one a job.
 
 ---
 
@@ -201,8 +206,9 @@ These are the same task definitions the workflow invokes, not a reimplementation
 so "works on my machine" would have to mean pixi resolved a different environment — which
 `pixi install --locked` in CI is there to prevent.
 
-The one check this cannot reproduce is the `msrv` job: it builds on the toolchain named by
-`rust-version`, and the pixi environment pins exactly one Rust, which is a newer one.
+There is no CI check these cannot reproduce: the workflow calls these same task
+definitions rather than restating the steps, so the job list and the task list cannot
+disagree.
 
 ---
 

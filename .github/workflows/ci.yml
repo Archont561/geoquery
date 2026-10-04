@@ -102,59 +102,6 @@ jobs:
             ./packages/utils/coverage/lcov.info
           fail_ci_if_error: false
 
-  msrv:
-    name: msrv
-    # `rust-version = "1.88"` in Cargo.toml is a promise to anyone building this on an
-    # older toolchain, and resolver 3 uses it when *selecting dependency versions* — so
-    # the number changes which graph cargo picks, not just what a manifest says. The pixi
-    # environment pins one Rust and it is far newer, so every other job builds on a
-    # toolchain that would never notice the promise being broken. This job is the only
-    # place the claim is compiled rather than asserted.
-    #
-    # The version is read out of Cargo.toml rather than written here, because a hardcoded
-    # toolchain is a third place the MSRV lives and the one nobody updates.
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Read the declared MSRV
-        id: msrv
-        run: |
-          version="$(sed -n 's/^rust-version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
-          if [ -z "$version" ]; then
-            echo "no rust-version in the root Cargo.toml [workspace.package]" >&2
-            exit 1
-          fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-
-      # rustup rather than a toolchain action: the runner already has it, the version is
-      # a variable here rather than a literal, and it is one less third-party action to
-      # pin to a commit and keep pinned.
-      - name: Install the declared MSRV toolchain
-        env:
-          MSRV: ${{ steps.msrv.outputs.version }}
-        run: |
-          rustup toolchain install "$MSRV" --profile minimal
-          rustup default "$MSRV"
-
-      - name: Cache Cargo build
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-msrv-${{ steps.msrv.outputs.version }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-msrv-${{ steps.msrv.outputs.version }}-
-
-      # `--locked` so this checks the committed graph. Without it a resolver running on
-      # the older toolchain could pick a different, older set of dependencies and prove
-      # something true of a graph nobody ships.
-      - name: Check the workspace on the declared MSRV
-        run: cargo check --workspace --all-targets --locked
-
   packages:
     name: packages
     runs-on: ubuntu-latest
