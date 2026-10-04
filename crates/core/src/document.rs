@@ -140,8 +140,12 @@ impl std::error::Error for QueryDocumentError {
 
 /// The JSON type of a value, for a message that says what was found instead of what was
 /// expected.
-#[must_use]
-pub fn json_type_name(value: &Value) -> &'static str {
+///
+/// `pub(crate)` because `not_an_object` is its only caller and that is `pub(crate)` too.
+/// It was public, which made the `Object` arm an answer the crate owed to a caller that
+/// could never ask for it — an object is the case that succeeds, so nothing outside this
+/// file can reach that arm. Internal, the arm is what it always was: exhaustiveness.
+pub(crate) fn json_type_name(value: &Value) -> &'static str {
     match value {
         Value::Null => "null",
         Value::Bool(_) => "a boolean",

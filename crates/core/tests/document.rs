@@ -8,7 +8,6 @@
 
 use serde_json::json;
 
-use geoquery_core::document::json_type_name;
 use geoquery_core::{QueryDocument, QueryDocumentError};
 
 #[test]
@@ -131,12 +130,4 @@ fn a_failure_hands_over_the_error_underneath_it() {
         not_an_object.source().is_none(),
         "nothing underlies a shape this crate classified itself: {not_an_object}"
     );
-}
-
-#[test]
-fn an_object_is_named_like_every_other_json_type() {
-    // The other five names are reached through `NotAnObject`; this one cannot be, because
-    // an object is the case that succeeds. It is still the answer the function owes a
-    // caller that asks about a value nothing rejected.
-    assert_eq!(json_type_name(&json!({})), "an object");
 }
