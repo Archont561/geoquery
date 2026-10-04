@@ -38,6 +38,15 @@ break the build:
 - **Resolver 3, edition 2024, MSRV 1.88**, not resolver 2. Resolver 3 uses `rust-version`
   during version selection, which is what makes the MSRV a fact about the graph rather than
   a claim in a manifest.
+- **One member restates `[workspace.lints]` instead of inheriting it.**
+  `crates/node-native` is an N-API addon, and `#[napi]` expands to a module constructor
+  carrying its own `#[allow(unsafe_code)]`. `forbid` is the one level a macro cannot
+  override, so the addon does not compile under the workspace policy, and cargo gives a
+  member no way to override a single inherited lint. The crate therefore copies the
+  tables and softens exactly one key, `unsafe_code = "deny"`. `pixi run layout-check`
+  compares the copy against `[workspace.lints]` on every run, so "must move with it" is
+  a check rather than a comment. Every other member, including the published
+  `geoquery-cli`, inherits and stays on `forbid`.
 - **`clippy::nursery` is not enabled.** Nursery lints are unstable, so a patch bump of the
   pinned toolchain would turn into a lint failure; `pedantic` is gated instead.
 - **There is no `rustfmt.toml`.** Defaults, so there is no second formatting policy to keep
@@ -46,65 +55,81 @@ break the build:
   is `apps/docs/`, not `docs/`.
 - **Tests mirror sources.** Every crate has `tests/`, one file per file in `src/`, and the
   tests are integration tests against the public surface — `crates/cli/tests/main.rs` runs
-  the built binary and asserts stdout, stderr and the exit code.
+  the built binary and asserts stdout, stderr and the exit code. `pixi run layout-check`
+  fails on a source file with no test beside it, and on a test file with no source.
 
 ## Directory Layout
 
+The tree below is the repository as it is, not as the design above imagined it; the
+divergence section explains every place the two differ and why. `pixi run layout-check`
+asserts the structural claims — the `crates/*` glob, the `crates/cli` exclusion, the
+inherited lints and metadata, and the test mirror — against `cargo metadata` rather than
+against a reading of this file, so the two cannot drift apart quietly.
+
 ```
 geoquery/
-├── .cargo/
-│   └── config.toml             # xtask alias
-├── Cargo.toml                  # Virtual workspace root
-├── Cargo.lock                  # Committed (CLI binary)
-├── deny.toml                   # cargo-deny config
-├── rustfmt.toml                # Formatting rules
+├── AGENTS.md                   # Contributor rules; pixi is the only entry point
+├── Cargo.toml                  # Workspace root *and* the geoquery-cli package
+├── Cargo.lock                  # Committed (the workspace ships a binary)
+├── deny.toml                   # cargo-deny config, read from the workspace root
+├── pixi.toml                   # Owns the toolchain, environments, tasks and the version
+├── pixi.lock
+├── package.json / bun.lock     # Root Bun workspace
+├── turbo.json                  # Task graph across the three languages
+├── biome.json                  # Formatter and linter for JS/TS/JSON
+├── tsconfig.base.json
+├── lefthook.yml                # Git hooks, all of which call `pixi run`
 ├── .github/
-│   └── workflows/
-│       └── ci.yml              # CI pipeline
-├── xtask/                      # Task runner crate
-│   ├── Cargo.toml
-│   └── src/main.rs
+│   └── workflows/              # ci.yml, release.yml
 ├── crates/
-│   ├── types/                  # geoquery-types
+│   ├── types/                  # geoquery-types — the data model everything shares
 │   ├── core/                   # geoquery-core
+│   ├── protocol/               # geoquery-protocol — the FFI wire contract
+│   ├── engine/                 # geoquery-engine
 │   ├── adapter-stac/           # geoquery-adapter-stac
 │   ├── adapter-ogc/            # geoquery-adapter-ogc
 │   ├── adapter-native/         # geoquery-adapter-native
-│   ├── cli/                    # geoquery-cli
-│   ├── tui/                    # geoquery-tui (phase 2)
+│   ├── cli/                    # geoquery-cli — sources only; its manifest is the root
+│   ├── tui/                    # geoquery-tui
 │   ├── http/                   # geoquery-http
-│   └── mcp/                    # geoquery-mcp
+│   ├── mcp/                    # geoquery-mcp
+│   ├── node-native/            # N-API addon for the TypeScript package
+│   ├── python-native/          # PyO3 extension for the Python SDK
+│   ├── xtask/                  # geoquery-xtask — code generation only, not a task runner
+│   ├── package.json            # Turbo façade: `lint`, `test`, `cov` for the whole workspace
+│   └── turbo.json
 ├── packages/
-│   └── client/                 # @archont561/geoquery (TypeScript FFI package)
+│   ├── geoquery/               # @archont561/geoquery — the TypeScript client
+│   └── utils/                  # @geoquery/utils
 ├── python/
-│   └── geoquery/               # geoquery (Python)
-├── schemas/                    # Generated JSON schemas
-├── docs/
-└── README.md
+│   └── geoquery/               # geoquery — the Python SDK
+├── apps/
+│   └── docs/                   # @geoquery/docs — the documentation site
+├── scripts/                    # version.ts, layout.ts, restore.sh
+├── backlog/                    # Tasks, milestones and plans
+└── .knowledge/                 # This corpus
 ```
 
-**Why `crates/` subdirectory?** Keeps the root clean as the workspace
-grows. Future expansion adds `adapters/`, `servers/`, `tools/` as
-peer directories.
+Every directory under `crates/` is a workspace member except `cli`, which holds the
+binary's sources while the root `Cargo.toml` holds its manifest. There is no `schemas/`
+yet — it arrives with codegen — and no `.cargo/config.toml` or `rustfmt.toml` in the
+repository at all.
+
+**Why `crates/` subdirectory?** Keeps the root clean as the workspace grows. Future
+expansion adds peer directories rather than more top-level crates.
 
 ---
 
-## Root `Cargo.toml` (Virtual Workspace)
+## Root `Cargo.toml`
 
 ```toml
+# The real one. `members` is a glob and not a list, so adding a crate is creating a
+# directory; `exclude` names the one directory under `crates/` that is sources without a
+# manifest. Edition 2024 implies resolver 3, which is what makes `rust-version` a fact
+# about the resolved graph rather than a claim in a manifest.
 [workspace]
-resolver = "2"
-members = [
-    "crates/types",
-    "crates/core",
-    "crates/adapter-stac",
-    "crates/adapter-ogc",
-    "crates/adapter-native",
-    "crates/cli",
-    "crates/http",
-    "crates/mcp",
-    "xtask",
-]
+members = ["crates/*"]
+exclude = ["crates/cli"]
 
 # ── Shared package metadata ──────────────────────────
 [workspace.package]
@@ -204,8 +229,10 @@ wiremock.workspace = true
 workspace = true
 ```
 
-**Key line:** `[lints] workspace = true` — every crate inherits the
-root lint config. No per-crate Clippy drift.
+**Key line:** `[lints] workspace = true` — every crate inherits the root lint config, so
+there is no per-crate Clippy drift. The single exception is `crates/node-native`, for the
+reason given in the divergence section, and the exception is itself checked: it is allowed
+to soften `unsafe_code` and nothing else.
 
 ---
 

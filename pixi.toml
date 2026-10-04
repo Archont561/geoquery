@@ -344,6 +344,15 @@ version-set = { cmd = "bun \"$PIXI_PROJECT_ROOT/scripts/version.ts\" --set", dep
   "bun-install",
 ], description = "Set the release version in every manifest that owns a literal" }
 
+# The workspace layout is a specification in `.knowledge/infrastructure/monorepo.md` and a
+# shape on disk, and nothing but this task makes the two agree. It asks `cargo metadata`
+# what the `crates/*` glob actually resolved to rather than reading the `members` line,
+# because a glob that matches nothing is a correct-looking manifest and an empty
+# workspace.
+layout-check = { cmd = "bun \"$PIXI_PROJECT_ROOT/scripts/layout.ts\"", depends-on = [
+  "bun-install",
+], description = "Assert the workspace layout matches the monorepo specification" }
+
 # ── repo utilities (lefthook + CI share these) ─────────────────────────────────
 # The backlog and skills CLIs are installed in the root Bun workspace and invoked through
 # `bun x`, which uses Bun instead of the packages' Node shebangs. This keeps the commands
@@ -419,6 +428,7 @@ gates = { description = "Every check that must pass before a commit lands", depe
   "typecheck",
   "test",
   "version-check",
+  "layout-check",
   "lint-actions",
   "publish-plan",
 ] }
