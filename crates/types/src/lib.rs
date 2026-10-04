@@ -153,6 +153,18 @@ macro_rules! open_string_enum {
     };
 }
 
+// Declared here rather than at the top of the file because `open_string_enum!` is a
+// `macro_rules!` macro: it is in scope for the rest of this module and its children only
+// from the point of definition onwards, and `query` uses it. Moving this line above the
+// macro breaks the build with an unresolved-macro error that does not mention ordering.
+pub mod query;
+
+pub use query::{
+    DistanceUnit, ExecutionMode, ExecutionOptions, GeoQuery, IncludeOptions, QueryScope,
+    QueryValidationError, Selection, SortDirection, SortExpression, SpatialPredicate,
+    TemporalOperation, TemporalPredicate,
+};
+
 open_string_enum! {
     /// What kind of real-world or logical resource a descriptor represents.
     pub enum ResourceType {
