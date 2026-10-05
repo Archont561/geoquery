@@ -62,9 +62,31 @@ pub struct NormalizedResponse {
     /// to do with one — `GeoResult::id` is not optional, by the design in
     /// `crates/types/src/result.rs`.
     pub skipped: usize,
-    /// The opaque pagination token from the response's own `next` link, if it offered
-    /// one.
-    pub next_page: Option<String>,
+    /// The response's own `next` link, if it offered one.
+    pub next: Option<NextLink>,
+}
+
+/// A STAC API `next` link, read well enough to actually follow.
+///
+/// STAC pages forward with a link rather than with a cursor parameter, and on a `POST
+/// /search` that link carries the request to make: `method`, a partial `body`, and a
+/// `merge` flag saying whether the body replaces the original request or is laid over it.
+/// Reading only the `href` — which is what [`geoquery_core::QueryResult::next_page`]
+/// carries, since every protocol pages differently and a token is all that is portable —
+/// is enough to *report* that another page exists and not enough to fetch it, so this
+/// richer form exists alongside it for [`crate::adapter`]'s use.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct NextLink {
+    /// Where the next page lives.
+    pub href: String,
+    /// The HTTP method to use. `GET` when the link does not say, as OGC API's link model
+    /// specifies.
+    pub method: String,
+    /// The body members the link supplied, for a `POST`.
+    pub body: Option<JsonObject>,
+    /// Whether [`Self::body`] is merged into the original request body (`true`) or used
+    /// in place of it (`false`, the default per the STAC API spec).
+    pub merge: bool,
 }
 
 /// Normalize a STAC search response into `GeoResult`s.
@@ -118,23 +140,70 @@ pub fn normalize_response(
     Ok(NormalizedResponse {
         results,
         skipped,
-        next_page: next_link(object),
+        next: next_link(object),
     })
 }
 
-/// The `href` of the response's `next` link, STAC API's pagination mechanism.
+/// The response's `next` link, STAC API's pagination mechanism.
 ///
-/// Surfaced opaquely rather than followed: this spike returns one page per query, and a
-/// caller that wants more sends `next_page` back as a request of its own choosing rather
-/// than this adapter deciding how many pages "enough" is.
-fn next_link(object: &serde_json::Map<String, Value>) -> Option<String> {
+/// Returned rather than followed here: this module is a pure function over one response
+/// body, and how many pages are "enough" is a decision that needs the query's `limit`,
+/// which only [`crate::adapter`] has.
+fn next_link(object: &serde_json::Map<String, Value>) -> Option<NextLink> {
     object.get("links")?.as_array()?.iter().find_map(|link| {
         let link = link.as_object()?;
         if link.get("rel").and_then(Value::as_str) != Some("next") {
             return None;
         }
-        link.get("href").and_then(Value::as_str).map(str::to_owned)
+        Some(NextLink {
+            href: link.get("href").and_then(Value::as_str)?.to_owned(),
+            method: link
+                .get("method")
+                .and_then(Value::as_str)
+                .unwrap_or("GET")
+                .to_ascii_uppercase(),
+            body: link.get("body").and_then(Value::as_object).cloned(),
+            merge: link
+                .get("merge")
+                .and_then(Value::as_bool)
+                .unwrap_or_default(),
+        })
     })
+}
+
+/// Trim every result's `properties` to the fields the query asked for.
+///
+/// The one local post-processing step this adapter performs, and the reason
+/// [`crate::request::translate`] can report field selection honestly whether or not the
+/// service implements the Fields extension — which it may not, and which even when it
+/// does is documented by that extension as a hint the service need not honour.
+///
+/// Three rules, all of them about not destroying a result in the name of shrinking it:
+///
+/// - **Only `properties` is trimmed.** `id`, `geometry`, `bbox`, `assets`, `links` and
+///   `provenance` are what makes a `GeoResult` a result rather than a fragment; a field
+///   list is a statement about attributes, not permission to return something that can no
+///   longer be identified or located.
+/// - **Both spellings of a name are accepted.** STAC itself cannot decide whether an item
+///   property is addressed as `eo:cloud_cover` or `properties.eo:cloud_cover` — the Fields
+///   and Sort extensions both leave it to the implementation — so a caller who wrote
+///   either gets what they meant.
+/// - **An empty list means no projection**, matching `GeoQuery::fields`' own
+///   documentation ("empty meaning the adapter's default projection"), so this function is
+///   safe to call unconditionally.
+pub fn project_fields(results: &mut [GeoResult], fields: &[String]) {
+    if fields.is_empty() {
+        return;
+    }
+    let wanted: Vec<&str> = fields
+        .iter()
+        .map(|field| field.strip_prefix("properties.").unwrap_or(field))
+        .collect();
+    for result in results {
+        result
+            .properties
+            .retain(|name, _| wanted.contains(&name.as_str()));
+    }
 }
 
 /// Normalize one STAC `Feature`, or `None` if it has no usable `id`.

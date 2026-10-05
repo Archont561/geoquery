@@ -522,7 +522,10 @@ async fn run_one_source(
         return;
     }
 
-    let (_, findings) = geoquery_adapter_stac::translate(query);
+    let (_, findings) = geoquery_adapter_stac::translate(
+        query,
+        geoquery_adapter_stac::StacConformance::for_service(descriptor),
+    );
     if let Some(reason) = skip_reason(policy, query, &findings) {
         outcome.sources.push(SourceStatus {
             source: id.to_owned(),
@@ -609,7 +612,15 @@ fn skip_reason(
                 finding.support == Support::Pushed
                     && matches!(
                         finding.feature,
-                        QueryFeature::Spatial(_) | QueryFeature::Temporal(_)
+                        // Attribute filtering belongs here for the same reason the other
+                        // two do: it is a predicate that narrows what comes back. It was
+                        // absent while nothing could push one — a list of features that
+                        // no adapter could ever satisfy would have made this rule unfalsi-
+                        // fiable — and a source that accepts a CQL2 filter is now exactly
+                        // the source `balanced` exists to keep, not to skip.
+                        QueryFeature::Spatial(_)
+                            | QueryFeature::Temporal(_)
+                            | QueryFeature::AttributeFilter
                     )
             });
             (asked_for_narrowing && !pushed_narrowing).then(|| {

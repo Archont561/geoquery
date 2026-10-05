@@ -14,7 +14,9 @@
 //! marker, while every conforming STAC API names itself in the one field the spec
 //! requires.
 
-use geoquery_types::{AxisOrder, CapabilitySet, CrsDescriptor, JsonObject, SpatialOperation};
+use geoquery_types::{
+    AxisOrder, CapabilitySet, CrsDescriptor, JsonObject, ServiceDescriptor, SpatialOperation,
+};
 use serde_json::Value;
 
 /// Conformance URIs that mean "the STAC API core is implemented here", across the
@@ -25,20 +27,135 @@ fn declares_core(conforms_to: &[String]) -> bool {
         .any(|class| class.contains("stacspec.org") && class.contains("/core"))
 }
 
-/// Whether the service advertises the item-search filter extension or a CQL2
-/// conformance class, under any of the URI spellings different STAC API versions have
-/// shipped it under.
-fn declares_filter(conforms_to: &[String]) -> bool {
-    conforms_to
-        .iter()
-        .any(|class| class.contains("item-search#filter") || class.contains("cql2"))
+/// What a service's `conformsTo` list says about the extensions this adapter can use.
+///
+/// One struct rather than a scatter of predicates, because the same answer is needed in
+/// two places that must not disagree: [`parse_landing`] fills a
+/// [`CapabilitySet`] from it at registration time, and [`crate::request::translate`] reads
+/// it again at query time to decide what may be sent. The second reader works from the
+/// `conformsTo` array [`parse_landing`] kept on the descriptor's `metadata`, so the
+/// decision is made from the service's own words both times rather than from a boolean
+/// somebody re-derived.
+///
+/// Each field is a *declaration*, not a capability this adapter has verified. An
+/// undeclared extension is treated as absent — see [`geoquery_core::Cause::Undeclared`]
+/// for why that is the safe direction: a service handed a parameter it does not implement
+/// may ignore it rather than reject it, which turns a narrow question into a wide answer
+/// with nothing in the response to show that it widened.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "these are six independent declarations a service either made or did not, \
+              read off one list; clippy's suggested state machine would model them as \
+              stages of one thing, which they are not — a service can declare any subset"
+)]
+pub struct StacConformance {
+    /// The Filter extension is bound to item search (`…/item-search#filter`, or OGC API
+    /// Features Part 3's `…/conf/filter`), under any version's spelling of either.
+    pub filter: bool,
+    /// CQL2 JSON is accepted. Required separately from [`Self::filter`]: the extension
+    /// lets a service implement only `cql2-text`, and a `POST /search` carrying a JSON
+    /// filter to such a service is a 400 at best.
+    pub cql2_json: bool,
+    /// The Basic CQL2 conformance class: comparison operators and boolean connectives.
+    pub basic_cql2: bool,
+    /// The Advanced Comparison Operators class, which is where CQL2 keeps `LIKE`, `IN`
+    /// and `BETWEEN`. A service may declare [`Self::basic_cql2`] without this one, and
+    /// Planetary Computer is exactly that service.
+    pub advanced_comparison: bool,
+    /// The Sort extension is bound to item search (`…/item-search#sort`).
+    pub sort: bool,
+    /// The Fields extension is bound to item search (`…/item-search#fields`).
+    pub fields: bool,
 }
 
-/// Whether the service advertises the item-search sort extension.
-fn declares_sort(conforms_to: &[String]) -> bool {
-    conforms_to
-        .iter()
-        .any(|class| class.contains("item-search#sort"))
+impl StacConformance {
+    /// Read a `conformsTo` list.
+    ///
+    /// Matching is by substring rather than by equality, for the same reason
+    /// `declares_core` above is: the same conformance class ships under `v1.0.0`,
+    /// `v1.0.0-rc.2` and `v1.1.0` URIs, all of which are live on real services today —
+    /// Planetary Computer's filter binding is still the `rc.2` spelling — and a parser
+    /// that listed exact URIs would quietly decide a conforming service is incapable
+    /// every time a new version is published.
+    #[must_use]
+    pub fn from_classes(conforms_to: &[String]) -> Self {
+        let any = |needle: &str| conforms_to.iter().any(|class| class.contains(needle));
+        Self {
+            filter: any("item-search#filter") || any("ogcapi-features-3/1.0/conf/filter"),
+            cql2_json: any("cql2-json"),
+            basic_cql2: any("basic-cql2"),
+            advanced_comparison: any("advanced-comparison-operators"),
+            sort: any("item-search#sort"),
+            fields: any("item-search#fields"),
+        }
+    }
+
+    /// Read the `conformsTo` list [`parse_landing`] recorded on a registered service.
+    ///
+    /// A descriptor with no recorded conformance — one written by an older build, or by
+    /// something that is not this adapter — declares nothing, which is the same answer as
+    /// a service that advertised no extensions. Both end with this adapter sending only
+    /// what STAC API core guarantees.
+    #[must_use]
+    pub fn for_service(service: &ServiceDescriptor) -> Self {
+        let classes: Vec<String> = service
+            .metadata
+            .get("conformsTo")
+            .and_then(Value::as_array)
+            .map(|values| {
+                values
+                    .iter()
+                    .filter_map(|value| value.as_str().map(str::to_owned))
+                    .collect()
+            })
+            .unwrap_or_default();
+        Self::from_classes(&classes)
+    }
+
+    /// Whether a CQL2 JSON filter using only basic operators may be sent.
+    ///
+    /// All three parts are needed and each says something different: that filtering is
+    /// bound to the endpoint being called, that the JSON encoding is understood, and that
+    /// the operators the encoding will carry are implemented.
+    #[must_use]
+    pub const fn pushes_basic_filter(self) -> bool {
+        self.filter && self.cql2_json && self.basic_cql2
+    }
+
+    /// Whether the service also declared the class that `LIKE` and `IN` belong to.
+    #[must_use]
+    pub const fn pushes_advanced_filter(self) -> bool {
+        self.pushes_basic_filter() && self.advanced_comparison
+    }
+
+    /// Whether the landing page named none of the extension classes this adapter reads.
+    ///
+    /// Not the same as "the service supports nothing": it is "the service said nothing
+    /// this adapter recognises", which is the distinction
+    /// [`geoquery_core::Cause::Undeclared`] draws against
+    /// [`geoquery_core::Cause::Declined`].
+    #[must_use]
+    pub const fn declares_nothing(self) -> bool {
+        !self.filter
+            && !self.cql2_json
+            && !self.basic_cql2
+            && !self.advanced_comparison
+            && !self.sort
+            && !self.fields
+    }
+
+    /// Whether the service claims attribute filtering at all, in any encoding.
+    ///
+    /// Broader than [`Self::pushes_basic_filter`] on purpose: this is what
+    /// [`CapabilitySet::attribute`] records, and that field is documented as the
+    /// service's own claim rather than a statement about what this adapter version can
+    /// reach. A service offering `cql2-text` only still filters; this adapter just cannot
+    /// ask it to.
+    #[must_use]
+    pub const fn declares_filter(self) -> bool {
+        self.filter || self.cql2_json
+    }
 }
 
 /// What this adapter learned from a landing page, before anything has been translated
@@ -58,11 +175,20 @@ pub struct ParsedLanding {
     /// What the service declares it can do.
     ///
     /// This is the service's own claim, not a statement about what this adapter version
-    /// implements — a server offering CQL2 filtering still gets `attribute: Some(true)`
-    /// here even though [`crate::request::translate`] never sends a filter. The two are
-    /// kept apart so `geoquery source describe` can show a user what a future adapter
-    /// version could reach, without this one pretending to reach it already.
+    /// implements — a server offering `cql2-text` and nothing else still gets
+    /// `attribute: Some(true)` here, even though [`crate::request::translate`] will not
+    /// send it a filter, because this adapter speaks only CQL2 JSON. The two are kept
+    /// apart so `geoquery source describe` can show a user what a future adapter version
+    /// could reach, without this one pretending to reach it already; [`Self::conformance`]
+    /// is the narrower answer translation actually acts on.
     pub capabilities: CapabilitySet,
+    /// The extension classes the landing page declared, as this adapter reads them.
+    ///
+    /// Derived from the same `conformsTo` list that is kept verbatim in [`Self::metadata`],
+    /// and recomputed from that list at query time by
+    /// [`StacConformance::for_service`] — this field is the registration-time view of the
+    /// same answer, so a test can assert on it without a round trip through a descriptor.
+    pub conformance: StacConformance,
     /// Everything else worth keeping from the landing page: the raw `conformsTo` list,
     /// the resolved `search` and `collections` URLs, and the declared `type`.
     pub metadata: JsonObject,
@@ -104,6 +230,7 @@ pub fn parse_landing(base_url: &str, body: &Value) -> Result<ParsedLanding, Stri
     let collections_url = find_link(links, "data")
         .unwrap_or_else(|| format!("{}/collections", base_url.trim_end_matches('/')));
 
+    let conformance = StacConformance::from_classes(&conforms_to);
     let capabilities = CapabilitySet {
         // STAC API's core conformance class guarantees both `bbox` and `intersects` on
         // `/search`; neither is a separate conformance class to check for.
@@ -112,8 +239,8 @@ pub fn parse_landing(base_url: &str, body: &Value) -> Result<ParsedLanding, Stri
         geometry_filter: Some(true),
         temporal: Some(true),
         pagination: Some(true),
-        attribute: Some(declares_filter(&conforms_to)),
-        sorting: Some(declares_sort(&conforms_to)),
+        attribute: Some(conformance.declares_filter()),
+        sorting: Some(conformance.sort),
         crs: vec![CrsDescriptor {
             code: "OGC:CRS84".to_owned(),
             axis_order: AxisOrder::LonLat,
@@ -138,6 +265,7 @@ pub fn parse_landing(base_url: &str, body: &Value) -> Result<ParsedLanding, Stri
         search_url,
         collections_url,
         capabilities,
+        conformance,
         metadata,
     })
 }

@@ -112,7 +112,10 @@ ask for is reported, not attempted.
   adapter refuses rather than approximates an exact-geometry or attribute-filter
   predicate. The moment an engine-level "apply this predicate to normalized results"
   function exists, `crates/adapter-stac/src/request.rs` should be revisited: several of
-  its `Refused` findings become legitimate `Approximated` ones.
+  its `Refused` findings become legitimate `Approximated` ones. Still true as of
+  2026-10-05: the two local steps added since (field projection and the `offset` window)
+  remove nothing a predicate would have kept, so neither is the narrowing step this
+  describes.
 - **Registry format is a placeholder, not the Phase 1 design.**
   `.knowledge/infrastructure/storage.md` (if and when it specifies a format) and
   `backlog/tasks/gq-6...md` describe a YAML-backed registry under `~/.geoquery/sources/`
@@ -124,6 +127,13 @@ ask for is reported, not attempted.
 - **CQL2 / attribute filtering, sorting, field projection beyond the trivial case,
   pagination past one page, and every non-STAC protocol are all still unimplemented.**
   All are visible as `Refused` findings on every query that asks for them, never silent.
+
+  *Partly closed on 2026-10-05 by
+  [project/phase-1-stac-pushdown](phase-1-stac-pushdown.md):* CQL2 JSON attribute
+  filtering, sorting, field projection and multi-page pagination are now implemented and
+  gated on the service's published conformance classes. Non-STAC protocols, CQL2's
+  temporal/spatial functions and the `/queryables` document remain unimplemented; see
+  that report's own "What remains unresolved".
 - **The CLI surface here (`geoquery source add|list|describe`, `geoquery query`) is this
   spike's literal instruction, not the aspirational surface in
   [interfaces/cli](../interfaces/cli.md) (`geoquery add`, `geoquery sources`,

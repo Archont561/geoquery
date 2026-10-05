@@ -706,3 +706,181 @@ fn query_rejects_a_geo_query_that_parses_but_fails_validation() {
     assert_eq!(code_of(&output), EXIT_INVALID, "{}", stderr_of(&output));
     assert!(stderr_of(&output).contains("not a valid query"));
 }
+
+// ── conformance-driven pushdown through the CLI ──────────────────────────────────
+
+/// Register a source whose landing page advertises `classes` on top of the STAC core.
+///
+/// The conformance list is the whole point of these cases: it is what decides whether a
+/// filter reaches the service, and it travels from the landing page into the registry and
+/// back out at query time, which is a path no unit test covers.
+async fn register_source_declaring(
+    registry: &std::path::Path,
+    id: &str,
+    server: &MockServer,
+    classes: &[&str],
+) {
+    let mut conforms_to = vec![
+        "https://api.stacspec.org/v1.0.0/core".to_owned(),
+        "https://api.stacspec.org/v1.0.0/item-search".to_owned(),
+    ];
+    conforms_to.extend(classes.iter().map(|class| (*class).to_owned()));
+    Mock::given(method("GET"))
+        .and(path("/"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "type": "Catalog",
+            "conformsTo": conforms_to,
+            "links": [
+                { "rel": "data", "href": format!("{}/collections", server.uri()) },
+                { "rel": "search", "href": format!("{}/search", server.uri()), "method": "POST" }
+            ]
+        })))
+        .mount(server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/collections"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(collections_body()))
+        .mount(server)
+        .await;
+
+    let add = geoquery(&[
+        "--registry",
+        registry.to_str().unwrap(),
+        "source",
+        "add",
+        id,
+        "--type",
+        "stac",
+        "--url",
+        &server.uri(),
+    ]);
+    assert_eq!(
+        code_of(&add),
+        0,
+        "fixture setup failed: {}",
+        stderr_of(&add)
+    );
+}
+
+const CLOUD_FILTER: &str =
+    r#"{"filters": {"field": "eo:cloud_cover", "op": "<", "value": 10}, "limit": 5}"#;
+
+#[tokio::test]
+async fn a_filter_reaches_a_source_that_declared_cql2_json() {
+    let server = MockServer::start().await;
+    let registry = temp_registry("query-cql2");
+    register_source_declaring(
+        &registry,
+        "planetary-computer",
+        &server,
+        &[
+            "https://api.stacspec.org/v1.0.0-rc.2/item-search#filter",
+            "http://www.opengis.net/spec/cql2/1.0/conf/cql2-json",
+            "http://www.opengis.net/spec/cql2/1.0/conf/basic-cql2",
+        ],
+    )
+    .await;
+    mount_search(&json!([{
+        "type": "Feature",
+        "id": "item-1",
+        "collection": "sentinel-2-l2a",
+        "geometry": null,
+        "properties": { "datetime": "2024-06-15T00:00:00Z", "eo:cloud_cover": 4 },
+        "assets": {},
+        "links": []
+    }]))
+    .mount(&server)
+    .await;
+
+    let query = temp_file("cql2", CLOUD_FILTER);
+    let output = geoquery(&[
+        "--registry",
+        registry.to_str().unwrap(),
+        "query",
+        "--query",
+        query.to_str().unwrap(),
+    ]);
+    fs::remove_file(&query).ok();
+    fs::remove_file(&registry).ok();
+
+    assert_eq!(code_of(&output), 0, "{}", stderr_of(&output));
+    let body: Value = serde_json::from_str(&stdout_of(&output)).expect("query prints JSON");
+    assert_eq!(body["status"], "ok");
+    assert_eq!(body["sources"][0]["status"], "ok");
+    assert_eq!(
+        body["sources"][0]["pushed"]["filter"],
+        json!({ "op": "<", "args": [{ "property": "eo:cloud_cover" }, 10] }),
+        "the filter that was sent is visible as the request that was sent"
+    );
+    assert_eq!(body["sources"][0]["pushed"]["filter-lang"], "cql2-json");
+    assert_eq!(body["results"].as_array().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn a_filter_only_query_skips_a_source_that_cannot_push_it() {
+    // The `balanced` rule: a source that can narrow nothing the query asked for is not
+    // worth an unfiltered fetch. The same document against the service above is answered;
+    // the difference is one conformance class, which is the point.
+    let server = MockServer::start().await;
+    let registry = temp_registry("query-no-cql2");
+    register_source_declaring(&registry, "earth-search", &server, &[]).await;
+
+    let query = temp_file("no-cql2", CLOUD_FILTER);
+    let output = geoquery(&[
+        "--registry",
+        registry.to_str().unwrap(),
+        "query",
+        "--query",
+        query.to_str().unwrap(),
+    ]);
+    fs::remove_file(&query).ok();
+    fs::remove_file(&registry).ok();
+
+    let body: Value = serde_json::from_str(&stdout_of(&output)).expect("query prints JSON");
+    assert_eq!(body["sources"][0]["status"], "skipped");
+    assert!(
+        body["sources"][0]["reason"]
+            .as_str()
+            .unwrap()
+            .contains("balanced policy"),
+        "the skip says which policy decided it: {}",
+        body["sources"][0]["reason"]
+    );
+}
+
+#[tokio::test]
+async fn exploratory_asks_a_source_that_balanced_would_have_skipped() {
+    let server = MockServer::start().await;
+    let registry = temp_registry("query-exploratory-filter");
+    register_source_declaring(&registry, "earth-search", &server, &[]).await;
+    mount_search(&json!([])).mount(&server).await;
+
+    let query = temp_file("exploratory-filter", CLOUD_FILTER);
+    let output = geoquery(&[
+        "--registry",
+        registry.to_str().unwrap(),
+        "query",
+        "--query",
+        query.to_str().unwrap(),
+        "--policy",
+        "exploratory",
+    ]);
+    fs::remove_file(&query).ok();
+    fs::remove_file(&registry).ok();
+
+    assert_eq!(code_of(&output), 0, "{}", stderr_of(&output));
+    let body: Value = serde_json::from_str(&stdout_of(&output)).expect("query prints JSON");
+    assert_eq!(body["sources"][0]["status"], "degraded");
+    assert_eq!(
+        body["sources"][0]["degradations"][0]["feature"], "attribute-filter",
+        "the refusal is reported rather than the query quietly running unfiltered"
+    );
+    assert!(
+        !body["sources"][0]["pushed"]
+            .as_object()
+            .unwrap()
+            .contains_key("filter"),
+        "nothing the service did not declare was sent: {}",
+        body["sources"][0]["pushed"]
+    );
+}

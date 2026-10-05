@@ -220,3 +220,97 @@ fn a_bare_collection_resource_is_also_recognised() {
         "https://example.test/collections/one/search"
     );
 }
+
+// ── conformance classes ──────────────────────────────────────────────────────────
+
+#[test]
+fn earth_search_declares_sorting_and_field_selection_but_no_filtering() {
+    let parsed = parse_landing(
+        "https://earth-search.aws.element84.com/v1",
+        &earth_search_landing(),
+    )
+    .expect("a conforming landing page parses");
+
+    let conformance = parsed.conformance;
+    assert!(conformance.sort, "item-search#sort is advertised");
+    assert!(conformance.fields, "item-search#fields is advertised");
+    assert!(
+        !conformance.filter,
+        "the legacy item-search#query extension is not the Filter extension"
+    );
+    assert!(!conformance.pushes_basic_filter());
+    assert!(!conformance.declares_nothing());
+}
+
+#[test]
+fn planetary_computer_declares_cql2_json_filtering_and_nothing_else() {
+    let parsed = parse_landing(
+        "https://planetarycomputer.microsoft.com/api/stac/v1",
+        &planetary_computer_landing(),
+    )
+    .expect("a conforming landing page parses");
+
+    let conformance = parsed.conformance;
+    assert!(
+        conformance.filter,
+        "the `v1.0.0-rc.2` spelling of the filter binding still counts"
+    );
+    assert!(conformance.cql2_json);
+    assert!(conformance.basic_cql2);
+    assert!(conformance.pushes_basic_filter());
+    assert!(
+        !conformance.advanced_comparison,
+        "LIKE and IN live in a class this service did not declare"
+    );
+    assert!(!conformance.pushes_advanced_filter());
+    assert!(!conformance.sort);
+    assert!(!conformance.fields);
+}
+
+#[test]
+fn a_service_declaring_only_the_core_declares_nothing_this_adapter_can_use() {
+    let landing = json!({
+        "type": "Catalog",
+        "conformsTo": ["https://api.stacspec.org/v1.0.0/core"],
+        "links": []
+    });
+    let parsed = parse_landing("https://example.org/stac", &landing).expect("core is enough");
+    assert!(parsed.conformance.declares_nothing());
+    assert_eq!(parsed.capabilities.attribute, Some(false));
+    assert_eq!(parsed.capabilities.sorting, Some(false));
+}
+
+#[test]
+fn conformance_is_read_back_off_a_registered_descriptor() {
+    // The query path does not keep the parsed landing page: it re-reads `conformsTo`
+    // from the descriptor's metadata, so these two must agree or a registered source
+    // would be translated against capabilities it never had.
+    let parsed = parse_landing(
+        "https://planetarycomputer.microsoft.com/api/stac/v1",
+        &planetary_computer_landing(),
+    )
+    .expect("a conforming landing page parses");
+
+    let mut descriptor = geoquery_types::ServiceDescriptor::new(
+        geoquery_types::ServiceType::Stac,
+        "https://planetarycomputer.microsoft.com/api/stac/v1".to_owned(),
+    );
+    descriptor.metadata = parsed.metadata.clone();
+
+    assert_eq!(
+        geoquery_adapter_stac::StacConformance::for_service(&descriptor),
+        parsed.conformance
+    );
+}
+
+#[test]
+fn a_descriptor_with_no_recorded_conformance_declares_nothing() {
+    let descriptor = geoquery_types::ServiceDescriptor::new(
+        geoquery_types::ServiceType::Stac,
+        "https://example.org/stac".to_owned(),
+    );
+    assert!(
+        geoquery_adapter_stac::StacConformance::for_service(&descriptor).declares_nothing(),
+        "an unrecorded capability is not a capability"
+    );
+}
