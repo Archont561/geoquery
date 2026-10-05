@@ -31,8 +31,8 @@ pub mod service;
 // that says so — the one file that fails when this block loses a name.
 pub use filter::{CompareOp, FilterExpr, FilterValidationError, FilterValue, MAX_FILTER_DEPTH};
 pub use query::{
-    DistanceUnit, ExecutionMode, ExecutionOptions, GeoQuery, IncludeOptions, QueryScope,
-    QueryValidationError, Selection, SortDirection, SortExpression, SpatialPredicate,
+    DistanceUnit, ExecutionMode, ExecutionOptions, ExecutionPolicy, GeoQuery, IncludeOptions,
+    QueryScope, QueryValidationError, Selection, SortDirection, SortExpression, SpatialPredicate,
     TemporalOperation, TemporalPredicate,
 };
 pub use resource::{

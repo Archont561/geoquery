@@ -273,6 +273,65 @@ pub struct ExecutionOptions {
     /// Where the work happens. Defaults to [`ExecutionMode::Auto`] when absent.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mode: Option<ExecutionMode>,
+    /// How tolerant the run is of a source that cannot fully honour the query, or that
+    /// fails outright. Defaults to [`ExecutionPolicy::Balanced`] when absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub policy: Option<ExecutionPolicy>,
+}
+
+impl ExecutionOptions {
+    /// The policy in effect, substituting the default when the caller named none.
+    ///
+    /// A method rather than leaving every reader to write `unwrap_or_default` on the
+    /// field: the default is a federation decision this crate already states once in
+    /// [`ExecutionPolicy`], and a second place that repeats it is a second place that
+    /// could repeat it wrong.
+    #[must_use]
+    pub fn policy(&self) -> ExecutionPolicy {
+        self.policy.unwrap_or_default()
+    }
+}
+
+/// How tolerant a federated run is of one source misbehaving.
+///
+/// Closed, like [`ExecutionMode`] and for the same reason: this names something the
+/// engine does with the *run*, not something a service might support, so a typo here is
+/// a caller's mistake rather than a service this crate has not met yet.
+///
+/// The three levels trade blast radius for thoroughness. They do not change what any
+/// single source is asked — that is still exactly what [`CapabilityReport`] in
+/// `geoquery-core` says it can take — only what the engine does when a source cannot
+/// take the whole query, or does not answer at all.
+///
+/// [`CapabilityReport`]: https://docs.rs/geoquery-core
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize, TS)]
+#[serde(rename_all = "lowercase")]
+#[ts(rename_all = "lowercase")]
+pub enum ExecutionPolicy {
+    /// A source the capability report refuses any part of the query to, or a source
+    /// that fails outright, fails the whole run.
+    ///
+    /// For a caller who would rather hear nothing than hear something incomplete — a
+    /// scheduled job feeding a database that must never silently narrow, for instance.
+    Strict,
+    /// The default. A source the query cannot be fully pushed to is skipped rather than
+    /// asked; a source that fails is recorded as failed. Either way the other sources
+    /// still answer, and the run succeeds as long as at least one of them does.
+    ///
+    /// This is [`ExecutionOutcome::status`] returning
+    /// [`Partial`](https://docs.rs/geoquery-core) rather than
+    /// [`Failed`](https://docs.rs/geoquery-core) — correct results from a narrower set
+    /// of sources, with the narrowing reported rather than hidden.
+    #[default]
+    Balanced,
+    /// Every targeted source is asked regardless of what the capability report says,
+    /// on the chance that an under-described service answers anyway.
+    ///
+    /// Spends a request a stricter policy would have saved asking a source that looked
+    /// incapable, so it costs more in the ordinary case; it never costs correctness,
+    /// because a source that genuinely cannot help still answers nothing it was not
+    /// asked for.
+    Exploratory,
 }
 
 /// Where a query is executed.

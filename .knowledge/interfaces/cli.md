@@ -21,6 +21,13 @@ refs: [query/query-model, project/architecture, adapters/adapter-architecture, c
 The CLI is the primary developer-facing interface and the first
 interface built in the MVP.
 
+**Phase 1 spike (2026-10-05):** the commands below are the aspirational surface. The
+narrow STAC spike implemented `geoquery source add|list|describe` and `geoquery query`
+instead — a flatter, more literal shape than `add`/`sources`/`describe --refresh` below,
+and a flat JSON registry rather than the snapshot/lock files under `~/.geoquery/sources/`.
+See [project/phase-1-stac-spike](../project/phase-1-stac-spike.md) for why, and treat the
+two surfaces as unreconciled until a later pass does that work on purpose.
+
 ---
 
 ## Commands

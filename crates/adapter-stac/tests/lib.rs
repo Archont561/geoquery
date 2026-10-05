@@ -1,13 +1,26 @@
-//! Mirrors `src/lib.rs`, which in Phase 0 is documentation with no code behind it yet.
+//! Mirrors `src/lib.rs`: the crate root, and nothing a module-specific test file already
+//! covers.
 //!
-//! The file exists so the mirror is complete: one test file per source file, so that the first
-//! test of the STAC adapter has an obvious home rather than a decision attached to it.
-//!
-//! The one thing it can assert today is that the crate links from outside its own build, which
-//! is not what `cargo build` proves for a library that nothing in the workspace depends on yet
-//! — a crate can compile and still fail to be usable as a dependency.
+//! `tests/landing.rs`, `tests/request.rs` and `tests/response.rs` exercise the pure
+//! translation functions without a network; `tests/adapter.rs` exercises the whole
+//! `ServiceAdapter` implementation against a mock STAC server. What is left here is the
+//! one thing none of those prove: that the crate links and its public names resolve from
+//! outside its own build, the way any adapter crate written against `geoquery-core` would
+//! have to.
+
+use geoquery_adapter_stac::{NormalizationError, ParsedLanding, StacAdapter, StacSearchRequest};
 
 #[test]
 fn the_crate_links_from_outside_its_own_build() {
     use geoquery_adapter_stac as _;
+}
+
+#[test]
+fn every_public_name_still_resolves_from_the_crate_root() {
+    fn assert_is_a_type<T>() {}
+
+    assert_is_a_type::<StacAdapter>();
+    assert_is_a_type::<StacSearchRequest>();
+    assert_is_a_type::<ParsedLanding>();
+    assert_is_a_type::<NormalizationError>();
 }

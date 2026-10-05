@@ -787,6 +787,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "geoquery"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "clap",
+ "geoquery-adapter-stac",
+ "geoquery-core",
+ "geoquery-types",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wiremock",
+]
+
+[[package]]
 name = "geoquery-adapter-native"
 version = "0.1.0"
 dependencies = [
@@ -846,14 +861,6 @@ dependencies = [
  "tracing",
  "url",
  "wiremock",
-]
-
-[[package]]
-name = "geoquery"
-version = "0.1.0"
-dependencies = [
- "clap",
- "geoquery-core",
 ]
 
 [[package]]
