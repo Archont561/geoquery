@@ -6,7 +6,7 @@
 //! shape a real provider actually sends rather than one this adapter would find easy.
 
 use chrono::{DateTime, Utc};
-use geoquery_adapter_stac::{NormalizationError, normalize_response};
+use geoquery_adapter_stac::{NextLink, NormalizationError, normalize_response, project_fields};
 use geoquery_types::JsonObject;
 use pretty_assertions::assert_eq;
 use serde_json::json;
@@ -252,7 +252,7 @@ fn start_and_end_datetime_are_preferred_over_a_single_instant() {
 }
 
 #[test]
-fn a_next_link_is_surfaced_opaquely() {
+fn a_get_next_link_is_read_as_a_get_request() {
     let mut body = search_response(&[earth_search_item()]);
     body["links"] = json!([
         { "rel": "next", "href": "https://earth-search.aws.element84.com/v1/search?page=2" }
@@ -268,8 +268,49 @@ fn a_next_link_is_surfaced_opaquely() {
     )
     .unwrap();
     assert_eq!(
-        normalized.next_page.as_deref(),
-        Some("https://earth-search.aws.element84.com/v1/search?page=2")
+        normalized.next,
+        Some(NextLink {
+            href: "https://earth-search.aws.element84.com/v1/search?page=2".to_owned(),
+            // OGC API's link model says a link with no `method` is a GET, and a STAC
+            // service that pages with query parameters relies on exactly that default.
+            method: "GET".to_owned(),
+            body: None,
+            merge: false,
+        })
+    );
+}
+
+#[test]
+fn a_post_next_link_keeps_the_token_and_the_merge_flag() {
+    // The shape every pgstac-backed service sends: the page token is a body member, and
+    // `merge` says it is laid over the original request rather than replacing it — so a
+    // follower that ignored `merge` would page through an *unfiltered* catalogue.
+    let mut body = search_response(&[earth_search_item()]);
+    body["links"] = json!([
+        {
+            "rel": "next",
+            "href": "https://earth-search.aws.element84.com/v1/search",
+            "method": "POST",
+            "body": { "token": "next:S2A_32UPU" },
+            "merge": true
+        }
+    ]);
+
+    let normalized = normalize_response(
+        &body,
+        "earth-search",
+        "https://earth-search.aws.element84.com/v1",
+        &JsonObject::new(),
+        timestamp(),
+        None,
+    )
+    .unwrap();
+    let next = normalized.next.expect("a next link was advertised");
+    assert_eq!(next.method, "POST");
+    assert!(next.merge);
+    assert_eq!(
+        next.body.expect("a POST next link carries a body")["token"],
+        json!("next:S2A_32UPU")
     );
 }
 
@@ -284,5 +325,72 @@ fn no_next_link_means_no_next_page() {
         None,
     )
     .unwrap();
-    assert_eq!(normalized.next_page, None);
+    assert_eq!(normalized.next, None);
+}
+
+// ── local field projection ────────────────────────────────────────────────────
+
+fn normalized_item() -> Vec<geoquery_types::GeoResult> {
+    normalize_response(
+        &search_response(&[earth_search_item()]),
+        "earth-search",
+        "https://earth-search.aws.element84.com/v1",
+        &JsonObject::new(),
+        timestamp(),
+        None,
+    )
+    .unwrap()
+    .results
+}
+
+#[test]
+fn projection_keeps_only_the_properties_that_were_asked_for() {
+    let mut results = normalized_item();
+    assert!(
+        results[0].properties.len() > 1,
+        "the fixture needs more than one property for this to prove anything"
+    );
+
+    project_fields(&mut results, &["eo:cloud_cover".to_owned()]);
+
+    assert_eq!(
+        results[0].properties.keys().collect::<Vec<_>>(),
+        vec!["eo:cloud_cover"]
+    );
+}
+
+#[test]
+fn projection_accepts_either_spelling_of_a_property_name() {
+    // STAC itself does not decide whether an item property is `eo:cloud_cover` or
+    // `properties.eo:cloud_cover`; both the Fields and Sort extensions leave it to the
+    // implementation, so a caller who wrote either gets what they meant.
+    let mut results = normalized_item();
+    project_fields(&mut results, &["properties.eo:cloud_cover".to_owned()]);
+    assert_eq!(
+        results[0].properties.keys().collect::<Vec<_>>(),
+        vec!["eo:cloud_cover"]
+    );
+}
+
+#[test]
+fn projection_never_strips_what_makes_a_result_a_result() {
+    let mut results = normalized_item();
+    let before = results[0].clone();
+
+    project_fields(&mut results, &["eo:cloud_cover".to_owned()]);
+
+    let after = &results[0];
+    assert_eq!(after.id, before.id);
+    assert_eq!(after.geometry, before.geometry);
+    assert_eq!(after.bbox, before.bbox);
+    assert_eq!(after.assets.len(), before.assets.len());
+    assert_eq!(after.provenance.source, before.provenance.source);
+}
+
+#[test]
+fn an_empty_field_list_projects_nothing_away() {
+    let mut results = normalized_item();
+    let before = results[0].properties.clone();
+    project_fields(&mut results, &[]);
+    assert_eq!(results[0].properties, before);
 }

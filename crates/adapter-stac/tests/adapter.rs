@@ -270,3 +270,245 @@ fn detect_recognises_known_stac_hosts_without_a_network_call() {
         Detection::Uncertain { .. }
     ));
 }
+
+// ── conformance, pagination and the local window ─────────────────────────────────
+
+/// A descriptor shaped the way `describe` would have produced one for a service that
+/// published `classes`, which is where `StacConformance::for_service` reads them back.
+fn service_descriptor_declaring(server: &MockServer, classes: &[&str]) -> ServiceDescriptor {
+    let mut descriptor = service_descriptor(server);
+    descriptor.metadata.insert(
+        "conformsTo".to_owned(),
+        json!(classes.iter().collect::<Vec<_>>()),
+    );
+    descriptor
+}
+
+/// One STAC item, enough of one to survive normalization.
+fn item(id: &str, cloud_cover: u8) -> serde_json::Value {
+    json!({
+        "type": "Feature",
+        "id": id,
+        "collection": "sentinel-2-l2a",
+        "geometry": null,
+        "properties": {
+            "datetime": "2024-06-15T00:00:00Z",
+            "eo:cloud_cover": cloud_cover,
+            "platform": "sentinel-2a"
+        },
+        "assets": {},
+        "links": []
+    })
+}
+
+#[tokio::test]
+async fn query_follows_the_services_own_next_link_until_the_limit_is_filled() {
+    let server = MockServer::start().await;
+    // Page one answers the request this adapter built, and advertises page two as a POST
+    // with a token to merge into that same request — the shape every pgstac-backed
+    // service sends.
+    Mock::given(method("POST"))
+        .and(path("/search"))
+        .and(body_json(json!({ "limit": 3 })))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "type": "FeatureCollection",
+            "features": [item("item-1", 1), item("item-2", 2)],
+            "links": [{
+                "rel": "next",
+                "href": format!("{}/search", server.uri()),
+                "method": "POST",
+                "body": { "token": "next:item-2" },
+                "merge": true
+            }]
+        })))
+        .mount(&server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/search"))
+        .and(body_json(json!({ "limit": 3, "token": "next:item-2" })))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "type": "FeatureCollection",
+            "features": [item("item-3", 3), item("item-4", 4)]
+        })))
+        .mount(&server)
+        .await;
+
+    let query = GeoQuery {
+        limit: Some(3),
+        ..GeoQuery::default()
+    };
+    let result = StacAdapter::new()
+        .query(&service_descriptor(&server), &query)
+        .await
+        .expect("two pages answer the query");
+
+    assert_eq!(
+        result
+            .results
+            .iter()
+            .map(|result| result.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["item-1", "item-2", "item-3"],
+        "the second page completes the limit, and the surplus is dropped"
+    );
+}
+
+#[tokio::test]
+async fn query_without_a_limit_fetches_one_page_and_hands_back_the_next_link() {
+    // An unlimited query is a request for what the service returns by default, not an
+    // instruction to walk a catalogue. The `next` link is reported so a caller can decide
+    // for themselves.
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/search"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "type": "FeatureCollection",
+            "features": [item("item-1", 1)],
+            "links": [{
+                "rel": "next",
+                "href": format!("{}/search?page=2", server.uri()),
+                "method": "GET"
+            }]
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let result = StacAdapter::new()
+        .query(&service_descriptor(&server), &GeoQuery::default())
+        .await
+        .expect("one page answers an unlimited query");
+
+    assert_eq!(result.results.len(), 1);
+    assert_eq!(
+        result.next_page,
+        Some(format!("{}/search?page=2", server.uri()))
+    );
+}
+
+#[tokio::test]
+async fn query_cuts_the_offset_window_out_of_what_arrived() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/search"))
+        // `offset + limit`: the skipped items have to arrive before they can be skipped.
+        .and(body_json(json!({ "limit": 4 })))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "type": "FeatureCollection",
+            "features": [
+                item("item-1", 1), item("item-2", 2), item("item-3", 3), item("item-4", 4)
+            ]
+        })))
+        .mount(&server)
+        .await;
+
+    let query = GeoQuery {
+        limit: Some(2),
+        offset: Some(2),
+        ..GeoQuery::default()
+    };
+    let result = StacAdapter::new()
+        .query(&service_descriptor(&server), &query)
+        .await
+        .expect("the window is cut from one page");
+
+    assert_eq!(
+        result
+            .results
+            .iter()
+            .map(|result| result.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["item-3", "item-4"]
+    );
+    assert_eq!(
+        result.degradations.len(),
+        1,
+        "the offset was served locally, and the cost of that is reported: {:?}",
+        result.degradations
+    );
+}
+
+#[tokio::test]
+async fn query_sends_a_cql2_filter_to_a_service_that_declared_cql2_json() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/search"))
+        .and(body_json(json!({
+            "filter-lang": "cql2-json",
+            "filter": { "op": "<", "args": [{ "property": "eo:cloud_cover" }, 10] }
+        })))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "type": "FeatureCollection",
+            "features": [item("item-1", 1)]
+        })))
+        .mount(&server)
+        .await;
+
+    let query = GeoQuery {
+        filters: Some(geoquery_types::FilterExpr::Compare {
+            field: "eo:cloud_cover".to_owned(),
+            op: geoquery_types::CompareOp::Lt,
+            value: geoquery_types::FilterValue::Number(10.into()),
+        }),
+        ..GeoQuery::default()
+    };
+    let descriptor = service_descriptor_declaring(
+        &server,
+        &[
+            "https://api.stacspec.org/v1.0.0/core",
+            "https://api.stacspec.org/v1.0.0-rc.2/item-search#filter",
+            "http://www.opengis.net/spec/cql2/1.0/conf/cql2-json",
+            "http://www.opengis.net/spec/cql2/1.0/conf/basic-cql2",
+        ],
+    );
+
+    let result = StacAdapter::new()
+        .query(&descriptor, &query)
+        .await
+        .expect("the mock server answers the filtered request");
+
+    assert_eq!(result.results.len(), 1);
+    assert!(
+        result.degradations.is_empty(),
+        "a pushed filter is not a degradation: {:?}",
+        result.degradations
+    );
+    assert!(
+        result.provenance.query.contains_key("filter"),
+        "provenance shows the filter that was actually sent"
+    );
+}
+
+#[tokio::test]
+async fn query_trims_properties_locally_when_the_service_cannot_project() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/search"))
+        // No `fields` member: this service never declared the extension, so the hint is
+        // not sent — and the trim happens here instead.
+        .and(body_json(json!({})))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "type": "FeatureCollection",
+            "features": [item("item-1", 7)]
+        })))
+        .mount(&server)
+        .await;
+
+    let query = GeoQuery {
+        fields: vec!["eo:cloud_cover".to_owned()],
+        ..GeoQuery::default()
+    };
+    let result = StacAdapter::new()
+        .query(&service_descriptor(&server), &query)
+        .await
+        .expect("the mock server answers");
+
+    assert_eq!(
+        result.results[0].properties.keys().collect::<Vec<_>>(),
+        vec!["eo:cloud_cover"]
+    );
+    assert_eq!(
+        result.results[0].id, "item-1",
+        "projection never costs a result its identity"
+    );
+}

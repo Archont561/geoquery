@@ -21,13 +21,20 @@ STAC 1.1 and STAC API 1.0 are established standards and now an OGC
 Community Standard.
 
 **Phase 1 spike (2026-10-05):** landing-page/conformance discovery, collection listing,
-and query translation/normalization are implemented in `crates/adapter-stac`, narrowed to
-`bbox`, `datetime`, `collections` and `limit` only — CQL2 filtering, sorting, and
-pagination past one page are not yet sent, and every other query feature is reported as
-refused rather than attempted. See
+and query translation/normalization are implemented in `crates/adapter-stac`. See
 [project/phase-1-stac-spike](../project/phase-1-stac-spike.md) for what that spike proved
 and what it left open, including why this adapter's capability reporting deliberately
 does not reuse `geoquery-core`'s generic `CapabilityReport` for spatial predicates.
+
+**Pushdown pass (2026-10-05):** CQL2 JSON attribute filtering, sorting (`sortby`), field
+selection (`fields`) and multi-page pagination are implemented on top of that spike, each
+gated on the conformance class the service published —
+`crates/adapter-stac/src/landing.rs::StacConformance` is the one place that reads
+`conformsTo`, and `crates/adapter-stac/src/cql2.rs` is the only thing that emits CQL2.
+Still not sent: CQL2's temporal and spatial functions (so a non-`intersects` temporal
+predicate and an exact-geometry predicate are still refused), and `/queryables` is not
+fetched, so a filter is never checked against the properties a service publishes as
+filterable. See [project/phase-1-stac-pushdown](../project/phase-1-stac-pushdown.md).
 
 **Rust ecosystem note:** There is no dominant Rust STAC SDK comparable
 to Python's `pystac-client`. The adapter is built as custom HTTP +
