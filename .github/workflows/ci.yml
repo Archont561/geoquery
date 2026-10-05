@@ -47,6 +47,14 @@ jobs:
       # crates; this restores the registry, the git checkouts and target/ so a rerun does
       # not recompile the dependency graph from scratch. Keyed on Cargo.lock, with a prefix
       # fallback so an unchanged lock but changed sources still warm-starts from target/.
+      # `env.ImageOS`/`env.ImageVersion` are in the key, not just `runner.os`: a crate that
+      # links native C (aws-lc-sys, in this graph) bakes the host's glibc into its object
+      # files, and a restore-keys fallback that only matches `runner.os` will happily hand
+      # a `target/` built on one hosted-runner image to a job running a newer (or older)
+      # one. The two glibcs disagree on symbols like `__isoc23_sscanf`, and the result is a
+      # link failure that has nothing to do with the commit under test — it is the cache
+      # serving an incompatible binary. Scoping the key to the image makes that collision
+      # impossible: an image bump costs one cold build, not a flaky link error.
       - name: Cache Cargo build
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
@@ -55,9 +63,9 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          key: ${{ runner.os }}-${{ env.ImageOS }}-${{ env.ImageVersion }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-${{ env.ImageOS }}-${{ env.ImageVersion }}-cargo-
 
       # Turbo owns the cross-package cache for the TypeScript workspace. The Rust and Python
       # turbo nodes are `cache: false` — cargo (above) and the instrumented coverage run own
@@ -114,7 +122,11 @@ jobs:
           environments: default
 
       # The conda build compiles the CLI through pixi-build-rust; the same Cargo cache keeps
-      # that compile off the cold path on a rerun.
+      # that compile off the cold path on a rerun. The key carries the runner image for the
+      # same reason the `checks` job's does: a native-linked crate's objects are bound to
+      # the host glibc, and a restore-keys fallback scoped only to `runner.os` can hand this
+      # job a `target/` built on a different image, which then fails to link on a symbol
+      # the two glibcs disagree about (see the `checks` job's cache step for the full story).
       - name: Cache Cargo build
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
@@ -123,9 +135,9 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          key: ${{ runner.os }}-${{ env.ImageOS }}-${{ env.ImageVersion }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-${{ env.ImageOS }}-${{ env.ImageVersion }}-cargo-
 
       - name: Install the locked environment
         run: pixi install --locked
