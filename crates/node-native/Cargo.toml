@@ -37,7 +37,7 @@ napi-build.workspace = true
 # re-enabling it takes an explicit `#[allow]` a reviewer can see. That is the property this
 # crate relies on — nothing in `src/` is unsafe. An addon is a boundary onto a C ABI, so
 # some unsafe belongs to the layer rather than to anything written here. The other members,
-# including the published `geoquery-cli`, stay on `forbid`.
+# including the published `geoquery`, stay on `forbid`.
 #
 # The remaining keys are copied verbatim from `[workspace.lints]` and must move with it.
 [lints.rust]

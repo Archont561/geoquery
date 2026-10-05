@@ -54,7 +54,7 @@ managed SaaS
 The primary deployment for developers and servers.
 
 ```bash
-cargo build --release --package geoquery-cli
+cargo build --release --package geoquery
 cargo build --release --package geoquery-http
 
 # CLI

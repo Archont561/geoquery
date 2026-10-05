@@ -19,6 +19,7 @@ then scope to a group and follow the links — they resolve as ordinary paths.
 Core identity, architecture, standards alignment, and data model.
 
 * [Geoquery — Project Overview](project/overview.md) - Mission, what Geoquery is and is not, and the four core abstractions.
+* [Product Design Direction](project/product-design.md) - User loops, interaction principles, and which inspirations to borrow from.
 * [Internal Architecture](project/architecture.md) - Internal architecture diagram and component responsibilities.
 * [Standards Position](project/standards.md) - OGC API, STAC, CQL2, DCAT, GeoJSON, MCP — the standards reuse policy.
 * [Core Data Model](project/data-model.md) - ResourceDescriptor, ServiceDescriptor, CapabilitySet, and open enums.
@@ -83,11 +84,12 @@ Milestones, priorities, dependencies, implementation tasks, and acceptance crite
 
 # Research
 
-Findings from crate/SDK evaluation across Rust, TypeScript, and Python.
+Findings from crate/SDK evaluation and live-service discovery across Rust, TypeScript, Python, and public geospatial APIs.
 
 * [Rust Crate Research & Findings](research/rust-crates.md) - Findings for geo, rstar, geoarrow, rmcp 3.x, tantivy, duckdb, axum.
 * [TypeScript / JavaScript SDK Research & Findings](research/typescript-sdks.md) - Findings for @modelcontextprotocol/server v2, Honua, Turf, DuckDB-WASM.
 * [Python SDK Research & Findings](research/python-sdks.md) - Findings for pystac-client, OWSLib, FastMCP, GeoPandas, DuckDB.
+* [Open Geospatial Service Targets](research/open-service-targets.md) - Candidate public WMS/WFS, OGC API, STAC, USGS, Copernicus and ArcGIS REST endpoints for Geoquery spikes.
 
 # Tag Index
 

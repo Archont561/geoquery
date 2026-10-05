@@ -15,7 +15,7 @@ authors.workspace = true
 description = "The geoquery query language: documents, and the rules that make them valid"
 keywords = ["geospatial", "stac", "ogc", "query", "gis"]
 categories = ["science::geo"]
-# `geoquery-cli` is published to crates.io, so this dependency must be available there
+# `geoquery` is published to crates.io, so this dependency must be available there
 # first. Other workspace crates stay internal until they have a stable public contract.
 publish = ["crates-io"]
 

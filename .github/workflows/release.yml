@@ -108,7 +108,7 @@ jobs:
         continue-on-error: true
         run: |
           pixi upload prefix \
-            --channel '@archont561/geoquery' \
+            --channel 'archont561/archont561' \
             --generate-attestation \
             dist/conda/*.conda
 
@@ -151,7 +151,7 @@ jobs:
       # Dependency order, and it matters twice. Cargo replaces each local path with the
       # checked-in version when packaging, so a crate cannot be uploaded before the one it
       # names is already in the index: geoquery-types, then geoquery-core, then
-      # geoquery-cli. And the index needs a moment to serve what it has just accepted,
+      # geoquery. And the index needs a moment to serve what it has just accepted,
       # which is what the retry is for. An earlier attempt can leave an upstream crate
       # published while a later one is still waiting, so an immutable duplicate must not
       # stop a retry of the rest — only the last upload decides whether the step failed.
@@ -177,7 +177,7 @@ jobs:
               echo "::warning title=$package was not uploaded::It may already exist from an earlier attempt; continuing with the crates that depend on it."
             fi
           done
-          publish_with_retry geoquery-cli
+          publish_with_retry geoquery
 
       # Failures above are intentionally visible without making the verified GitHub release
       # disappear. A release maintainer can retry one service from this immutable tag.

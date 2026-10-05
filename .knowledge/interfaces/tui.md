@@ -88,7 +88,7 @@ The TUI is just another consumer of `geoquery-core`:
 
 ```
 geoquery-core (query engine)
-    ├── geoquery-cli      (one-shot queries)
+    ├── geoquery      (one-shot queries)
     ├── geoquery-tui      (interactive exploration)  ← this
     ├── geoquery-http     (REST API)
     └── geoquery-mcp      (AI agents)

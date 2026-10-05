@@ -4,7 +4,7 @@
 # for the target Python ABI and links the same geoquery-core used by the CLI and service.
 
 [package]
-name = "geoquery"
+name = "geoquery-sdk"
 version = "0.1.0"
 publish = true
 license = "MIT OR Apache-2.0"

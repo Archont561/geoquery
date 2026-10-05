@@ -16,7 +16,7 @@ this file.
 
 ## The one thing that is not obvious
 
-The repository root holds both the Cargo workspace and the `geoquery-cli` package, and
+The repository root holds both the Cargo workspace and the `geoquery` package, and
 `crates/cli/` has no `Cargo.toml`. The reason is in the comment at the top of `Cargo.toml`:
 `pixi-build-rust` runs `cargo install --path <source>`, and `cargo install` cannot install
 from a virtual manifest and has no `-p`. So the directory a conda package is built from
@@ -163,12 +163,12 @@ because a version a reader sees is a version that has to be right.
 
 Two Conda packages are built by `pixi publish`:
 
-- `geoquery-cli` (`[package]` in the root `pixi.toml`) — the `geoquery` binary, linux-64.
-- `geoquery` (`python/geoquery/pixi.toml`) — the Python SDK, `noarch: python`.
+- `geoquery` (`[package]` in the root `pixi.toml`) — the `geoquery` binary, linux-64.
+- `geoquery-sdk` (`python/geoquery/pixi.toml`) — the Python SDK, imports as `geoquery`.
 
 The tag release also builds the `geoquery-sdk` PyPI distribution, the
 `@archont561/geoquery` npm/GitHub Packages tarball, and the `geoquery-core` plus
-`geoquery-cli` crates.io packages. All third-party uploads are optional after an artifact has
+`geoquery` crates.io packages. All third-party uploads are optional after an artifact has
 been built: the GitHub Release is the required, checksummed fallback. PyPI and npmjs use OIDC
 Trusted Publishing; GitHub Packages uses `GITHUB_TOKEN`; crates.io receives only the protected
 `CRATES_IO_TOKEN` environment secret.

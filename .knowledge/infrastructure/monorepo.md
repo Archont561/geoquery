@@ -21,7 +21,7 @@ rather than drift, recorded here because a reader who follows the layout below w
 break the build:
 
 - **The workspace root is not virtual.** The root `Cargo.toml` is both the `[workspace]`
-  and the `geoquery-cli` `[package]`, and `crates/cli/` has no manifest of its own:
+  and the `geoquery` `[package]`, and `crates/cli/` has no manifest of its own:
   `pixi-build-rust` runs `cargo install --path <source>`, which cannot select a member out
   of a virtual manifest, so the directory a Conda package is built from has to be a package
   that is also the root of its workspace. It is also what lets the offline sandbox vendor
@@ -46,7 +46,7 @@ break the build:
   tables and softens exactly one key, `unsafe_code = "deny"`. `pixi run layout-check`
   compares the copy against `[workspace.lints]` on every run, so "must move with it" is
   a check rather than a comment. Every other member, including the published
-  `geoquery-cli`, inherits and stays on `forbid`.
+  `geoquery`, inherits and stays on `forbid`.
 - **`clippy::nursery` is not enabled.** Nursery lints are unstable, so a patch bump of the
   pinned toolchain would turn into a lint failure; `pedantic` is gated instead.
 - **There is no `rustfmt.toml`.** Defaults, so there is no second formatting policy to keep
@@ -69,7 +69,7 @@ against a reading of this file, so the two cannot drift apart quietly.
 ```
 geoquery/
 ├── AGENTS.md                   # Contributor rules; pixi is the only entry point
-├── Cargo.toml                  # Workspace root *and* the geoquery-cli package
+├── Cargo.toml                  # Workspace root *and* the geoquery package
 ├── Cargo.lock                  # Committed (the workspace ships a binary)
 ├── deny.toml                   # cargo-deny config, read from the workspace root
 ├── pixi.toml                   # Owns the toolchain, environments, tasks and the version
@@ -89,7 +89,7 @@ geoquery/
 │   ├── adapter-stac/           # geoquery-adapter-stac
 │   ├── adapter-ogc/            # geoquery-adapter-ogc
 │   ├── adapter-native/         # geoquery-adapter-native
-│   ├── cli/                    # geoquery-cli — sources only; its manifest is the root
+│   ├── cli/                    # geoquery — sources only; its manifest is the root
 │   ├── tui/                    # geoquery-tui
 │   ├── http/                   # geoquery-http
 │   ├── mcp/                    # geoquery-mcp

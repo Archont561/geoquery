@@ -277,7 +277,7 @@ All interfaces consume the same `geoquery-core` API:
 ```
 geoquery-core::execute(GeoQuery) -> QueryResult
     │
-    ├── geoquery-cli      (clap → core)
+    ├── geoquery      (clap → core)
     ├── geoquery-tui      (ratatui → core)
     ├── geoquery-http     (axum → core)
     ├── geoquery-mcp      (rmcp → core)

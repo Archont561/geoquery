@@ -2,7 +2,7 @@
 //!
 //! This crate owns everything about a query that is not about talking to anyone: the
 //! document, its version, and the rules that make one valid. The CLI
-//! (`geoquery-cli`) is a presentation layer over it, and so will the service be — which
+//! (`geoquery`) is a presentation layer over it, and so will the service be — which
 //! is the only reason the split exists. A rule that lives in the binary is a rule the
 //! server has to reimplement.
 //!

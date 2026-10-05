@@ -39,7 +39,14 @@ export default defineConfig({
         baseUrl: "https://github.com/Archont561/geoquery/edit/main/apps/docs/"
       },
       sidebar: [
-        { label: "Start here", items: [{ label: "What geoquery is", slug: "index" }] },
+        {
+          label: "Start here",
+          items: [
+            { label: "What geoquery is", slug: "index" },
+            { label: "Philosophy, model, and API", slug: "philosophy" },
+            { label: "Design direction", slug: "design" }
+          ]
+        },
         {
           label: "Using it",
           items: [

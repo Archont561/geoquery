@@ -83,7 +83,7 @@ function versionInTable(manifestPath: string, table: string, key = "version"): s
 /**
  * Read a pixi `[package] version`, following `version = { workspace = true }`.
  *
- * The root pixi.toml is both the workspace and the `geoquery-cli` package, and the package
+ * The root pixi.toml is both the workspace and the `geoquery` package, and the package
  * inherits the version rather than restating it — the same rule the Cargo manifests follow,
  * expressed in the only way pixi spells it. Both forms are accepted here so a manifest that
  * goes back to a literal is still read correctly and reported as drift by `check` rather
@@ -178,7 +178,7 @@ export function cargoVersion(cargoTomlPath: string): string {
 /**
  * Read the registry version embedded in one workspace path dependency.
  *
- * `geoquery-cli` is a root package and reaches `geoquery-core` through this table. Cargo
+ * `geoquery` is a root package and reaches `geoquery-core` through this table. Cargo
  * replaces the path with this version while packaging for crates.io, so it must be the
  * release number rather than an untracked compatibility range.
  */
@@ -293,7 +293,7 @@ export function publishedVersions(startDir: string = process.cwd()): {
       // binary's package — which is why `crates/cli/` has no manifest of its own — and it
       // is also where `[workspace.package]` keeps the version every other crate inherits.
       { path: "Cargo.toml", version: cargoVersion(join(root, "Cargo.toml")) },
-      // Cargo strips the local path when packaging geoquery-cli for crates.io and uses this
+      // Cargo strips the local path when packaging geoquery for crates.io and uses this
       // explicit version instead. Treat it as a published surface so a release cannot
       // publish a CLI that asks crates.io for an older core.
       {
