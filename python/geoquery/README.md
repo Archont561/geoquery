@@ -15,7 +15,7 @@ import geoquery
 
 print(geoquery.VERSION)
 print(geoquery.protocol_version())
-print(geoquery.check_query('{"bbox": [14.1, 49.0, 24.2, 54.8]}'))
+print(geoquery.parse_document('{"bbox": [14.1, 49.0, 24.2, 54.8]}'))
 # ['bbox']
 ```
 
