@@ -16,7 +16,7 @@ refs: [query/query-model, project/architecture, adapters/adapter-architecture, c
 
 ## Crate
 
-`geoquery-cli` — binary crate using `clap` for argument parsing.
+`geoquery` — binary crate using `clap` for argument parsing.
 
 The CLI is the primary developer-facing interface and the first
 interface built in the MVP.

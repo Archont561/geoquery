@@ -5,9 +5,13 @@ template: splash
 hero:
   tagline: One protocol-independent query language for federating geospatial resources and services.
   actions:
+    - text: Philosophy and API
+      link: ./philosophy/
+      icon: right-arrow
     - text: The command line
       link: ./cli/
       icon: right-arrow
+      variant: minimal
     - text: Source
       link: https://github.com/Archont561/geoquery
       icon: external
@@ -20,6 +24,12 @@ A query is a document. The API is that document's shape — the query AST — an
 interface the project ships (Rust, CLI, HTTP, TypeScript, Python, MCP) is an adapter to
 it. A client that can write the document can talk to any of them, and a source that can
 be described can be federated behind one.
+
+The short version is "GraphQL for geospatial services", but only as an analogy: Geoquery
+is not GraphQL syntax or a GraphQL resolver runtime. It is a geospatial query model that
+compiles to STAC, OGC API, ArcGIS, CMR, SQL, CQL2 and other source-native requests. See
+[Philosophy, model, and API](./philosophy/) for the full explanation, and
+[Design direction](./design/) for the product loop Geoquery should grow toward.
 
 ## Where it actually is
 

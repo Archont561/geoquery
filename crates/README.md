@@ -1,4 +1,4 @@
-# geoquery-cli
+# geoquery CLI
 
 The `geoquery` command-line client.
 
@@ -16,7 +16,7 @@ until the query engine lands — see the repository README for the status.
 
 | Path | What it is |
 | --- | --- |
-| `../Cargo.toml` | the workspace root, and the `geoquery-cli` package built for Conda and crates.io |
+| `../Cargo.toml` | the workspace root, and the `geoquery` CLI package built for Conda and crates.io |
 | `../pixi.toml` | the environment, and the same package's conda recipe |
 | `../deny.toml` | the dependency policy `pixi run lint` enforces (via `cargo deny`) |
 | `package.json` | the turbo façade for the Rust workspace: `build`/`test`/`lint`/`typecheck`/`cov`/`fmt` run cargo |
@@ -41,11 +41,11 @@ a conda package is built from must be the root of a workspace that is itself a p
 because `cargo install` cannot install from a virtual manifest. Putting the manifests at the
 root is also what lets the offline sandbox vendor the whole dependency graph.
 
-Install from a channel with `pixi global install geoquery-cli`, or from crates.io after a
+Install from a channel with `pixi global install geoquery`, or from crates.io after a
 tagged release succeeds:
 
 ```console
-cargo install geoquery-cli
+cargo install geoquery
 ```
 
 A checkout can build the Conda artifact with `pixi run publish-dist`; it is written to `dist/`.

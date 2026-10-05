@@ -364,7 +364,7 @@ user's AOI, or enriches results with external catalog metadata.
 ```
 geoquery-core::execute(GeoQuery) -> QueryResult
     │
-    ├── geoquery-cli      (clap → core)
+    ├── geoquery      (clap → core)
     ├── geoquery-tui      (ratatui → core)
     ├── geoquery-http     (axum → core)
     ├── geoquery-mcp      (rmcp → core)

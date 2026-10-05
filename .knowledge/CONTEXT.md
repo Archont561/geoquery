@@ -209,7 +209,7 @@ wrappers around `geoquery-core::execute(GeoQuery) → QueryResult`.
 
 | Interface | Crate/Package | Purpose |
 |-----------|--------------|---------|
-| CLI | `geoquery-cli` | `geoquery add`, `geoquery query`, `geoquery sources` |
+| CLI | `geoquery` | `geoquery add`, `geoquery query`, `geoquery sources` |
 | HTTP | `geoquery-http` (Axum) | REST API, SSE streaming |
 | MCP | `geoquery-mcp` (`rmcp` 3.x) | `geo_query`, `geo_resource`, `geo_resolve` for AI agents |
 | TUI | `geoquery-tui` (`ratatui`) | Interactive terminal exploration |

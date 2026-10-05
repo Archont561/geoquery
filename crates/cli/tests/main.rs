@@ -38,7 +38,7 @@ fn geoquery(args: &[&str]) -> Output {
 /// A document on disk at a path unique to this process and this test, so the suite can
 /// run in parallel — nextest gives each test its own process — and leave nothing behind.
 fn temp_query(name: &str, contents: &str) -> PathBuf {
-    let file = format!("geoquery-cli-{}-{name}.json", std::process::id());
+    let file = format!("geoquery-{}-{name}.json", std::process::id());
     let path = std::env::temp_dir().join(file);
     fs::write(&path, contents).expect("the temp dir is writable");
     path

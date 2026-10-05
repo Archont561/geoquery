@@ -301,7 +301,7 @@ geoquery-http/
 geoquery-mcp/
     rmcp, axum, serde_json
 
-geoquery-cli/
+geoquery/
     clap, tracing-subscriber, anyhow
 
 geoquery-tui/

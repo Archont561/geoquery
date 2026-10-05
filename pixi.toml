@@ -187,7 +187,7 @@ default = { features = [
 # ---------------------------------------------------------------------------
 
 # The `[package]` table below makes this manifest two things at once: the pixi workspace
-# root that owns the environment, and the `geoquery-cli` conda package that `pixi publish`
+# root that owns the environment, and the `geoquery` conda package that `pixi publish`
 # builds. That is a deliberate merge, and it is forced by the same constraint that shapes
 # `Cargo.toml`: `pixi-build-rust` runs `cargo install --locked --path <dir>`, and `cargo
 # install` cannot install from a virtual manifest. The package's source directory is the
@@ -201,10 +201,9 @@ default = { features = [
 # to assert that than to maintain.
 
 [package]
-# The package name is not the crate name. `geoquery-cli` as a package installs the
-# binary `geoquery`, and the distinction matters on a channel where a user searching
-# for "geoquery" should find the library packages too.
-name = "geoquery-cli"
+# The CLI package is intentionally named after the command it installs. A user should
+# search for and install `geoquery`, not remember a packaging suffix.
+name = "geoquery"
 # The root pixi.toml is the version authority for every published surface. This table
 # inherits rather than restating it: `pixi run version-check` walks the manifests and
 # fails on a literal, so the two cannot drift.
@@ -379,7 +378,7 @@ lint-actions = { cmd = "actionlint", description = "Lint the GitHub Actions work
 lint-sandbox-plan = { cmd = "pixi-sandbox plan --config .pixi-sandbox.toml", description = "Validate the reviewed sandbox publish plan" }
 
 # ── release artifacts ──────────────────────────────────────────────────────────
-# `pixi publish` builds every package with `publish = true` — geoquery-cli (this manifest)
+# `pixi publish` builds every package with `publish = true` — geoquery (this manifest)
 # and the Python SDK. `--dry-run` still resolves the full publish set, which is why it is a
 # gate: it fails on a package whose build dependencies do not solve, before anything uploads.
 publish-plan = { cmd = "pixi publish --dry-run", description = "Resolve and print the publish set without building or uploading" }

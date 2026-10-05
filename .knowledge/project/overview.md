@@ -117,7 +117,7 @@ The same query engine must be accessible through:
 
 | Interface | Crate / Package | Primary User |
 |-----------|----------------|--------------|
-| Rust CLI | `geoquery-cli` | Developers, scripts, CI |
+| Rust CLI | `geoquery` | Developers, scripts, CI |
 | TUI | `geoquery-tui` | Interactive exploration |
 | HTTP API | `geoquery-http` | Applications, microservices |
 | MCP Server | `geoquery-mcp` | AI agents |

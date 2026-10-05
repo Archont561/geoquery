@@ -6,7 +6,7 @@
 # directory a conda package is built from therefore has to be a package that is also the
 # root of the workspace that contains it.
 #
-# This file is that: a real `[package]` (geoquery-cli) that also declares the `[workspace]`
+# This file is that: a real `[package]` (geoquery) that also declares the `[workspace]`
 # every library below it belongs to. The two facts are not in tension — `cargo install
 # --path .` here builds this package and the subgraph it reaches, which is `geoquery-core`
 # and clap, and nothing else.
@@ -103,7 +103,7 @@ authors = ["Archont561 <142521648+Archont561@users.noreply.github.com>"]
 [workspace.dependencies]
 # Internal crates. Declared here so a member says `geoquery-types.workspace = true`
 # without inventing a path, and so the graph has one place to read.
-# `geoquery-cli` is published to crates.io and depends on the separately published core.
+# `geoquery` is published to crates.io and depends on the separately published core.
 # Cargo removes this path while packaging the CLI, then resolves the exact release version
 # from crates.io. `scripts/version.ts` keeps the literal in step with workspace.version.
 geoquery-core = { path = "crates/core", version = "0.1.0" }
@@ -282,7 +282,7 @@ module_name_repetitions = "allow"
 missing_errors_doc = "allow"
 
 [package]
-name = "geoquery-cli"
+name = "geoquery"
 # Inherited rather than restated, for the same reason the members inherit it.
 version.workspace = true
 edition.workspace = true
@@ -313,8 +313,8 @@ clap = { workspace = true }
 geoquery-core = { workspace = true }
 
 [[bin]]
-# The binary is `geoquery` and the conda package is `geoquery-cli`: a user who installs
-# one package gets one command named after the project, not the crate.
+# The package and binary are both `geoquery`: a user who installs one package gets
+# one command named after the project, with no suffix to remember.
 name = "geoquery"
 path = "crates/cli/src/main.rs"
 
