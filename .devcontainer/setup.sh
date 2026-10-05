@@ -31,7 +31,21 @@ pixi run setup
 # input its build needs, so it does not belong in the task graph every clone
 # resolves. Bun lives in the project environment, so reach it through `pixi run`
 # instead of assuming it is on this script's PATH.
-BUN_BIN="$(pixi run -e default bash -c 'bun pm bin -g')"
+#
+# The install comes first because `bun pm bin -g` reads a store that the first
+# global install initialises. Asked before that, it exits non-zero having printed
+# nothing, and under `set -e` the assignment below takes this script down with it:
+# a first setup reported "No package.json was found ... Run "bun init"" and left no
+# agent CLI at all, which reads like a broken image rather than a wrong order.
 pixi run -e default bun add -g opencode-ai@latest
+BUN_BIN="$(pixi run -e default bash -c 'bun pm bin -g')"
+
+# A dangling link in /usr/local/bin is worse than no link: `opencode` then fails
+# with "No such file or directory", which is indistinguishable from the CLI never
+# having been installed. Name the path that was checked instead.
+if [[ ! -x "$BUN_BIN/opencode" ]]; then
+  printf 'setup: no opencode launcher at %s/opencode after bun add -g\n' "$BUN_BIN" >&2
+  exit 1
+fi
 ln -sfn "$BUN_BIN/opencode" /usr/local/bin/opencode
 "$BUN_BIN/opencode" models --refresh
