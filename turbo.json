@@ -20,7 +20,24 @@
   // single check. Passthrough rather than `globalEnv` because the path is a property of the
   // machine and not an input: the Rust and Python nodes are `cache: false` regardless, and
   // hashing it would only stop a sandbox and CI from ever sharing a cache entry.
-  "globalPassThroughEnv": ["CARGO_*"],
+  //
+  // `CC`/`CC_x86_64_unknown_linux_gnu`/`AR_x86_64_unknown_linux_gnu` need the same treatment
+  // and for the same reason: `CARGO_TARGET_*_LINKER` only tells rustc which binary links the
+  // final artifact, but `cc`-rs (used by `aws-lc-sys` and friends to compile their vendored C
+  // sources) picks its compiler from these separately, with a bare `cc` fallback when they're
+  // unset. Without passthrough, turbo strips them before the `test`/`cov` tasks ever invoke
+  // `cargo`, so `cc`-rs silently falls back to the host's own `/usr/bin/cc` while the linker
+  // stays pinned to pixi's conda cross toolchain — on a host whose system libc is newer than
+  // pixi's locked `sysroot_linux-64`, that mismatch produces linker errors like
+  // `undefined symbol: __isoc23_sscanf` (glibc >=2.38's versioned symbols vs. the older
+  // sysroot the linker targets) that never reproduce when cargo is run directly (bypassing
+  // turbo) with the exact same pixi.toml.
+  "globalPassThroughEnv": [
+    "CARGO_*",
+    "CC",
+    "CC_x86_64_unknown_linux_gnu",
+    "AR_x86_64_unknown_linux_gnu"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
