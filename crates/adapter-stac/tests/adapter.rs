@@ -75,6 +75,48 @@ async fn describe_reads_the_landing_page_and_the_collections_it_points_at() {
 }
 
 #[tokio::test]
+async fn describe_guesses_the_paths_a_landing_page_never_named() {
+    let server = MockServer::start().await;
+    // The one shape `links` being absent has to survive: a conforming landing page that
+    // names nothing, so `parse_landing` falls back to `{base}/collections`. Real minimal
+    // deployments do this, and a mock registered only on `/` would pass whether the
+    // fallback was right or wrong — the assertion that matters is that `/collections` is
+    // the path that gets asked for.
+    Mock::given(method("GET"))
+        .and(path("/"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "type": "Catalog",
+            "conformsTo": ["https://api.stacspec.org/v1.0.0/core"]
+        })))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/collections"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(collections_body()))
+        .mount(&server)
+        .await;
+
+    let adapter = StacAdapter::new();
+    let descriptor = adapter
+        .describe(&Endpoint::new(server.uri()))
+        .await
+        .expect("a conforming landing page that names no links still describes");
+
+    assert_eq!(
+        descriptor.collections,
+        vec!["sentinel-2-l2a".to_owned(), "landsat-c2-l2".to_owned()],
+        "the collections came from the guessed /collections path, so it was reached"
+    );
+    assert_eq!(
+        descriptor
+            .metadata
+            .get("collectionsUrl")
+            .and_then(|v| v.as_str()),
+        Some(format!("{}/collections", server.uri()).as_str())
+    );
+}
+
+#[tokio::test]
 async fn describe_refuses_a_landing_page_that_is_not_stac() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
