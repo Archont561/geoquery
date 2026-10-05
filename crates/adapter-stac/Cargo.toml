@@ -8,7 +8,13 @@ repository.workspace = true
 homepage.workspace = true
 authors.workspace = true
 description = "STAC adapter: capabilities, search and fetching as a geoquery source"
-publish = false
+keywords = ["geospatial", "stac", "query", "gis"]
+categories = ["science::geo"]
+# `geoquery` (the CLI, published to crates.io) depends on this crate directly as of
+# Phase 1's live STAC execution path, so it must be publishable too — a published crate
+# cannot depend on one that is not. `geoquery-adapter-ogc` and `geoquery-adapter-native`
+# stay `publish = false`: they remain unimplemented scaffolding nothing published reaches.
+publish = ["crates-io"]
 
 [lints]
 workspace = true

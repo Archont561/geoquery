@@ -50,13 +50,14 @@ fn foundation_types_are_available_from_the_public_crate_surface() {
 use geoquery_types::{
     Asset, AuthDescriptor, AuthType, AxisOrder, BoundingBox, CapabilitySet, CompareOp,
     ContextReference, CrsDescriptor, DimensionDescriptor, DimensionType, DistanceUnit,
-    ExecutionMode, ExecutionOptions, ExtensionMap, FieldDescriptor, FieldType, FilterExpr,
-    FilterValidationError, FilterValue, GeoQuery, GeoResult, IncludeOptions, JsonObject, License,
-    Link, MAX_FILTER_DEPTH, PagingDescriptor, PagingStyle, Provenance, Provider, QueryScope,
-    QueryValidationError, RelationshipType, ResourceDescriptor, ResourceRef, ResourceRelationship,
-    ResourceType, ResultType, ScaleRange, SchemaDescriptor, Selection, ServiceDescriptor,
-    ServiceRef, ServiceType, SortDirection, SortExpression, SourceMetadata, SpatialExtent,
-    SpatialOperation, SpatialPredicate, TemporalExtent, TemporalOperation, TemporalPredicate,
+    ExecutionMode, ExecutionOptions, ExecutionPolicy, ExtensionMap, FieldDescriptor, FieldType,
+    FilterExpr, FilterValidationError, FilterValue, GeoQuery, GeoResult, IncludeOptions,
+    JsonObject, License, Link, MAX_FILTER_DEPTH, PagingDescriptor, PagingStyle, Provenance,
+    Provider, QueryScope, QueryValidationError, RelationshipType, ResourceDescriptor, ResourceRef,
+    ResourceRelationship, ResourceType, ResultType, ScaleRange, SchemaDescriptor, Selection,
+    ServiceDescriptor, ServiceRef, ServiceType, SortDirection, SortExpression, SourceMetadata,
+    SpatialExtent, SpatialOperation, SpatialPredicate, TemporalExtent, TemporalOperation,
+    TemporalPredicate,
 };
 
 /// Each name used in type position, so an import that silently resolves to something
@@ -79,6 +80,7 @@ fn every_name_still_resolves_from_the_crate_root() {
     assert_is_a_type::<DistanceUnit>();
     assert_is_a_type::<ExecutionMode>();
     assert_is_a_type::<ExecutionOptions>();
+    assert_is_a_type::<ExecutionPolicy>();
     assert_is_a_type::<ExtensionMap>();
     assert_is_a_type::<FieldDescriptor>();
     assert_is_a_type::<FieldType>();

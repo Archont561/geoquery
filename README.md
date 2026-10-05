@@ -23,9 +23,12 @@
 > [!IMPORTANT]
 > **Phase 1 is in progress.** The query language itself is real and tested: the canonical
 > AST, CQL2-compatible filter expressions, the resource/service/result data model, and the
-> adapter, capability and execution contracts. The federation engine behind them is not
-> built, and no adapter contacts a live service yet — `geoquery query` exits with code `3`
-> rather than pretending otherwise.
+> adapter, capability and execution contracts. A first live source is real too: `geoquery
+> source add` discovers a STAC API and `geoquery query` runs a `GeoQuery` document against
+> one or more registered STAC sources, returning normalized JSON with provenance and
+> per-source status. The scope is deliberately narrow — `bbox`, `datetime`, `collections`
+> and `limit` only — and federation beyond STAC has not landed; see
+> [`.knowledge/project/phase-1-stac-spike.md`](.knowledge/project/phase-1-stac-spike.md).
 
 Geoquery sits above STAC, OGC API, WFS, ArcGIS, CMR, and similar protocols. Applications
 express intent once; adapters negotiate source capabilities and the planner decides what can
@@ -121,7 +124,8 @@ behind the same boundary.
 | Surface | API today | Role |
 | --- | --- | --- |
 | CLI | `geoquery check <query.json>` | Parse a query document offline and report its top-level keys. |
-| CLI | `geoquery query --service <url> --query <query.json>` | Parse first, then exit `3` because the execution engine is not available yet. |
+| CLI | `geoquery source add\|list\|describe` | Discover a STAC API and manage the local source registry. |
+| CLI | `geoquery query --query <query.json> [--source <id>]` | Run a `GeoQuery` document against one or more registered STAC sources; prints normalized JSON with provenance and per-source status. |
 | Python | `geoquery.parse_document(text)`, `protocol_version()`, `ping()`, `invoke()` | PyO3 binding over the versioned JSON transport; no HTTP service is involved. |
 | TypeScript | `parseDocument(text)`, `protocolVersion()`, `ping()`, `invoke()` | N-API binding over the same transport; currently linux-64 native package. |
 | Rust | `geoquery-types`, `geoquery-core`, `geoquery-protocol` | Canonical AST, validation, adapter contracts and transport envelope. |
@@ -236,25 +240,37 @@ Expected output:
 query.json is a query object with 2 keys: execution, limit
 ```
 
-The execution command is intentionally honest about the current phase:
+Registering and querying a live STAC source:
 
 ```bash
-geoquery query --service https://example.org --query query.json
-echo $?
+geoquery source add earth-search --type stac --url https://earth-search.aws.element84.com/v1
+geoquery source list
+geoquery source describe earth-search
+
+cat > scene-search.json <<'EOF'
+{
+  "spatial": { "op": "bbox", "bbox": [20.85, 52.10, 21.25, 52.35] },
+  "temporal": { "op": "intersects", "start": "2024-06-01T00:00:00Z", "end": "2024-08-31T23:59:59Z" },
+  "scope": { "resources": ["sentinel-2-l2a"] },
+  "limit": 5
+}
+EOF
+geoquery query --query scene-search.json
 ```
 
-```text
-geoquery: no engine yet — https://example.org was not contacted. geoquery 0.1.0 reads
-query documents; executing them arrives with the query engine.
-3
-```
+The response is one JSON object: `status` (`ok`/`partial`/`failed`), `results` (normalized
+`GeoResult`s with provenance), and `sources` (one entry per source with `status`, the
+`pushed` request, and any `degradations`). A source that cannot fully honour the query is
+skipped or degraded rather than silently dropped or made to fail the whole run — see
+`--policy strict|balanced|exploratory` (default `balanced`) in `geoquery query --help`.
 
 | Exit code | Meaning |
 | ---: | --- |
-| `0` | Success |
+| `0` | Success (including a `partial` federated result under `balanced`/`exploratory`) |
 | `1` | Input could not be read |
-| `2` | Input is not a query document |
-| `3` | Execution engine is not available yet |
+| `2` | Input is not a valid query document |
+| `3` | A registry or source problem: unknown id, unsupported type, discovery failed |
+| `4` | The federated run failed outright, or `strict` would not accept a partial one |
 
 ## ✨ Design goals
 

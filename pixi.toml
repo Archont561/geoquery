@@ -126,6 +126,30 @@ cargo-nextest = ">=0.9.144,<0.10"
 cargo-llvm-cov = ">=0.9.1,<0.10"
 cargo-deny = ">=0.20.2,<0.21"
 
+# conda-forge's `rust` package ships one line of activation
+# (etc/conda/activate.d/rust.sh): it points rustc's linker at the matching
+# `x86_64-conda-linux-gnu-cc`/sysroot pair so a cross-built binary links against the
+# pinned (older, broadly compatible) glibc rather than whatever the host happens to
+# ship. It does not also point `cc`-rs — the crate most native-C build scripts use —
+# at that same compiler, because that is normally `gcc_linux-64`'s job, and this
+# workspace depends on `rust` directly rather than on the separate compiler-activation
+# packages. Left unset, `cc`-rs falls back to its own default ("cc" on PATH), which
+# resolves to the *host's* system compiler. On a host whose glibc is new enough (>=
+# 2.38, e.g. Ubuntu 24.04's CI runners) that compiler emits ISO-C23 symbol names
+# (`__isoc23_sscanf` and friends) that the pinned sysroot's older glibc does not
+# export, and the mismatch is a link failure in whichever crate happens to be the
+# first in the dependency graph to compile real C (aws-lc-sys, via reqwest's rustls
+# backend, is that crate here) — one that has nothing to do with the Rust source
+# under test. Setting `CC`/`AR` (bare and target-qualified, for `cc`-rs's own lookup
+# order) to the same conda cross tools rustc already links with closes that gap: every
+# C build script now compiles against the same sysroot the final binary links against,
+# on any host, not only on whichever ones happen to already have an old enough system
+# glibc to hide the inconsistency.
+[feature.rust.activation.env]
+CC = "x86_64-conda-linux-gnu-cc"
+CC_x86_64_unknown_linux_gnu = "x86_64-conda-linux-gnu-cc"
+AR_x86_64_unknown_linux_gnu = "x86_64-conda-linux-gnu-ar"
+
 [feature.js.dependencies]
 # The only JavaScript runtime in the project.
 bun = { workspace = true }

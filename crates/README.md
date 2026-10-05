@@ -9,8 +9,11 @@ query.json is a query object with 2 keys: execution, limit
 ```
 
 `geoquery check` reads a query document and reports its shape without contacting
-anything. `geoquery query --service <URL> --query <file>` refuses, with exit code 3,
-until the query engine lands — see the repository README for the status.
+anything. `geoquery source add|list|describe` registers and inspects STAC sources;
+`geoquery query --query <file> [--source <id>]` runs a `GeoQuery` document against one or
+more registered sources and prints normalized JSON with provenance and per-source status
+— see the repository README and `.knowledge/project/phase-1-stac-spike.md` for the
+current scope and what is still unimplemented.
 
 ## Layout
 
@@ -27,7 +30,8 @@ until the query engine lands — see the repository README for the status.
 | `node-native/`, `python-native/` | the N-API and PyO3 bindings the TypeScript and Python SDKs load |
 | `cli/src/main.rs` | the binary: argument parsing, messages, exit codes |
 | `cli/tests/main.rs` | the binary's tests: it is run, and its stdout, stderr and exit code are the assertions |
-| `adapter-*/`, `http/`, `mcp/`, `tui/`, `xtask/` | the remaining crates from the roadmap, declared with the dependencies each will need |
+| `adapter-stac/` | `geoquery-adapter-stac`: STAC API discovery, query translation and result normalization — the one implemented, published adapter |
+| `adapter-ogc/`, `adapter-native/`, `http/`, `mcp/`, `tui/`, `xtask/` | the remaining crates from the roadmap, declared with the dependencies each will need |
 
 Each crate keeps its tests in `tests/`, one file per file in `src/`: `core/src/document.rs`
 is tested by `core/tests/document.rs`. `cli/tests/main.rs` is registered by `[[test]]` in

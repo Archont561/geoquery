@@ -108,7 +108,10 @@ authors = ["Archont561 <142521648+Archont561@users.noreply.github.com>"]
 # from crates.io. `scripts/version.ts` keeps the literal in step with workspace.version.
 geoquery-core = { path = "crates/core", version = "0.1.0" }
 geoquery-types = { path = "crates/types", version = "0.1.0" }
-geoquery-adapter-stac = { path = "crates/adapter-stac" }
+# Also published, as of Phase 1: `geoquery` depends on it directly for live STAC
+# execution, so it needs the same version pin core and types carry — see the comment on
+# `publish` in `crates/adapter-stac/Cargo.toml`.
+geoquery-adapter-stac = { path = "crates/adapter-stac", version = "0.1.0" }
 geoquery-adapter-ogc = { path = "crates/adapter-ogc" }
 geoquery-adapter-native = { path = "crates/adapter-native" }
 geoquery-http = { path = "crates/http" }
@@ -306,11 +309,24 @@ workspace = true
 [dependencies]
 clap = { workspace = true }
 # The language, not the transport. The CLI's job is to phrase what core says; a rule that
-# lived here would be a rule the service would have to write again. Neither adapter nor
-# server crate appears here, and that is deliberate: `cargo install --path .` builds
-# this package and the subgraph it reaches, so anything listed above would be compiled
-# into the released binary for no reason a user could observe.
+# lived here would be a rule the service would have to write again.
 geoquery-core = { workspace = true }
+geoquery-types = { workspace = true }
+# Phase 1's one live adapter. `cargo install --path .` builds this package and the
+# subgraph it reaches, so `geoquery-adapter-stac` — and the `reqwest`/`tokio` it pulls in
+# — now ships in the released binary for the reason a server crate still does not: there
+# is somewhere for a STAC query to go. A second adapter arrives the same way, one
+# dependency line at a time, rather than the CLI growing a protocol dispatcher of its own.
+geoquery-adapter-stac = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+
+[dev-dependencies]
+# `crates/cli/tests/main.rs` runs the compiled binary against a mock STAC server rather
+# than a live one, the same rule every adapter test in this workspace follows.
+wiremock = { workspace = true }
 
 [[bin]]
 # The package and binary are both `geoquery`: a user who installs one package gets

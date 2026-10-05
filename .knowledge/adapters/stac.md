@@ -20,6 +20,15 @@ STAC is a **first-class adapter**, not merely another metadata format.
 STAC 1.1 and STAC API 1.0 are established standards and now an OGC
 Community Standard.
 
+**Phase 1 spike (2026-10-05):** landing-page/conformance discovery, collection listing,
+and query translation/normalization are implemented in `crates/adapter-stac`, narrowed to
+`bbox`, `datetime`, `collections` and `limit` only — CQL2 filtering, sorting, and
+pagination past one page are not yet sent, and every other query feature is reported as
+refused rather than attempted. See
+[project/phase-1-stac-spike](../project/phase-1-stac-spike.md) for what that spike proved
+and what it left open, including why this adapter's capability reporting deliberately
+does not reuse `geoquery-core`'s generic `CapabilityReport` for spatial predicates.
+
 **Rust ecosystem note:** There is no dominant Rust STAC SDK comparable
 to Python's `pystac-client`. The adapter is built as custom HTTP +
 `serde` models using `reqwest`. This is straightforward because STAC

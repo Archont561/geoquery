@@ -6,9 +6,9 @@
 
 use chrono::{DateTime, Utc};
 use geoquery_types::{
-    DistanceUnit, ExecutionMode, ExecutionOptions, GeoQuery, IncludeOptions, QueryScope,
-    QueryValidationError, ResourceType, Selection, SortDirection, SortExpression, SpatialOperation,
-    SpatialPredicate, TemporalOperation, TemporalPredicate,
+    DistanceUnit, ExecutionMode, ExecutionOptions, ExecutionPolicy, GeoQuery, IncludeOptions,
+    QueryScope, QueryValidationError, ResourceType, Selection, SortDirection, SortExpression,
+    SpatialOperation, SpatialPredicate, TemporalOperation, TemporalPredicate,
 };
 use pretty_assertions::assert_eq;
 use serde_json::json;
@@ -281,6 +281,52 @@ fn an_unknown_execution_mode_is_refused() {
         error.to_string().contains("lcoal"),
         "the error should quote what was written: {error}"
     );
+}
+
+#[test]
+fn an_unknown_execution_policy_is_refused() {
+    let error =
+        serde_json::from_value::<GeoQuery>(json!({ "execution": { "policy": "aggressive" } }))
+            .expect_err("`aggressive` is not a policy");
+
+    assert!(
+        error.to_string().contains("aggressive"),
+        "the error should quote what was written: {error}"
+    );
+}
+
+#[test]
+fn execution_policy_defaults_to_balanced() {
+    assert_eq!(
+        ExecutionOptions::default().policy(),
+        ExecutionPolicy::Balanced
+    );
+
+    let query: GeoQuery = serde_json::from_value(json!({ "execution": { "policy": "strict" } }))
+        .expect("a named policy parses");
+    assert_eq!(
+        query.execution.expect("execution options").policy(),
+        ExecutionPolicy::Strict
+    );
+}
+
+#[test]
+fn every_execution_policy_round_trips() {
+    for (policy, word) in [
+        (ExecutionPolicy::Strict, "strict"),
+        (ExecutionPolicy::Balanced, "balanced"),
+        (ExecutionPolicy::Exploratory, "exploratory"),
+    ] {
+        let options = ExecutionOptions {
+            policy: Some(policy),
+            ..ExecutionOptions::default()
+        };
+        let value = serde_json::to_value(&options).expect("execution options serialize");
+        assert_eq!(value["policy"], word);
+        let back: ExecutionOptions =
+            serde_json::from_value(value).expect("execution options round-trip");
+        assert_eq!(back.policy(), policy);
+    }
 }
 
 #[test]

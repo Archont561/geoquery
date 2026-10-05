@@ -36,6 +36,15 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # `ImageOS`/`ImageVersion` identify the hosted-runner image (e.g. `ubuntu24`,
+      # `20260927.320.1`). They exist as process environment variables on the runner, not
+      # as entries of the `env` expression context, so a cache step's `key:` cannot read
+      # `${{ env.ImageOS }}` directly — that interpolates to an empty string and silently
+      # stops scoping anything. Writing them to $GITHUB_ENV here is what makes
+      # `${{ env.RUNNER_IMAGE }}` resolve in every later step of this job.
+      - name: Expose the runner image for cache keys
+        run: echo "RUNNER_IMAGE=${ImageOS}-${ImageVersion}" >> "$GITHUB_ENV"
+
       # The pixi environment: the whole toolchain (rust, bun, python, the utilities) from
       # one lockfile. `cache: true` keys the restore on pixi.lock.
       - uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
@@ -47,6 +56,14 @@ jobs:
       # crates; this restores the registry, the git checkouts and target/ so a rerun does
       # not recompile the dependency graph from scratch. Keyed on Cargo.lock, with a prefix
       # fallback so an unchanged lock but changed sources still warm-starts from target/.
+      # `RUNNER_IMAGE` is in the key, not just `runner.os`: a crate that links native C
+      # (aws-lc-sys, in this graph) bakes the host's glibc into its object files, and a
+      # restore-keys fallback that only matches `runner.os` will happily hand a `target/`
+      # built on one hosted-runner image to a job running a newer (or older) one. The two
+      # glibcs disagree on symbols like `__isoc23_sscanf`, and the result is a link failure
+      # that has nothing to do with the commit under test — it is the cache serving an
+      # incompatible binary. Scoping the key to the image makes that collision impossible:
+      # an image bump costs one cold build, not a flaky link error.
       - name: Cache Cargo build
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
@@ -55,9 +72,9 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          key: ${{ runner.os }}-${{ env.RUNNER_IMAGE }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-${{ env.RUNNER_IMAGE }}-cargo-
 
       # Turbo owns the cross-package cache for the TypeScript workspace. The Rust and Python
       # turbo nodes are `cache: false` — cargo (above) and the instrumented coverage run own
@@ -114,7 +131,11 @@ jobs:
           environments: default
 
       # The conda build compiles the CLI through pixi-build-rust; the same Cargo cache keeps
-      # that compile off the cold path on a rerun.
+      # that compile off the cold path on a rerun. The key carries the runner image for the
+      # same reason the `checks` job's does: a native-linked crate's objects are bound to
+      # the host glibc, and a restore-keys fallback scoped only to `runner.os` can hand this
+      # job a `target/` built on a different image, which then fails to link on a symbol
+      # the two glibcs disagree about (see the `checks` job's cache step for the full story).
       - name: Cache Cargo build
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
@@ -123,9 +144,9 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          key: ${{ runner.os }}-${{ env.ImageOS }}-${{ env.ImageVersion }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-${{ env.ImageOS }}-${{ env.ImageVersion }}-cargo-
 
       - name: Install the locked environment
         run: pixi install --locked
